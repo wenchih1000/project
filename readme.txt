@@ -4,21 +4,21 @@
 --------------------------------------------------------------------------------------------
 天胡    (Heavenly Hand,Tian Hu) 24 台	莊家起手 17 張牌已胡牌。
 地胡    (Winning Hand,Di Hu)    16 台	閒家摸第一張牌後就胡牌。
-人胡	(Humanly Hand)	        16 台   閒家在首輪胡莊家打出的第一張牌（須無吃碰槓）。
         (Earthly Hand)
+人胡	(Humanly Hand)	        16 台   閒家在首輪胡莊家打出的第一張牌（須無吃碰槓）。
 平胡    (Plain Hand,Pure Chow)  2 台    平胡必須無其他刻子結構台、無字牌、無花牌、非獨聽、非自摸胡牌。
 字一色	(All Honors)	        16 台   手牌完全由字牌（風牌、三元牌）組成。
-大四喜  (Big Four Winds)	    16 台	集滿東、南、西、北四組刻子。
+大四喜  (Big Four Winds)	16 台	集滿東、南、西、北四組刻子。
 五暗刻  (Five Concealed Pungs)	8 台	手牌中有五組自己摸到的刻子 (自摸胡牌)。
 四暗刻  (Four Concealed Pungs)  5 台    手牌中有四組自己摸到的刻子。
 三暗刻  (Three Concealed Pungs) 2 台    手牌中有三組自己摸到的刻子。
 清一色  (All One Suit)	        8 台	整副牌只由同一種花色（萬、索、筒）組成，沒有字牌。
-大三元  (Big Three Dragons)	    8 台	集滿中、發、白三組刻子。
-小四喜	(Little Four Winds)	    8 台    湊齊東、南、西、北其中三組刻子，一組將牌（對子）。
+大三元  (Big Three Dragons)	8 台	集滿中、發、白三組刻子。
+小四喜	(Little Four Winds)	8 台    湊齊東、南、西、北其中三組刻子，一組將牌（對子）。
 八仙過海(Eight Immortals)       8 台	拿到全部 8 張花牌，立即胡牌。
-七搶一	(Seven Grab One)	    8 台    擁有 7 張花牌，搶胡摸到第 8 張花的玩家（立即胡牌）。
+七搶一	(Seven Grab One)	8 台    擁有 7 張花牌，搶胡摸到第 8 張花的玩家（立即胡牌）。
 小三元	(Little Three Dragons)	4 台    湊齊紅中、發財、白板其中兩組刻子，一組將牌。
-碰碰胡  (All Pungs)	            4 台	全部由刻子組成 + 一組將牌組成，沒有順子。
+碰碰胡  (All Pongs)	        4 台	全部由刻子組成 + 一組將牌組成，沒有順子。
 混一色  (Mixed Suit)            4 台	由字牌和單一花色組成。
 門清自摸(Concealed Self-Drawn)  3 台	沒有吃、碰、明槓，且自己摸到胡牌牌張 （通常為門清 1 台 + 不求人 1 台 + 自摸 1 台的合稱）。
 全求人  (Complete Discard)      2 台    手牌全靠吃碰，只剩單張聽牌，胡別人打出的牌。
@@ -27,11 +27,11 @@
 花牌	(Flowers)               1 台	拿到與自己門風（東、南、西、北）對應的花牌（梅/春、蘭/夏、竹/秋、菊/冬）或見花見字。
 門清    (Concealed Hand,Menqing)1 台	沒有吃、碰、明槓，且胡牌牌張他家牌。
 獨聽	(Single Wait)	        1 台    聽邊張、中洞或單吊將牌。
-圈風/門風(Round/Seat Wind)	    1 台    手牌有與當前圈風或自己門風相同的刻子。
+圈風/門風(Round/Seat Wind)	1 台    手牌有與當前圈風或自己門風相同的刻子。
 三元刻	(Dragon Pung)       	1 台    手牌有中、發、白任一種刻子。
 槓上開花 (Kong on Flower)   	1 台    因槓牌或摸花補牌後自摸胡牌。
 搶槓	(Robbing Kong)	        1 台    胡別人加槓（補槓）的那張牌。
-海底撈月 (Last Tile Draw)	    1 台    摸牌牆最後一張牌自摸胡牌。
+海底撈月 (Last Tile Draw)	1 台    摸牌牆最後一張牌自摸胡牌。
 河底撈魚 (Last Tile Discard)	1 台    胡別人打出的最後一張牌。
 莊家	(Dealer)                1 台    做莊家者，無論胡牌或放槍都加算 1 台。
 連莊拉莊 (Dealer Streak)        2N+1台	連 N 拉 N 為 (2N + 1) 台 (例如連 1 拉 1 是 3 台)。
@@ -62,7 +62,7 @@
 牌牆    (Wall)
 死牌區  (Dead Wall) 16張
 門清    (Menqing / Concealed)
-刻子    (Pung)
+刻子    (Pong)
 順子    (Chow)
 將牌    (Pair)
 打牌    (Discard)
