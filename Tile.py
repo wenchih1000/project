@@ -190,17 +190,21 @@ class Tile(object):
     def toStr(self) -> str:
         return self.Alias
 
+    # 判斷是否為花牌 (梅/蘭/竹/菊,春/夏/秋/冬)
     def IsFlower(self) -> bool:
         return self.Suit == SUIT.FLOWER
 
+    # 判斷是否為字牌 (風牌/三元牌)
     def IsHonor(self) -> bool:
         return self.Suit == SUIT.HONOR
 
+    # 判斷是否為風牌 (東/南/西/北)
     def IsWind(self) -> bool:
         if self.Suit != SUIT.HONOR:
             return False
         return self.Num in WIND
 
+    # 判斷是否為三元牌 (中/發/白)
     def IsArrow(self) -> bool:
         if self.Suit != SUIT.HONOR:
             return False
