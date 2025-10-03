@@ -92,9 +92,10 @@ class TileRange(Enum):
     FlowerMin, FlowerMax = 1, 8
 
 # 定義麻將牌
-class Tile:
+class Tile(object):
     __Suit:SUIT = None
     __Num:int = 0
+    NumMin, NumMax = 1, 9
 
     # for operation
     __Name:str = ''
@@ -149,18 +150,41 @@ class Tile:
         else:
             self.__Alias = TileAlias.NumList[NumOffset] + TileAlias.CharList[self.Suit.value]
 
+    def __int__(self) -> int:
+        return self.Num
+
     def __str__(self) -> str:
         if self.Suit == SUIT.HONOR or self.Suit == SUIT.FLOWER:
             return self.SubName
         else:
             return self.Name
 
+    def __add__(self, num:int) -> 'Tile':
+        if num < self.NumMin:
+            num = self.NumMin
+
+        val = self.Num + num
+        if val > self.NumMax:
+            val = self.NumMax
+
+        return Tile({'suit':self.Suit, 'num':val})
+
     # for sorting
-    def __lt__(self, other) -> bool:
+    def __lt__(self, other:'Tile') -> bool:
         if self.Suit == other.Suit:
             return self.Num < other.Num
         else:
             return self.Suit.value < other.Suit.value
+
+    def __eq__(self, other:'Tile') -> bool:
+        if isinstance(other, Tile):
+            return self.Suit == other.Suit and self.Num == other.Num
+        else:
+            return False
+
+    # for Counter to hash match
+    def __hash__(self):
+        return hash((self.Suit, self.Num))
 
     # for console display
     def toStr(self) -> str:
@@ -293,6 +317,14 @@ def DemoAlias2Tile():
         PrintLog(f"{t}, {t.toStr()}, {t.IsFlower()}, {t.IsHonor()}")
 
 if __name__ == '__main__':
-    
-    DemoTiles()
-    DemoAlias2Tile()
+
+    t1 = Tile({'suit':SUIT.CHAR, 'num':7})
+    t2 = Tile({'suit':SUIT.CHAR, 'num':7})
+    print(t1 == t2)
+    print(t1)
+    print(t1+1)
+    print(t1+2)
+
+
+    # DemoTiles()
+    # DemoAlias2Tile()
