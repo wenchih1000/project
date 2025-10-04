@@ -22,8 +22,8 @@ class RuleContext:
     IsCenterWait: bool = False      # 中洞/崁張 (1台)
     IsPairWait: bool = False        # 兩面聽/對倒/複合聽 (通常不計台，是平胡的必要條件)
     # 風台
-    PlayerWind: int = 0             # 玩家風台
-    RoundWind: int = 0              # 風局台
+    PlayerWind: int = 0             # 玩家風台 (1:東 2:南 3:西 4:北)
+    RoundWind: int = 0              # 風局台   (1:東 2:南 3:西 4:北)
     #莊家台
     DealerStreak: int = 0           # 連莊/連拉
     # 花台
@@ -163,6 +163,14 @@ class Rule:
         if len(hand) == 0:
             return False
 
+        # FirstTile = None
+        # for key, val in hand.items():
+        #     if val > 0:
+        #         FirstTile = key
+        #         break
+        # if FirstTile == None:
+        #     return False # 應該在第一個檢查點就返回
+
         FirstTile = sorted(hand.keys())[0]
         if not FirstTile:
             return False # 應該在第一個檢查點就返回
@@ -170,6 +178,9 @@ class Rule:
         # 1. 嘗試以這張牌作為「眼」
         if pairsNum < 1 and hand[FirstTile] >= 2:
             hand[FirstTile] -= 2
+
+            if hand[FirstTile] == 0:
+                del hand[FirstTile]
             if self.CanWin(hand, pairsNum + 1):
                 return True
             hand[FirstTile] += 2 # 回溯
@@ -177,6 +188,9 @@ class Rule:
         # 2. 嘗試以這張牌組成「刻子」
         if hand[FirstTile] >= 3:
             hand[FirstTile] -= 3
+
+            if hand[FirstTile] == 0:
+                del hand[FirstTile]
             if self.CanWin(hand, pairsNum):
                 return True
             hand[FirstTile] += 3 # 回溯
@@ -190,6 +204,9 @@ class Rule:
                 hand[t1] -= 1
                 hand[t2] -= 1
                 hand[t3] -= 1
+
+                # 清理計數為 0 的牌
+                hand = Counter({k: v for k, v in hand.items() if v > 0})
                 if self.CanWin(hand, pairsNum):
                     return True
                 hand[t1] += 1
@@ -234,21 +251,221 @@ class Rule:
 
         return waits
 
+
+    def Calculate(self, partition: Partition, context: RuleContext) -> tuple[int, list[Tile]]:
+        """
+        計算台灣16張麻將的總台數。
+
+        返回: (總台數, [台數名稱列表])
+        """
+        Score = 0
+        ScoreNameList = []
+
+        # 1. 數據預處理
+        AllMelds = partition.Pongs + partition.Kongs + partition.Chows
+        AllTiles = [tile for meld in AllMelds for tile in meld] + list(partition.Pair)
+        PongsKongs = partition.Pongs + partition.Kongs # 所有的刻子和槓子
+
+        # 門清判斷：exposed_melds 應為 0 
+        # 由於 Partition 結構沒有提供每個 meld 的 exposed 狀態，我們依賴 Partition.exposed_melds (假設已從外部計算好)
+        IsMenqing = partition.ExposedMelds == 0
+
+        # 2. 字牌刻子計數
+        HonorPongsKongs = [meld for meld in PongsKongs if meld[0].IsHonor()]
+        WindPongsCount = sum(1 for meld in HonorPongsKongs if meld[0].IsWind())
+        ArrowPongsCount = sum(1 for meld in HonorPongsKongs if meld[0].IsArrow())
+
+        # --- A. 極致牌型 (最高層級，可能需互斥或包含) ---
+
+        # 天胡/地胡 (16台，最高優先)
+        if context.IsHeavenlyHand:
+            Name = "天胡" if context.IsDealer else "地胡"
+            ScoreNameList.append(f"{Name} (16台)")
+            return 16, ScoreNameList
+
+        # 大四喜 (16台)
+        IsBigWind = False
+        if WindPongsCount == 4:
+            IsBigWind = True
+            ScoreNameList.append("大四喜 (16台)"); Score += 16
+
+        # --- B. 花色/結構牌型 (次高層級，互相獨立或包含) ---
+
+        IsAllHonor = all(t.IsHonor() for t in AllTiles)
+
+        # 字一色 (8台)
+        if IsAllHonor and WindPongsCount != 4: # "大四喜" not in ScoreNameList:
+            ScoreNameList.append("字一色 (8台)"); Score += 8
+
+        # 大三元 (8台)
+        IsBigArrow = False
+        if ArrowPongsCount == 3:
+            IsBigArrow = True
+            ScoreNameList.append("大三元 (8台)"); Score += 8
+
+        # 清一色 (8台) / 混一色 (4台)
+        SuitTiles = [t for t in AllTiles if not t.IsHonor()]
+        NumSuits = len({t.Suit for t in SuitTiles})
+
+        if NumSuits <= 1 and not IsAllHonor:
+            if not SuitTiles: # 避免牌組全為字牌但無字一色的情況
+                pass
+            elif not any(t.IsHonor() for t in AllTiles):
+                ScoreNameList.append("清一色 (8台)"); Score += 8
+            elif any(t.IsHonor() for t in AllTiles):
+                ScoreNameList.append("混一色 (4台)"); Score += 4
+
+        # 小四喜 (8台)
+        IsWindPair = partition.Pair[0].IsWind()
+        IsSmallWind = False
+        if WindPongsCount == 3 and IsWindPair: #"大四喜" not in ScoreNameList:
+            IsSmallWind = True
+            ScoreNameList.append("小四喜 (8台)"); Score += 8
+
+        # 小三元 (4台)
+        IsArrowPair = partition.Pair[0].IsArrow()
+        IsSmallArrow = False
+        if ArrowPongsCount == 2 and IsArrowPair:# and "大三元" not in ScoreNameList:
+            IsSmallArrow = True
+            ScoreNameList.append("小三元 (4台)"); Score += 4
+
+        # 碰碰胡 (4台) - 結構台
+        if not partition.Chows:
+            ScoreNameList.append("碰碰胡 (4台)"); Score += 4
+
+        # --- C. 暗刻/順子牌型 (最低層級，可疊加於花色台，互斥於同結構高台) ---
+
+        # 五暗刻 (8台) / 四暗刻 (5台) / 三暗刻 (2台)
+        ConcealedCount = partition.ConcealedPongs + partition.ConcealedKongs
+
+        if ConcealedCount == 5:
+            ScoreNameList.append("五暗刻 (8台)"); Score += 8
+        elif ConcealedCount == 4:
+            ScoreNameList.append("四暗刻 (5台)"); Score += 5 
+        elif ConcealedCount == 3:
+            ScoreNameList.append("三暗刻 (2台)"); Score += 2
+
+        # 平胡 (2台) - 結構台，與刻子牌型互斥
+        IsPureChow = len(partition.Chows) == 5 and not PongsKongs
+        IsValidPlainHand = IsPureChow and not partition.Pair[0].IsHonor()
+
+        # 平胡必須無其他刻子結構台 (如三暗刻/碰碰胡) 且花色台數不宜過高
+        if IsValidPlainHand and ConcealedCount < 3:#not any(p in ScoreNameList for p in ["碰碰胡", "五暗刻", "四暗刻", "三暗刻"]):
+            # 嚴格來說平胡與清一色/混一色可疊加，但各地規則不同，這裡假設可疊加
+            ScoreNameList.append("平胡 (2台)"); Score += 2
+
+        # --- D. 基礎與加成台數 (獨立加總) ---
+
+        # 莊家與連莊
+        if context.IsDealer:
+            Score += 1
+            ScoreNameList.append("莊家 (+1台)")
+
+        # 門清與自摸 (門清一摸三)
+        if IsMenqing and context.IsSelfDraw:
+            Score += 3
+            ScoreNameList.append("門清一摸三 (3台)")
+        elif IsMenqing:
+            Score += 1
+            ScoreNameList.append("門清 (1台)")
+        elif context.IsSelfDraw:
+            Score += 1
+            ScoreNameList.append("自摸 (1台)")
+
+        # ** 新增：聽牌型態 (1 台)**
+        # 這些台數通常是互斥的，且只計算最高的或其中一個。
+        if context.IsSingleWait:
+            Score += 1; ScoreNameList.append("獨聽/單吊 (+1台)")
+        elif context.IsEdgeWait:
+            Score += 1; ScoreNameList.append("邊張 (+1台)")
+        elif context.IsCenterWait:
+            Score += 1; ScoreNameList.append("中洞/崁張 (+1台)")
+
+        # 風牌與三元牌 (單獨計算，避免被大小四喜/三元完全覆蓋)
+        for meld in HonorPongsKongs:
+            #HonorMin, HonorMax = 1, 7
+            rank = meld[0].Num
+
+            # 三元牌 (中發白)
+            if rank in ARROW and not not IsSmallArrow and not IsBigArrow:#any(p in ScoreNameList for p in ["大三元", "小三元"]):
+                Score += 1
+                ScoreNameList.append(f"{meld[0].toStr()} (+1台)")
+
+            # 風牌 (圈風、門風)
+            if rank in WIND:
+                WindValue = rank
+                # 圈風牌
+                if WindValue == context.RoundWind and not IsBigWind: #"大四喜" not in ScoreNameList:
+                    Score += 1
+                    ScoreNameList.append(f"圈風牌({meld[0].toStr()}) (+1台)")
+                # 門風牌
+                if WindValue == context.PlayerWind and not IsSmallWind and not IsBigWind:#any(p in ScoreNameList for p in ["大四喜", "小四喜"]):
+                    # 小四喜已涵蓋門風刻，故不重複計
+                    Score += 1
+                    ScoreNameList.append(f"門風牌({meld[0].toStr()}) (+1台)")
+
+        # 花牌與正花
+        for flower in context.FlowerTiles:
+            Score += 1 # 每一張花牌算 1 台
+            ScoreNameList.append(f"花牌 ({flower.toStr()}) (+1台)")
+            if flower.Num == context.PlayerWind:
+                Score += 1
+                ScoreNameList.append(f"正花 (+1台)")
+
+        # 額外事件台 (已在前面計算，這裡是為了保持邏輯完整性)
+        if context.IsGongOnFlower: ScoreNameList.append("槓上開花 (+1台)")
+        if context.IsLastTileDraw: ScoreNameList.append("海底撈月 (+1台)")
+        if context.IsRobbingGong: ScoreNameList.append("搶槓 (+1台)")
+
+        return Score, ScoreNameList
+
 if __name__ == '__main__':
 
-    tmp = ["1萬","2萬","3萬","3索","3索","3索","5筒","6筒","7筒","5筒","6筒","7筒","南","南","南","中","中"] 
-    hand = []
-    for i in tmp:
-        hand.append(Tile({'alias':i}))
-
+    # 測試1
+    hand = Tile.Alias2Tile(["1萬","2萬","3萬","3索","3索","3索","5筒","6筒","7筒","5筒","6筒","7筒","南","南","南","中","中"])
     rule = Rule()
     ret = rule.IsHu(hand)
-    print(ret)
+    PrintLog("胡:"+str(ret))
 
-    # ret = rule.IsHu(['3m', '3m', '3m', '4m', '5m', '6m', '7m', '7m', '7m', '1p', '1p', '3p', '4p', '5p', '6p', '7p', '8p'])
-    # print(ret)
-
-    # player = ['2m', '2m', '4m', '5m', '6m', '6m', '7m', '8m', '1p', '2p', '3p', '4p', '5p', '6p', 'F', 'F']
-    hand.pop(0)
+    # 測試2
+    hand = Tile.Alias2Tile(["2萬","3萬","3索","3索","3索","5筒","6筒","7筒","5筒","6筒","7筒","南","南","南","中","中"])
     ret = rule.FindAllWaits(hand)
-    print(ret)
+    tmp = ""
+    for t in ret:
+        tmp += f"{t.toStr()} "
+    PrintLog("聽:"+tmp)
+
+    # #
+    # # 計算台數
+    # #
+
+    # 測試3: 莊家連一，門清自摸，混一色碰碰胡帶門風
+    
+    # 假設 is_hu 函式回傳了這個牌組結構
+    partition = Partition(
+        Pair=Tile.Alias2Tile(['東', '東']), # 東風對
+        Pongs=[],
+        Kongs=[
+            Tile.Alias2Tile(['1萬', '1萬', '1萬', '1萬']), 
+            Tile.Alias2Tile(['2萬', '2萬', '2萬', '2萬']),
+            Tile.Alias2Tile(['3萬', '3萬', '3萬', '3萬']), 
+            Tile.Alias2Tile(['5萬', '5萬', '5萬', '5萬'])
+        ],
+        Chows=[],
+        ConcealedPongs=0,
+        ConcealedKongs=4 # 假設四個暗槓
+    )
+
+    context = RuleContext(
+        IsDealer=True,
+        IsSelfDraw=True,
+        DealerStreak=2,
+        PlayerWind=0, # 東風
+        RoundWind=0,  # 東風圈
+        FlowerTiles=Tile.Alias2Tile(['梅', '蘭', '竹', '菊', '春', '夏', '秋', '冬'])
+    )
+
+    total, breakdown = rule.Calculate(partition, context)
+    
+    print(f"胡牌牌型:\n\t{'\n\t'.join(breakdown)}")
+    print(f"總台數: {total} 台")

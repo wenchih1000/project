@@ -255,6 +255,13 @@ class Tile(object):
                 num = TileRange.CharMax.value
         return num
 
+    @staticmethod
+    def Alias2Tile(alias:list[str]) -> list['Tile']:
+        tiles = []
+        for a in alias:
+            tiles.append(Tile({'alias':a}))
+        return tiles
+
 # ------------------------------------------------------------------------------------------------
 # debug testing
 # ------------------------------------------------------------------------------------------------
