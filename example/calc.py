@@ -28,20 +28,20 @@ class TaiInfo:
         self.is_last_tile = is_last_tile
         self.is_gang_draw = is_gang_draw
         self.is_robbing_gang = is_robbing_gang
-        
+
 class TaiCalculator:
     def __init__(self, info: TaiInfo):
         self.info = info
         self.tai_results: Dict[str, int] = {}
         self.total_tai = 0
-        
+
         # 建立牌張分類 (用於快速檢查花色和字牌)
         self.honor_tiles = {'We', 'Ws', 'Ww', 'Wn', 'R', 'G', 'B'}
         self.suit_tiles = [t for t in info.counts.keys() if t not in self.honor_tiles]
 
     def calculate_all(self, is_dealer: bool, dealer_streak: int) -> Tuple[int, Dict[str, int]]:
         """執行所有台數檢查，並返回總台數和明細。"""
-        
+
         # 1. 天地人胡檢查 (最高優先級，互斥於基礎台)
         if self._check_heavenly_earthly_humanly(is_dealer):
              # 天胡、地胡、人胡成立，不繼續檢查基礎台
@@ -50,17 +50,17 @@ class TaiCalculator:
              # 2. 基礎與特殊動作台
              self._check_basic_tai()
              self._check_action_tai()
-             
+
              # 3. 牌型台 (從高台開始檢查)
              self._check_high_honors_tai()  # 大四喜、大三元、字一色
              self._check_high_suit_tai()    # 清一色、混一色
              self._check_mid_tai()          # 碰碰胡、四暗刻、五暗刻、小三元、小四喜
              self._check_low_tai()          # 平胡、三暗刻、全求人
-             
+
              # 4. 風箭花牌台 (通常可疊加)
              self._check_wind_dragon_tai()
              self._check_flower_tai()
-             
+    
         # 5. 莊家台 (獨立計算，通常疊加)
         self._check_dealer_tai(is_dealer, dealer_streak)
         
@@ -134,7 +134,7 @@ class TaiCalculator:
         # 簡化檢查：檢查所有牌是否都是字牌
         if all(tile in self.honor_tiles for tile, count in self.info.counts.items()):
             self._add_tai("字一色", 16)
-        
+
         # 實際應呼叫更複雜的檢查函式來判斷大三元、大四喜、小三元、小四喜...
 
     def _check_high_suit_tai(self):
