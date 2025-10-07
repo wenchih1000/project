@@ -21,7 +21,7 @@
 七搶一	(Seven Grab One)	8 台    擁有 7 張花牌，搶胡摸到第 8 張花的玩家（立即胡牌）。
 小三元	(Little Three Dragons)	4 台    湊齊紅中、發財、白板其中兩組刻子，一組將牌。
 碰碰胡  (All Pongs)	        4 台	全部由刻子組成 + 一組將牌組成，沒有順子。
-混一色  (Mixed Suit)            4 台	由字牌和單一花色組成。
+混一色  (Mixed One Suit)        4 台	由字牌和單一花色組成。
 門清自摸(Concealed Self-Drawn)  3 台	沒有吃、碰、明槓，且自己摸到胡牌牌張 （通常為門清 1 台 + 不求人 1 台 + 自摸 1 台的合稱）。
 全求人  (Complete Discard)      2 台    手牌全靠吃碰，只剩單張聽牌，胡別人打出的牌。
 莊家    (Dealer)                1 台	當莊家，不論胡牌或放槍都多算 1 台。
@@ -63,7 +63,7 @@
 死牌區  (Dead Wall) 16張
 門清    (Menqing / Concealed)
 刻子    (Pong)
-順子    (Chow)
+順子    (Chow / Sequence)
 將牌    (Pair)
 打牌    (Discard)
 叫牌    (Claim)

@@ -2,7 +2,7 @@
 # define Taiwan Mahjong tile class
 #
 
-# from collections import Counter
+from collections import Counter
 from enum import Enum
 import random
 
@@ -69,11 +69,16 @@ class FLOWER:#(GENTLEMEN, PERIOD):
 
 # 搭的組成
 class MELD(Enum):
-    CHOW = 0 #吃
-    PONG = 1 #碰
-    GANG = 2 #槓
-    ADD_ON_GANG = 3 #先碰後摸到第四張變槓
-    CONCEALED_GANG = 4 #暗槓
+    PAIR = 0 #對
+    CHOW = 1 #吃
+    PONG = 2 #碰
+    KONG = 3 #槓
+    ADD_KONG = 4 #先碰後摸到第四張變槓
+
+    PAIR_LEN = 2
+    CHOW_LEN = 3
+    PONG_LEN = 3
+    KONG_LEN = 4
 
 # for console display
 class TileAlias:
@@ -261,6 +266,24 @@ class Tile(object):
         for a in alias:
             tiles.append(Tile({'alias':a}))
         return tiles
+
+# 定義搭(Meld), 用來形成 對子/順子/刻子/槓子
+# 並標註此搭為明搭或暗搭
+class Meld:
+    Type: MELD = None
+    Exposed: bool = False
+    Tiles: tuple[Tile] = None
+
+    def __init__(self, exposed: bool, tiles: tuple):
+        self.Exposed = exposed
+        self.Tiles = tiles
+        if len(tiles) == MELD.PAIR_LEN.value:
+            self.Type = MELD.PAIR
+        elif len(tiles) == MELD.CHOW_LEN.value or len(tiles) == MELD.PONG_LEN.value:
+            count = Counter(tiles)
+            self.Type = MELD.CHOW if len(count) == 3 else MELD.PONG
+        elif len(tiles) == MELD.KONG_LEN.value:
+            self.Type = MELD.KONG
 
 # ------------------------------------------------------------------------------------------------
 # debug testing

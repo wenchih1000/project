@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from collections import Counter
 
 @dataclass
-class RuleContext:
+class HandCondition:
     IsExposed: bool = False         # 標誌是否吃碰過
     IsDealer: bool = False          # 莊家
     IsSelfDraw: bool = False        # 自摸
@@ -23,26 +23,41 @@ class RuleContext:
 
     IsPairWait: bool = False        # 兩面聽/對倒/複合聽 (通常不計台，是平胡的必要條件)
     # 風台
-    SeatWind: int = 0             # 玩家門風台 (1:東 2:南 3:西 4:北)
+    SeatWind: int = 0               # 玩家門風台 (1:東 2:南 3:西 4:北)
     RoundWind: int = 0              # 圈風台     (1:東 2:南 3:西 4:北)
     #莊家台
     DealerStreak: int = 0           # 連莊/連拉
     # 花台
     SeatFlower: int = 0             # 玩家正花台 (1:梅/春 2:蘭/夏 3:竹/秋 4:菊/冬)
-    # RoundFlower: int = 0              # 圈花台     (5:春 6:夏 7:秋 8:冬)
+    # RoundFlower: int = 0          # 圈花台     (5:春 6:夏 7:秋 8:冬)
 
-# 檢查手牌組了幾個搭
+# 檢查手牌組了幾個明/暗搭
+# 對子/順子/刻子/槓子
 # 滿足胡牌條件:5搭x3 + 1對x2 = 17張
 # 滿足聽牌條件:4搭x3 + 缺1張組成搭 + 1對x2 = 16張
 #             4搭x3 + 2對x2 = 16張
+
+# 胡牌至少5組(順/刻/槓搭)+1組(對搭) = 6 Meld
+@dataclass
+class HandClassify:
+    Pair: Meld              #   1組對子/眼
+    Pongs: list[Meld]       # 0~n組碰子/刻
+    Kongs: list[Meld]       # 0~n組槓子/槓
+    Chows: list[Meld]       # 0~n組吃子/順
+    Flowers: list[Tile]     # 0~n張花牌
+
+    # def __init__(self, hand:tuple[Meld]):
+    #     pass
+
 @dataclass
 class Partition:
-    Pair: tuple[Tile, Tile]                    # 1對
-    Pongs: list[tuple[Tile, Tile, Tile]]       # 碰
-    Kongs: list[tuple[Tile, Tile, Tile, Tile]] # 槓
-    Chows: list[tuple[Tile, Tile, Tile]]       # 吃
+    Pair: tuple[Tile, Tile]                    # 對/對
+    Pongs: list[tuple[Tile, Tile, Tile]]       # 碰/刻
+    Kongs: list[tuple[Tile, Tile, Tile, Tile]] # 槓/槓
+    Chows: list[tuple[Tile, Tile, Tile]]       # 吃/順
     Flowers: list[Tile]                        # 花牌
 
+    # 用於計算 3~5暗刻台數
     ConcealedPongs: int = 0                    # 暗刻
     ConcealedKongs: int = 0                    # 暗槓
     # 增加一個屬性來標記哪些搭子是吃/碰/明槓來的 (exposed)
@@ -132,9 +147,7 @@ class Rule:
             t1, t2, t3 = FirstTile, FirstTile + 1, FirstTile + 2
             if t1 in hand and t2 in hand and t3 in hand:
                 # 移除順子
-                hand[t1] -= 1
-                hand[t2] -= 1
-                hand[t3] -= 1
+                hand[t1] -= 1;hand[t2] -= 1;hand[t3] -= 1
 
                 # 清理計數為 0 的牌
                 hand = Counter({k: v for k, v in hand.items() if v > 0})
@@ -144,9 +157,7 @@ class Rule:
                     return True
 
                 # 回溯 (Backtrack)
-                hand[t1] += 1
-                hand[t2] += 1
-                hand[t3] += 1
+                hand[t1] += 1;hand[t2] += 1;hand[t3] += 1
 
         # 如果所有組合都失敗
         return False
@@ -279,6 +290,9 @@ class ScoreName:
     @property
     def Score(self) -> int:
         return self.__Score
+    @Score.setter
+    def Score(self, score: int):
+        self.__Score = score
 
     def __init__(self, name: str, score: int, tileName: str = ''):
         self.__Name = name
@@ -309,7 +323,7 @@ class TaiID:
     Little4Winds = ScoreName('小四喜', 8)
     Little3Dragons = ScoreName('小三元', 4)
 
-    AllOneSuit = ScoreName('清一色', 8)
+    AllSuit = ScoreName('清一色', 8)
     MixedSuit = ScoreName('混一色', 4)
     N8Immortals = ScoreName('八仙過海', 8)
     N7Grab1 = ScoreName('七搶一', 8)
@@ -349,12 +363,12 @@ class TaiID:
         return ScoreName(name.Name, name.Score, tileName)
 
 class Score:
-    partition:Partition = None 
-    context:RuleContext = None
+    classify:HandClassify = None 
+    condition:HandCondition = None
 
-    def __init__(self, part: Partition, context: RuleContext):
-        self.partition = part
-        self.context = context
+    def __init__(self, classify: HandClassify, condition: HandCondition):
+        self.classify = classify
+        self.condition = condition
 
     def Calculate(self) -> tuple[int, list[ScoreName]]:
         """
@@ -366,31 +380,39 @@ class Score:
         ScoreNameList = []
 
         # 1. 數據預處理
-        AllMelds = self.partition.Pongs + self.partition.Kongs + self.partition.Chows
-        AllTiles = [tile for meld in AllMelds for tile in meld] + list(self.partition.Pair)
-        PongsKongs = self.partition.Pongs + self.partition.Kongs # 所有的刻子和槓子
+        AllMelds = self.classify.Pongs + self.classify.Kongs + self.classify.Chows
+        AllTiles = [tile for meld in AllMelds for tile in meld.Tiles] + list(self.classify.Pair.Tiles)
+        PongsKongs = self.classify.Pongs + self.classify.Kongs # 所有的刻子和槓子
 
         # 門清判斷：exposed_melds 應為 0 
-        # 由於 Partition 結構沒有提供每個 meld 的 exposed 狀態，我們依賴 self.partition.exposed_melds (假設已從外部計算好)
-        IsMenqing = self.partition.ExposedMelds == 0
+        # 由於 Partition 結構沒有提供每個 meld 的 exposed 狀態，我們依賴 self.classify.exposed_melds (假設已從外部計算好)
+        # ExposedCount = 0
+        IsMenqing = True
+        if self.classify.Pair.Exposed:
+            IsMenqing = False
+        for meld in AllMelds:
+            if meld.Exposed:
+                IsMenqing = False
+                break
+        # IsMenqing = ExposedCount == 0
 
         # 2. 字牌刻子計數
-        HonorPongsKongs = [meld for meld in PongsKongs if meld[0].IsHonor()]
-        WindPongsCount = sum(1 for meld in HonorPongsKongs if meld[0].IsWind())
-        ArrowPongsCount = sum(1 for meld in HonorPongsKongs if meld[0].IsArrow())
+        HonorPongsKongs = [meld for meld in PongsKongs if meld.Tiles[0].IsHonor()]
+        WindPongsCount = sum(1 for meld in HonorPongsKongs if meld.Tiles[0].IsWind())
+        ArrowPongsCount = sum(1 for meld in HonorPongsKongs if meld.Tiles[0].IsArrow())
 
         # --- A. 極致牌型 (最高層級，可能需互斥或包含) ---
 
         # 天胡/地胡 (16台，最高優先)
-        if self.context.IsHeavenlyHand:
-            # Name = "天胡" if self.context.IsDealer else "地胡"
-            if self.context.IsDealer:
+        if self.condition.IsHeavenlyHand:
+            # Name = "天胡" if self.condition.IsDealer else "地胡"
+            if self.condition.IsDealer:
                 Name = TaiID.HeavenlyHand
             else:
                 Name = TaiID.EarthlyHand
 
             ScoreNameList.append(Name); Score = Name.Score
-            # Name = TaiID.HeavenlyHand if self.context.IsDealer else TaiID.EarthlyHand
+            # Name = TaiID.HeavenlyHand if self.condition.IsDealer else TaiID.EarthlyHand
             # ScoreNameList.append(f"{Name} (16台)")
             return Score, ScoreNameList
 
@@ -425,14 +447,14 @@ class Score:
             if not SuitTiles: # 避免牌組全為字牌但無字一色的情況
                 pass
             elif not any(t.IsHonor() for t in AllTiles):
-                Name = TaiID.AllOneSuit
+                Name = TaiID.AllSuit
                 ScoreNameList.append(Name); Score += Name.Score
             elif any(t.IsHonor() for t in AllTiles):
                 Name = TaiID.MixedSuit
                 ScoreNameList.append(Name); Score += Name.Score
 
         # 小四喜 (8台)
-        IsWindPair = self.partition.Pair[0].IsWind()
+        IsWindPair = self.classify.Pair.Tiles[0].IsWind()
         IsSmallWind = False
         if WindPongsCount == 3 and IsWindPair: #"大四喜" not in ScoreNameList:
             IsSmallWind = True
@@ -440,7 +462,7 @@ class Score:
             ScoreNameList.append(Name); Score += Name.Score
 
         # 小三元 (4台)
-        IsArrowPair = self.partition.Pair[0].IsArrow()
+        IsArrowPair = self.classify.Pair.Tiles[0].IsArrow()
         IsSmallArrow = False
         if ArrowPongsCount == 2 and IsArrowPair:# and "大三元" not in ScoreNameList:
             IsSmallArrow = True
@@ -448,14 +470,17 @@ class Score:
             ScoreNameList.append(Name); Score += Name.Score
 
         # 碰碰胡 (4台) - 結構台
-        if not self.partition.Chows:
+        if not self.classify.Chows:
             Name = TaiID.AllPongs
             ScoreNameList.append(Name); Score += Name.Score
 
         # --- C. 暗刻/順子牌型 (最低層級，可疊加於花色台，互斥於同結構高台) ---
 
         # 五暗刻 (8台) / 四暗刻 (5台) / 三暗刻 (2台)
-        ConcealedCount = self.partition.ConcealedPongs + self.partition.ConcealedKongs
+        ConcealedCount = 0
+        for meld in PongsKongs:
+            if not meld.Exposed:
+                ConcealedCount += 1
 
         if ConcealedCount == 5:
             Name = TaiID.N5ConcealedPongs
@@ -468,8 +493,8 @@ class Score:
             ScoreNameList.append(Name); Score += Name.Score
 
         # 平胡 (2台) - 結構台，與刻子牌型互斥
-        IsPureChow = len(self.partition.Chows) == 5 and not PongsKongs
-        IsValidPlainHand = IsPureChow and not self.partition.Pair[0].IsHonor()
+        IsPureChow = len(self.classify.Chows) == 5 and not PongsKongs
+        IsValidPlainHand = IsPureChow and not self.classify.Pair.Tiles[0].IsHonor()
 
         # 平胡必須無其他刻子結構台 (如三暗刻/碰碰胡) 且花色台數不宜過高
         if IsValidPlainHand and ConcealedCount < 3:#not any(p in ScoreNameList for p in ["碰碰胡", "五暗刻", "四暗刻", "三暗刻"]):
@@ -480,35 +505,43 @@ class Score:
         # --- D. 基礎與加成台數 (獨立加總) ---
 
         # 莊家與連莊
-        if self.context.IsDealer:
+        if self.condition.IsDealer:
             Name = TaiID.Dealer
             ScoreNameList.append(Name); Score += Name.Score
 
+        if self.condition.DealerStreak > 0:
+            Streak = self.condition.DealerStreak
+            Name = TaiID.GetScoreName(TaiID.DealerStreak, f'連{Streak}拉{Streak}')
+            # Name = TaiID.DealerStreak
+            Name.Score *= self.condition.DealerStreak
+            ScoreNameList.append(Name); Score += Name.Score
+            
+
         # 門清與自摸 (門清一摸三)
-        if IsMenqing and self.context.IsSelfDraw:
+        if IsMenqing and self.condition.IsSelfDraw:
             Name = TaiID.ConcealedSelfDrawn
             ScoreNameList.append(Name); Score += Name.Score
         elif IsMenqing:
             Name = TaiID.ConcealedHand
             ScoreNameList.append(Name); Score += Name.Score
-        elif self.context.IsSelfDraw:
+        elif self.condition.IsSelfDraw:
             Name = TaiID.SelfDraw
             ScoreNameList.append(Name); Score += Name.Score
 
         # ** 新增：聽牌型態 (1 台)**
         # 這些台數通常是互斥的，且只計算最高的或其中一個。
         # 獨聽/單吊
-        if self.context.IsSingleWait:
+        if self.condition.IsSingleWait:
             Name = TaiID.GetScoreName(TaiID.SingleWait, TaiID.PairWait.Name)
             # Name = TaiID.PairWait
             ScoreNameList.append(Name); Score += Name.Score
         # 邊張
-        elif self.context.IsEdgeWait:
+        elif self.condition.IsEdgeWait:
             Name = TaiID.GetScoreName(TaiID.SingleWait, TaiID.EdgeWait.Name)
             # Name = TaiID.EdgeWait
             ScoreNameList.append(Name); Score += Name.Score
         # 中洞/崁張
-        elif self.context.IsCenterWait:
+        elif self.condition.IsCenterWait:
             Name = TaiID.GetScoreName(TaiID.SingleWait, TaiID.CenterWait.Name)
             # Name = TaiID.CenterWait
             ScoreNameList.append(Name); Score += Name.Score
@@ -516,12 +549,12 @@ class Score:
         # 風牌與三元牌 (單獨計算，避免被大小四喜/三元完全覆蓋)
         for meld in HonorPongsKongs:
             #HonorMin, HonorMax = 1, 7
-            rank = meld[0].Num
+            rank = meld.Tiles[0].Num
 
             # 三元牌 (中發白)
             if rank in ARROW and not IsSmallArrow and not IsBigArrow:#any(p in ScoreNameList for p in ["大三元", "小三元"]):
                 
-                Name = TaiID.GetScoreName(TaiID.DragonPong, meld[0].toStr())
+                Name = TaiID.GetScoreName(TaiID.DragonPong, meld.Tiles[0].toStr())
                 # Name.TileName = meld[0].toStr()
                 # meld[0].toStr()
                 ScoreNameList.append(Name); Score += Name.Score
@@ -530,29 +563,24 @@ class Score:
             if rank in WIND:
                 WindValue = rank
                 # 圈風牌
-                if WindValue == self.context.RoundWind and not IsBigWind: #"大四喜" not in ScoreNameList:
-                    Name = TaiID.GetScoreName(TaiID.RoundWind, meld[0].toStr())
+                if WindValue == self.condition.RoundWind and not IsBigWind: #"大四喜" not in ScoreNameList:
+                    Name = TaiID.GetScoreName(TaiID.RoundWind, meld.Tiles[0].toStr())
                     # meld[0].toStr()
                     ScoreNameList.append(Name); Score += Name.Score
                 # 門風牌
-                if WindValue == self.context.SeatWind and not IsSmallWind and not IsBigWind:#any(p in ScoreNameList for p in ["大四喜", "小四喜"]):
+                if WindValue == self.condition.SeatWind and not IsSmallWind and not IsBigWind:#any(p in ScoreNameList for p in ["大四喜", "小四喜"]):
                     # 小四喜已涵蓋門風刻，故不重複計
-                    Name = TaiID.GetScoreName(TaiID.SeatWind, meld[0].toStr())
+                    Name = TaiID.GetScoreName(TaiID.SeatWind, meld.Tiles[0].toStr())
                     # meld[0].toStr()
                     ScoreNameList.append(Name); Score += Name.Score
 
-        # 圈花與正花
+        # 正花
         PeriodCount,PeriodName = 0,''
         GentlemenCount,GentlemenName = 0,''
-        for flower in self.partition.Flowers:
-            # # 圈花牌
-            # if flower.Num == self.context.RoundFlower:
-            #     Name = TaiID.GetScoreName(TaiID.RoundFlower, flower.toStr())
-            #     # flower.toStr()
-            #     ScoreNameList.append(Name); Score += Name.Score
-            # 正花牌
+        for flower in self.classify.Flowers:
+            # 正花牌, 確認四君子和四季是否為正花
             Num = flower.Num if flower.Num <= 4 else flower.Num - 4
-            if Num == self.context.SeatFlower:
+            if Num == self.condition.SeatFlower:
                 Name = TaiID.GetScoreName(TaiID.SeatFlower, flower.toStr())
                 # flower.toStr()
                 ScoreNameList.append(Name); Score += Name.Score
@@ -571,13 +599,13 @@ class Score:
                     ScoreNameList.append(Name); Score += Name.Score
 
         # 額外事件台 (已在前面計算，這裡是為了保持邏輯完整性)
-        if self.context.IsGongOnFlower:
+        if self.condition.IsGongOnFlower:
             Name = TaiID.KongOnFlower
             ScoreNameList.append(Name); Score += Name.Score
-        if self.context.IsLastTileDraw: 
+        if self.condition.IsLastTileDraw: 
             Name = TaiID.LastTileDraw
             ScoreNameList.append(Name); Score += Name.Score
-        if self.context.IsRobbingGong: 
+        if self.condition.IsRobbingGong: 
             Name = TaiID.RobbingKong
             ScoreNameList.append(Name); Score += Name.Score
 
@@ -598,54 +626,52 @@ if __name__ == '__main__':
     for t in ret:
         tmp += f"{t.toStr()} "
     PrintLog("聽:"+tmp)
+    PrintLog()
 
-    # #
-    # # 計算台數
-    # #
+    #
+    # 計算台數
+    #
 
     # 測試3: 莊家連一，門清自摸，混一色碰碰胡帶門風
 
     # 假設 is_hu 函式回傳了這個牌組結構
-    partition = Partition(
-        Pair=Tile.Alias2Tile(['2索', '2索']), # 東風對
-        Pongs=[
-            Tile.Alias2Tile(['東', '東', '東']),
-            Tile.Alias2Tile(['南', '南', '南']),
-            Tile.Alias2Tile(['中', '中', '中']),
-            Tile.Alias2Tile(['發', '發', '發'])],
-        Kongs=[
-            # Tile.Alias2Tile(['1萬', '1萬', '1萬', '1萬']), 
-            # Tile.Alias2Tile(['2萬', '2萬', '2萬', '2萬']),
-            Tile.Alias2Tile(['3萬', '3萬', '3萬', '3萬']), 
-            Tile.Alias2Tile(['西', '西', '西', '西'])
+    classify = HandClassify(
+        Pair = Meld(False, Tile.Alias2Tile(['2索', '2索'])),
+        Pongs = [
+            Meld(False, Tile.Alias2Tile(['東', '東', '東'])),
+            Meld(False, Tile.Alias2Tile(['南', '南', '南'])),
+            Meld(False, Tile.Alias2Tile(['中', '中', '中'])),
+            Meld(False, Tile.Alias2Tile(['發', '發', '發']))
         ],
-        Chows=[],
-        Flowers=Tile.Alias2Tile(['梅', '蘭', '竹', '菊', '春', '夏', '秋', '冬']),
-        ConcealedPongs=0,
-        ConcealedKongs=2 # 假設四個暗槓
+        Kongs = [
+            Meld(False, Tile.Alias2Tile(['3萬', '3萬', '3萬', '3萬'])),
+            Meld(False, Tile.Alias2Tile(['西', '西', '西', '西']))
+        ],
+        Chows = [
+            # Meld(False, Tile.Alias2Tile(['3索', '4索', '5索']))
+        ],
+        Flowers = Tile.Alias2Tile(['梅', '蘭', '竹', '菊', '春', '夏', '秋', '冬'])
     )
 
-    context = RuleContext(
+    condition = HandCondition(
         IsSingleWait=False,
         IsEdgeWait=False,
         IsCenterWait=True,
         # IsPairWait=False,
         IsDealer=True,
         IsSelfDraw=True,
-        DealerStreak=2,
+        DealerStreak=3,
         SeatWind=1, # 東 門風
         RoundWind=3,  # 南 圈風
         SeatFlower=2, # 蘭 正花
         # RoundFlower=6 # 夏 圈花
     )
 
-    score = Score(partition, context)
+    score = Score(classify, condition)
     total, breakdown = score.Calculate()
-    
-    print("胡牌牌型:")
+    PrintLog("胡牌牌型:")
+    tmp = ""
     for tai in breakdown:
-        print(tai.Name, tai.Score, '台')
-    print(f"總台數: {total} 台")
-
-    # for f in PERIOD:
-    #     print(f.value-4)
+        tmp += f"\t{tai.Name}\t{tai.Score}台\n"
+    PrintLog(tmp)
+    PrintLog(f"總台數: {total} 台")
