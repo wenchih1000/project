@@ -23,12 +23,12 @@ class HandCondition:
 
     IsPairWait: bool = False        # 兩面聽/對倒/複合聽 (通常不計台，是平胡的必要條件)
     # 風台
-    SeatWind: int = 0               # 玩家門風台 (1:東 2:南 3:西 4:北)
-    RoundWind: int = 0              # 圈風台     (1:東 2:南 3:西 4:北)
+    SeatWind: WIND = None           # 玩家門風台 (1:東 2:南 3:西 4:北)
+    RoundWind: WIND = None          # 圈風台     (1:東 2:南 3:西 4:北)
     #莊家台
     DealerStreak: int = 0           # 連莊/連拉
     # 花台
-    SeatFlower: int = 0             # 玩家正花台 (1:梅/春 2:蘭/夏 3:竹/秋 4:菊/冬)
+    SeatFlower: WIND = None         # 玩家正花台 (1:梅/春 2:蘭/夏 3:竹/秋 4:菊/冬)
     # RoundFlower: int = 0          # 圈花台     (5:春 6:夏 7:秋 8:冬)
 
 # 檢查手牌組了幾個明/暗搭
@@ -424,8 +424,12 @@ class Score:
             # 地胡
             else:
                 Name = TaiID.EarthlyHand
-            # 人胡
 
+            ScoreNameList.append(Name); Score = Name.Score
+            return Score, ScoreNameList
+        # 人胡 16台
+        elif self.condition.IsHumanlyHand:
+            Name = TaiID.HumanlyHand
             ScoreNameList.append(Name); Score = Name.Score
             return Score, ScoreNameList
 
@@ -560,12 +564,11 @@ class Score:
 
         # 風牌與三元牌 (單獨計算，避免被大小四喜/三元完全覆蓋)
         for meld in HonorPongsKongs:
-            #HonorMin, HonorMax = 1, 7
             rank = meld.Tiles[0].Num
 
             # 三元牌 (中發白) 必須無大三元/小三元
             if rank in ARROW and not IsSmallArrow and not IsBigArrow:
-                
+
                 Name = TaiID.GetScoreName(TaiID.DragonPong, meld.Tiles[0].toStr())
                 # Name.TileName = meld[0].toStr()
                 # meld[0].toStr()
@@ -575,12 +578,12 @@ class Score:
             if rank in WIND:
                 WindValue = rank
                 # 圈風牌 必須無大四喜
-                if WindValue == self.condition.RoundWind and not IsBigWind:
+                if WindValue == self.condition.RoundWind.value and not IsBigWind:
                     Name = TaiID.GetScoreName(TaiID.RoundWind, meld.Tiles[0].toStr())
                     # meld[0].toStr()
                     ScoreNameList.append(Name); Score += Name.Score
                 # 門風牌 必須無大四喜/小四喜
-                if WindValue == self.condition.SeatWind and not IsSmallWind and not IsBigWind:
+                if WindValue == self.condition.SeatWind.value and not IsSmallWind and not IsBigWind:
                     # 小四喜已涵蓋門風刻，故不重複計
                     Name = TaiID.GetScoreName(TaiID.SeatWind, meld.Tiles[0].toStr())
                     # meld[0].toStr()
@@ -592,7 +595,7 @@ class Score:
         for flower in self.classify.Flowers:
             # 正花牌, 確認四君子和四季是否為正花
             Num = flower.Num if flower.Num <= 4 else flower.Num - 4
-            if Num == self.condition.SeatFlower:
+            if Num == self.condition.SeatFlower.value:
                 Name = TaiID.GetScoreName(TaiID.SeatFlower, flower.toStr())
                 # flower.toStr()
                 ScoreNameList.append(Name); Score += Name.Score
@@ -627,7 +630,7 @@ if __name__ == '__main__':
 
     # 測試1-1
     # 假設從玩家取得牌組
-    hand = Tile.Alias2Tile(["1萬","2萬","3萬","3索","3索","3索","5筒","6筒","7筒","5筒","6筒","7筒","南","南","南","中","中"])
+    hand = Tile.Alias2Tile(["1萬","2萬","3萬","3索","3索","3索","5筒","6筒","7筒","東","東","東","南","南","南","中","中"])
     rule = Rule()
     ret = rule.IsHu(hand)
     PrintLog("胡:"+str(ret))
@@ -682,10 +685,9 @@ if __name__ == '__main__':
         IsDealer=True,
         IsSelfDraw=True,
         DealerStreak=3,
-        SeatWind=1, # 東 門風
-        RoundWind=3,  # 南 圈風
-        SeatFlower=2, # 蘭 正花
-        # RoundFlower=6 # 夏 圈花
+        SeatWind=WIND.EAST, # 東 門風
+        RoundWind=WIND.SOUTH,  # 南 圈風
+        SeatFlower=WIND.SOUTH, # 蘭 正花
     )
 
     score = Score(classify, condition)
@@ -693,6 +695,7 @@ if __name__ == '__main__':
     PrintLog("胡牌牌型:")
     tmp = ""
     for tai in breakdown:
-        tmp += f"\t{tai.Name}\t{tai.Score}台\n"
+        tab = '\t\t' if len(tai.Name) <= 3 else '\t'
+        tmp += f"\t{tai.Name}{tab}{tai.Score}台\n"
     PrintLog(tmp)
     PrintLog(f"總台數: {total} 台")

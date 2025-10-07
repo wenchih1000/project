@@ -21,16 +21,20 @@ class Player:
     Money:int = 3000
     Wind:WIND = None
 
+    Melds:list[Meld] = None
+    Flowers:list[Tile] = None
+    Hand:list[Tile] = None
+
     def __init__(self, name:str, wind:WIND):
         self.Name = name
         self.Wind = wind
 
         # 玩家手牌 (16 或 17 張) 
-        self.Hand:list[Tile] = []
+        self.Hand = []
         # 已亮出的花牌 Exposed Flowers
-        self.Flowers:list[Tile] = []
+        self.Flowers = []
         # 已完成的搭子 (碰/槓/吃) Exposed Melds
-        self.Melds:list[Tile] = []   
+        self.Melds = []   
 
     def SetHandTile(self, hand:list[Tile]):
         for _ in range(len(hand)):
@@ -43,8 +47,9 @@ class Player:
             hand.append(self.Hand.pop(0))
         for _ in range(len(self.Flowers)):
             hand.append(self.Flowers.pop(0))
-        for _ in range(len(self.Melds)):
-            hand.append(self.Melds.pop(0))
+        for meld in self.Melds:
+            for _ in range(len(meld.Tiles)):
+                hand.append(meld.Tiles.pop(0))
         return hand
 
     # 該玩家當莊
@@ -72,19 +77,19 @@ class Player:
         for t in tmp:
             self.Hand.remove(t)
 
-        PrintLog(f"玩家 {self.Wind} 摸到{count}張花牌：{[i.toStr() for i in tmp]}")
+        PrintLog(f"玩家 {self.Wind.name} 摸到{count}張花牌：{[i.toStr() for i in tmp]}")
         return tmp
 
     def HandCounts(self) -> Counter:
         return Counter(self.Hand)
 
-    def AddMeld(self, meld: list[Tile], action: MELD, concealed: bool = False):
-        self.Melds.append({'tiles': meld, 'type': action, 'concealed': concealed})
+    def AddMeld(self, tiles: list[Tile], action: MELD, concealed: bool = False):
+        self.Melds.append(Meld(not concealed, tiles))
 
     def NumExposedMelds(self) -> int:
         """計算玩家外露搭子（碰、吃、明槓）的總數。"""
         # 暗槓不算外露搭子
-        return sum(1 for meld in self.Melds if not meld['concealed'])
+        return sum(1 for meld in self.Melds if meld.Exposed)
     
     def NumMelds(self) -> int:
         """計算玩家外露搭子（碰、吃、明槓、暗槓）的總數。"""

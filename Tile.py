@@ -272,9 +272,9 @@ class Tile(object):
 class Meld:
     Type: MELD = None
     Exposed: bool = False
-    Tiles: tuple[Tile] = None
+    Tiles: list[Tile] = None
 
-    def __init__(self, exposed: bool, tiles: tuple):
+    def __init__(self, exposed: bool, tiles: list[Tile]):
         self.Exposed = exposed
         self.Tiles = tiles
         if len(tiles) == MELD.PAIR_LEN.value:
