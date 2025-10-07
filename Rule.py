@@ -38,30 +38,33 @@ class HandCondition:
 #             4搭x3 + 2對x2 = 16張
 
 # 胡牌至少5組(順/刻/槓搭)+1組(對搭) = 6 Meld
-@dataclass
 class HandClassify:
-    Pair: Meld              #   1組對子/眼
-    Pongs: list[Meld]       # 0~n組碰子/刻
-    Kongs: list[Meld]       # 0~n組槓子/槓
-    Chows: list[Meld]       # 0~n組吃子/順
-    Flowers: list[Tile]     # 0~n張花牌
+    Pair: Meld = None           #   1組對子/眼
+    Pongs: list[Meld]   = []    # 0~n組碰子/刻
+    Kongs: list[Meld]   = []    # 0~n組槓子/槓
+    Chows: list[Meld]   = []    # 0~n組吃子/順
+    Flowers: list[Tile] = []    # 0~n張花牌
 
-    # def __init__(self, hand:tuple[Meld]):
-    #     pass
+    IsValid:bool = True
+    MeldLen = 5
 
-@dataclass
-class Partition:
-    Pair: tuple[Tile, Tile]                    # 對/對
-    Pongs: list[tuple[Tile, Tile, Tile]]       # 碰/刻
-    Kongs: list[tuple[Tile, Tile, Tile, Tile]] # 槓/槓
-    Chows: list[tuple[Tile, Tile, Tile]]       # 吃/順
-    Flowers: list[Tile]                        # 花牌
+    def __init__(self, melds:tuple[Meld], flowers:tuple[Tile]):
+        for meld in melds:
+            if meld.Type == MELD.PAIR:
+                self.Pair = meld
+            elif meld.Type == MELD.PONG:
+                self.Pongs.append(meld)
+            elif meld.Type == MELD.KONG:
+                self.Kongs.append(meld)
+            elif meld.Type == MELD.CHOW:
+                self.Chows.append(meld)
+        for f in flowers:
+            self.Flowers.append(f)
 
-    # 用於計算 3~5暗刻台數
-    ConcealedPongs: int = 0                    # 暗刻
-    ConcealedKongs: int = 0                    # 暗槓
-    # 增加一個屬性來標記哪些搭子是吃/碰/明槓來的 (exposed)
-    ExposedMelds: int = 0 # 明搭:假設這代表吃/碰/明槓的總組數 (Partition應負責計算)
+        if self.Pair == None:
+            self.IsValid = False
+        if len(self.Pongs) + len(self.Kongs) + len(self.Chows) < self.MeldLen:
+            self.IsValid = False
 
 # 定義Taiwan麻將規則
 # 檢查手上牌符合哪些胡牌情況
@@ -69,8 +72,10 @@ class Partition:
 class Rule:
     HandLen = 17
     PairLen = 2
+    MeldLen = 3
     NumHiLimit = 7 # ex:7,8,9
     AllTiles:list[Tile] = None
+    Melds:list[Meld] = None
 
     def __init__(self):
         self.AllTiles = []
@@ -82,11 +87,13 @@ class Rule:
             self.AllTiles.extend([Tile({'suit':SUIT.HONOR, 'num':i})])
 
     def IsHu(self, hand: list[Tile]) -> bool:
+        self.Melds = []
         """
-        主函式：判斷 17 張牌是否胡牌
+        主函式：判斷牌組是否胡牌
         hand: e.g., ['1p','1p','1m', '2m', '3m', ...]
         """
-        if len(hand) != self.HandLen:
+        ValidLen = [i for i in range(self.PairLen, self.HandLen+1, self.MeldLen)]
+        if len(hand) not in ValidLen:
             return False
 
         # 1. 前置檢查特殊牌型
@@ -110,6 +117,8 @@ class Rule:
 
                 # 3. 遞迴拆解剩下的 15 張牌
                 if self.CanBeMelds(TempCounts):
+                    #新增對子
+                    self.Melds.append(Meld(False, [tile, tile]))
                     return True # 只要有一種組合成功，就是胡牌
 
         return False
@@ -136,6 +145,8 @@ class Rule:
 
             # 遞迴移除刻子
             if self.CanBeMelds(hand.copy()): # 傳遞副本
+                #新增刻子
+                self.Melds.append(Meld(False, [FirstTile, FirstTile, FirstTile]))
                 return True
 
             # 回溯 (Backtrack)
@@ -154,6 +165,8 @@ class Rule:
 
                 # 遞迴移除順子
                 if self.CanBeMelds(hand.copy()): # 傳遞副本
+                    #新增順子
+                    self.Melds.append(Meld(False, [t1, t2, t3]))
                     return True
 
                 # 回溯 (Backtrack)
@@ -161,6 +174,9 @@ class Rule:
 
         # 如果所有組合都失敗
         return False
+    
+    def GetMelds(self) -> list[Meld]:
+        return self.Melds
 
     # 遞歸核心：胡牌判斷 (Can Win) ---
     def CanWin(self, hand: Counter, pairsNum: int = 0) -> bool:
@@ -191,23 +207,25 @@ class Rule:
 
         # 1. 嘗試以這張牌作為「眼」
         if pairsNum < 1 and hand[FirstTile] >= 2:
+            # 移除
             hand[FirstTile] -= 2
-
             if hand[FirstTile] == 0:
                 del hand[FirstTile]
             if self.CanWin(hand, pairsNum + 1):
                 return True
-            hand[FirstTile] += 2 # 回溯
+            # 回溯
+            hand[FirstTile] += 2 
             
         # 2. 嘗試以這張牌組成「刻子」
         if hand[FirstTile] >= 3:
+            # 移除
             hand[FirstTile] -= 3
-
             if hand[FirstTile] == 0:
                 del hand[FirstTile]
             if self.CanWin(hand, pairsNum):
                 return True
-            hand[FirstTile] += 3 # 回溯
+            # 回溯
+            hand[FirstTile] += 3 
 
         # 3. 嘗試以這張牌組成「順子」 (只對數字牌有效)
         if FirstTile.Suit != SUIT.HONOR and FirstTile.Suit != SUIT.FLOWER and FirstTile.Num <= self.NumHiLimit:
@@ -215,17 +233,15 @@ class Rule:
 
             # 確保順子中的三張牌都存在
             if t1 in hand and t2 in hand and t3 in hand:
-                hand[t1] -= 1
-                hand[t2] -= 1
-                hand[t3] -= 1
+                # 移除
+                hand[t1] -= 1;hand[t2] -= 1;hand[t3] -= 1
 
                 # 清理計數為 0 的牌
                 hand = Counter({k: v for k, v in hand.items() if v > 0})
                 if self.CanWin(hand, pairsNum):
                     return True
-                hand[t1] += 1
-                hand[t2] += 1
-                hand[t3] += 1
+                # 回溯
+                hand[t1] += 1;hand[t2] += 1;hand[t3] += 1
 
         return False
 
@@ -385,8 +401,6 @@ class Score:
         PongsKongs = self.classify.Pongs + self.classify.Kongs # 所有的刻子和槓子
 
         # 門清判斷：exposed_melds 應為 0 
-        # 由於 Partition 結構沒有提供每個 meld 的 exposed 狀態，我們依賴 self.classify.exposed_melds (假設已從外部計算好)
-        # ExposedCount = 0
         IsMenqing = True
         if self.classify.Pair.Exposed:
             IsMenqing = False
@@ -394,7 +408,6 @@ class Score:
             if meld.Exposed:
                 IsMenqing = False
                 break
-        # IsMenqing = ExposedCount == 0
 
         # 2. 字牌刻子計數
         HonorPongsKongs = [meld for meld in PongsKongs if meld.Tiles[0].IsHonor()]
@@ -403,17 +416,17 @@ class Score:
 
         # --- A. 極致牌型 (最高層級，可能需互斥或包含) ---
 
-        # 天胡/地胡 (16台，最高優先)
+        # 天胡/地胡/人胡 (24台/16台，最高優先)
         if self.condition.IsHeavenlyHand:
-            # Name = "天胡" if self.condition.IsDealer else "地胡"
+            # 天胡
             if self.condition.IsDealer:
                 Name = TaiID.HeavenlyHand
+            # 地胡
             else:
                 Name = TaiID.EarthlyHand
+            # 人胡
 
             ScoreNameList.append(Name); Score = Name.Score
-            # Name = TaiID.HeavenlyHand if self.condition.IsDealer else TaiID.EarthlyHand
-            # ScoreNameList.append(f"{Name} (16台)")
             return Score, ScoreNameList
 
         # 大四喜 (16台)
@@ -496,8 +509,8 @@ class Score:
         IsPureChow = len(self.classify.Chows) == 5 and not PongsKongs
         IsValidPlainHand = IsPureChow and not self.classify.Pair.Tiles[0].IsHonor()
 
-        # 平胡必須無其他刻子結構台 (如三暗刻/碰碰胡) 且花色台數不宜過高
-        if IsValidPlainHand and ConcealedCount < 3:#not any(p in ScoreNameList for p in ["碰碰胡", "五暗刻", "四暗刻", "三暗刻"]):
+        # 平胡必須無其他刻子結構台 (如三暗刻/四暗刻/五暗刻/碰碰胡) 且花色台數不宜過高
+        if IsValidPlainHand and ConcealedCount < 3:
             # 嚴格來說平胡與清一色/混一色可疊加，但各地規則不同，這裡假設可疊加
             Name = TaiID.PlainHand
             ScoreNameList.append(Name); Score += Name.Score
@@ -515,7 +528,6 @@ class Score:
             # Name = TaiID.DealerStreak
             Name.Score *= self.condition.DealerStreak
             ScoreNameList.append(Name); Score += Name.Score
-            
 
         # 門清與自摸 (門清一摸三)
         if IsMenqing and self.condition.IsSelfDraw:
@@ -551,8 +563,8 @@ class Score:
             #HonorMin, HonorMax = 1, 7
             rank = meld.Tiles[0].Num
 
-            # 三元牌 (中發白)
-            if rank in ARROW and not IsSmallArrow and not IsBigArrow:#any(p in ScoreNameList for p in ["大三元", "小三元"]):
+            # 三元牌 (中發白) 必須無大三元/小三元
+            if rank in ARROW and not IsSmallArrow and not IsBigArrow:
                 
                 Name = TaiID.GetScoreName(TaiID.DragonPong, meld.Tiles[0].toStr())
                 # Name.TileName = meld[0].toStr()
@@ -562,13 +574,13 @@ class Score:
             # 風牌 (圈風、門風)
             if rank in WIND:
                 WindValue = rank
-                # 圈風牌
-                if WindValue == self.condition.RoundWind and not IsBigWind: #"大四喜" not in ScoreNameList:
+                # 圈風牌 必須無大四喜
+                if WindValue == self.condition.RoundWind and not IsBigWind:
                     Name = TaiID.GetScoreName(TaiID.RoundWind, meld.Tiles[0].toStr())
                     # meld[0].toStr()
                     ScoreNameList.append(Name); Score += Name.Score
-                # 門風牌
-                if WindValue == self.condition.SeatWind and not IsSmallWind and not IsBigWind:#any(p in ScoreNameList for p in ["大四喜", "小四喜"]):
+                # 門風牌 必須無大四喜/小四喜
+                if WindValue == self.condition.SeatWind and not IsSmallWind and not IsBigWind:
                     # 小四喜已涵蓋門風刻，故不重複計
                     Name = TaiID.GetScoreName(TaiID.SeatWind, meld.Tiles[0].toStr())
                     # meld[0].toStr()
@@ -602,10 +614,10 @@ class Score:
         if self.condition.IsGongOnFlower:
             Name = TaiID.KongOnFlower
             ScoreNameList.append(Name); Score += Name.Score
-        if self.condition.IsLastTileDraw: 
+        if self.condition.IsLastTileDraw:
             Name = TaiID.LastTileDraw
             ScoreNameList.append(Name); Score += Name.Score
-        if self.condition.IsRobbingGong: 
+        if self.condition.IsRobbingGong:
             Name = TaiID.RobbingKong
             ScoreNameList.append(Name); Score += Name.Score
 
@@ -613,46 +625,55 @@ class Score:
 
 if __name__ == '__main__':
 
-    # 測試1
+    # 測試1-1
+    # 假設從玩家取得牌組
     hand = Tile.Alias2Tile(["1萬","2萬","3萬","3索","3索","3索","5筒","6筒","7筒","5筒","6筒","7筒","南","南","南","中","中"])
     rule = Rule()
     ret = rule.IsHu(hand)
     PrintLog("胡:"+str(ret))
 
-    # 測試2
-    hand = Tile.Alias2Tile(["2萬","3萬","3索","3索","3索","5筒","6筒","7筒","5筒","6筒","7筒","南","南","南","中","中"])
-    ret = rule.FindAllWaits(hand)
-    tmp = ""
-    for t in ret:
-        tmp += f"{t.toStr()} "
-    PrintLog("聽:"+tmp)
-    PrintLog()
+    # # 測試1-2
+    # hand = Tile.Alias2Tile(["3索","3索","3索","5筒","6筒","7筒","5筒","6筒","7筒","南","南","南","白","白"])
+    # ret = rule.IsHu(hand)
+    # PrintLog("胡:"+str(ret))
+    # melds = rule.GetMelds()
+    # for meld in melds:
+    #     tmp = ""
+    #     for tile in meld.Tiles:
+    #         tmp += tile.toStr()
+    #     PrintLog(tmp)
+
+    # # 測試2
+    # hand = Tile.Alias2Tile(["2萬","3萬","3索","3索","3索","5筒","6筒","7筒","5筒","6筒","7筒","南","南","南","中","中"])
+    # ret = rule.FindAllWaits(hand)
+    # tmp = ""
+    # for t in ret:
+    #     tmp += f"{t.toStr()} "
+    # PrintLog("聽:"+tmp)
+    # PrintLog()
 
     #
     # 計算台數
     #
 
-    # 測試3: 莊家連一，門清自摸，混一色碰碰胡帶門風
+    # # 測試3: 莊家連一，門清自摸，混一色碰碰胡帶門風
 
-    # 假設 is_hu 函式回傳了這個牌組結構
-    classify = HandClassify(
-        Pair = Meld(False, Tile.Alias2Tile(['2索', '2索'])),
-        Pongs = [
-            Meld(False, Tile.Alias2Tile(['東', '東', '東'])),
-            Meld(False, Tile.Alias2Tile(['南', '南', '南'])),
-            Meld(False, Tile.Alias2Tile(['中', '中', '中'])),
-            Meld(False, Tile.Alias2Tile(['發', '發', '發']))
-        ],
-        Kongs = [
-            Meld(False, Tile.Alias2Tile(['3萬', '3萬', '3萬', '3萬'])),
-            Meld(False, Tile.Alias2Tile(['西', '西', '西', '西']))
-        ],
-        Chows = [
-            # Meld(False, Tile.Alias2Tile(['3索', '4索', '5索']))
-        ],
-        Flowers = Tile.Alias2Tile(['梅', '蘭', '竹', '菊', '春', '夏', '秋', '冬'])
-    )
+    # IsHu() 回傳True, 代表牌組可以胡，並可透過GetMelds，取出未明牌的Melds
+    melds = rule.GetMelds()
+    # 需在加入手牌明搭的牌組:明吃/明碰/明槓
+    # melds.append((Meld(True, [t1, t2, t3]))
 
+    for meld in melds:
+        tmp = meld.Type.name + ": "
+        for tile in meld.Tiles:
+            tmp += tile.toStr()
+        PrintLog(tmp)
+    flowers = Tile.Alias2Tile(['梅', '蘭', '竹', '菊', '春', '夏', '秋', '冬'])
+
+    classify = HandClassify(melds, flowers)
+    # print(classify.IsValid)
+
+    # 胡牌後，可由GameDesc 產生HandCondition所有參數
     condition = HandCondition(
         IsSingleWait=False,
         IsEdgeWait=False,
