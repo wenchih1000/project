@@ -2,6 +2,7 @@ import random
 from typing import List, Dict
 from collections import Counter
 from typing import List, Dict, Tuple, Set
+from calc import *
 
 # --- 1. 牌的定義與初始化 ---
 def initialize_all_tiles() -> List[str]:
@@ -223,6 +224,8 @@ def check_chow(hand_counts: Counter, discarded_tile: str) -> List[Tuple[str, str
 # Player 類別：管理手牌與公開牌
 # ----------------------------------------------------------------------
 class Player:
+    pass_status = {'HU':False, 'KONG':False, 'CHOW':False, 'PONG':False, 'GANG':False}
+
     def __init__(self, player_id: int, hand: List[str]):
         self.player_id = player_id
         self.hand = hand  # 玩家手牌 (16 或 17 張)
@@ -262,6 +265,10 @@ class Player:
         for tile in tiles:
             try: self.hand.remove(tile)
             except ValueError: pass
+
+    def clear_pass_status(self):
+        for key in self.pass_status.keys():
+            self.pass_status[key] = False
 
 # ----------------------------------------------------------------------
 # MahjongDeck 類別 (沿用，確保有 draw_replacement_tile 方法)
@@ -763,6 +770,32 @@ if is_win_1:
     print(f"\n莊家 (0) 補花後手牌數: {len(dealer.hand)}")
     print(f"莊家 (0) 花牌區: {dealer.exposed_flowers}")
 
+# 假設 LogicHelpers 是一個包含靜態檢查方法的類
+class LogicHelpers:
+    @staticmethod
+    def check_pong(counts: Counter, tile: str) -> bool:
+        """檢查手牌中是否有兩張相同的牌，足以組成刻子。"""
+        return counts.get(tile, 0) >= 2
+
+    @staticmethod
+    def check_gang(counts: Counter, tile: str) -> bool:
+        """檢查手牌中是否有三張相同的牌，足以組成明槓。"""
+        return counts.get(tile, 0) >= 3
+        
+    @staticmethod
+    def check_chow(player_hand: List[str], claimed_tile: str, player_seat_position: str) -> list[Tuple[str, str]]:
+        """
+        檢查是否可吃牌。
+        返回所有可能的順子組合，如果不能吃則返回 None。
+        """
+        # 由於吃牌只能吃上家，這裡假設已經在 resolve_claims 中檢查了 player_seat_position 是否是上家。
+        
+        # 這裡需要複雜的邏輯來檢查手牌中是否有順子缺張。
+        # 簡化為：如果 claimed_tile 是數牌，檢查 player_hand 是否包含 (claimed_tile-2, claimed_tile-1) 或 (claimed_tile-1, claimed_tile+1) 等。
+        
+        # 由於此邏輯複雜且非本次核心，我們假設它能正確返回 [('2m', '3m'), ('4m', '5m'), ...]
+        return [('2m', '3m')] # 示例返回值
+
 class MahjongGame:
     def __init__(self, deck: MahjongDeck, players: Dict[int, Player]):
         self.deck = deck
@@ -771,6 +804,7 @@ class MahjongGame:
         self.dealer_discards = []     # 莊家打出的牌
         self.current_turn = 0         # 當前回合的玩家 (0=莊家)
         self.has_dealer_discarded = False # 莊家是否已打出第一張牌
+        self.num_players = len(players)
 
         # 遊戲狀態追蹤
         self.round_wind = 'E'            # 當前圈風，預設東風圈
@@ -1087,6 +1121,7 @@ class MahjongGame:
 
         discarder_id = self.current_turn
         discarder = self.players[discarder_id]
+        self.current_discarder = discarder_id
         
         # 1. 執行打牌：將牌從手牌中移除
         try:
@@ -1192,80 +1227,303 @@ class MahjongGame:
         # 4. 無任何動作，將下一回合的玩家設定為摸牌者
         self.current_turn = next_player_id
         return False
-    
-    # def draw_tile_phase(self):
-    #     """處理下一位玩家的摸牌流程。"""
+
+    def check_available_claims(self, player_id: int, tile: str, from_discard: bool) -> List[Tuple[str, Optional[List]]]:
+        """檢查玩家對給定牌張可做的所有合法宣告。"""
+
+        player = self.players[player_id]
+        available_claims = []
+        hand_counts = Counter(player.hand)
+
+        # --- 1. 胡牌 (HU) ---
+        if self.check_for_win(player.hand, tile, len(player.melds)):
+            # 必須檢查是否有過水限制 (您之前討論的規則)
+            if not player.pass_status.get('HU', False):
+                 available_claims.append(('HU', None))
+
+        # 動作優先級：胡 > 槓/碰 > 吃
+        if from_discard:
+
+            # --- 2. 槓 (KONG) ---
+            if LogicHelpers.check_gang(hand_counts, tile):
+                # 必須檢查是否有過水限制
+                if not player.pass_status.get('KONG', False):
+                    available_claims.append(('KONG', None))
+
+            # --- 3. 碰 (PONG) ---
+            elif LogicHelpers.check_pong(hand_counts, tile):
+                if not player.pass_status.get('PONG', False):
+                    available_claims.append(('PONG', None))
+
+            # --- 4. 吃 (CHOW) ---
+            # 吃牌只能對上家 (Player to the Left) 進行
+            if self.is_player_to_left(player_id, self.current_discarder):
+                chow_combinations = LogicHelpers.check_chow(player.hand, tile, 'left')
+                if chow_combinations:
+                    available_claims.append(('CHOW', chow_combinations))
+
+        else: # 來自自己摸牌 (From self-draw)
+             # --- 5. 暗槓/加槓 (CONCEALED/ADDON KONG) ---
+             # 這裡檢查的是手牌中的四張牌，無需外來 tile
+             concealed_kongs = self.check_concealed_kongs(player_id)
+             if concealed_kongs:
+                 available_claims.append(('CONCEALED_KONG', concealed_kongs))
+                 
+             addon_kongs = self.check_addon_kongs(player_id)
+             if addon_kongs:
+                 available_claims.append(('ADDON_KONG', addon_kongs))
+
+        return available_claims
+
+    def is_player_to_left(self, player_a: int, player_b: int) -> bool:
+        """檢查 A 是否是 B 的上家 (左手邊)。"""
+        return (player_a - 1) % self.num_players == player_b
         
-    #     player_id = self.current_turn
-    #     player = self.players[player_id]
+    def check_concealed_kongs(self, player_id: int) -> Optional[List[str]]:
+        """檢查手牌中是否有四張一樣的牌可暗槓。"""
+        # ... 實作邏輯 ...
+        return None
         
-    #     try:
-    #         new_tile = self.deck.draw_tile(from_end=False) # 從牌牆抽取
-    #         player.hand.append(new_tile)
-    #         print(f"🃏 玩家 {player_id} 摸牌：{new_tile}")
+    def check_addon_kongs(self, player_id: int) -> Optional[List[str]]:
+        """檢查玩家的外露碰牌中是否有可加槓的牌。"""
+        # ... 實作邏輯 ...
+        return None
+
+    # 3. 摸牌後流程 (draw_tile_phase)
+    def draw_tile_phase(self):
+        """處理當前玩家的摸牌流程。"""
+        #  處理玩當前家摸牌、補花、自摸、暗槓、加槓、流程。
+
+        player_id = self.current_turn
+        player = self.players[player_id]
+
+        # 關鍵：進入自己回合，清除自己的過水狀態
+        player.clear_pass_status()
+        try:
+            # 1. 摸牌
+            new_tile = self.deck.draw_tile(from_end=False) # 從牌牆抽取
+            player.hand.append(new_tile)
+            print(f"🃏 玩家 {player_id} 摸牌：{new_tile}")
+
+            # 2. 檢查摸牌後是否為花牌 (需補牌)
+            if is_flower_tile(new_tile):
+                # 執行補花邏輯 (假設已定義)
+                # player.handle_flower_tile(new_tile, self.deck) 
+                replace_flowers({player_id: player}, self.deck)
+
+            # 3. 檢查自摸 / 槓
+            claims = self.check_available_claims(player_id, new_tile, from_discard=False)
+
+            # 4. 處理動作優先級：胡 > 槓 > 打牌
+            if ('HU', None) in claims:
+                # 執行自摸胡牌結算
+                print(f"🎉 **玩家 {player_id} 自摸胡牌！**")
+                self.score_final_hand([player_id], player_id, new_tile)
+                return
             
-    #         # 檢查摸牌後是否為花牌 (需補牌)
-    #         if is_flower_tile(new_tile):
-    #             # 執行補花邏輯 (假設已定義)
-    #             player.handle_flower_tile(new_tile, self.deck) 
+            # 檢查摸牌後是否要槓牌 (暗槓/加槓)
+            # 這裡需要詢問玩家是否執行 execute_concealed_gang 或 execute_add_on_gang
+            # 如果執行槓牌，則進入 _draw_gang_tile 流程，然後再次詢問打牌
+            
+            # 檢查是否有暗槓或加槓
+            kong_claims = [c for c in claims if c[0] in ['CONCEALED_KONG', 'ADDON_KONG']]
+            if kong_claims:
+                # 實戰中需要詢問玩家是否執行槓牌 (UI 互動)
+                # 這裡我們假設玩家選擇執行第一個槓
+                action, tiles = kong_claims[0]
+                # self.execute_kong_claim(player_id, action, tiles)
+                self.execute_concealed_gang(player_id, tiles[0]) if action == 'CONCEALED_KONG' else self.execute_add_on_gang(player_id, tiles[0])
+                return
+
+            # 5. 如果沒有胡牌或槓牌，玩家必須打出一張牌
+            # 進入 UI 階段，讓玩家選擇打出哪張牌
+            # 最終：玩家必須打牌
+            print(f"▶️ 玩家 {player_id} 必須從牌中選擇一張打出。")
+
+        except Exception as e:
+            # 牌牆已空，檢查流局 or 執行流局
+            print("牌牆已空，執行流局檢查。")
+            # self.check_for_draw()
+            self.end_game_draw()
+
+    def draw_kong_phase(self, claimant_id: int):
+        """處理槓上補牌流程。"""
+
+        # 1. 從嶺上牌區摸牌
+        try:
+            drawn_tile = self.deck.draw_tile(from_end=True) # 從牌牆尾部摸牌
+        except IndexError:
+            # 死牌區已空，可能導致特殊流局，但此處僅處理補牌失敗
+            print("⚠️ 槓上無牌可補！")
+            return
+
+        player = self.players[claimant_id]
+        player.hand.append(drawn_tile)
+
+        # 2. 檢查槓上開花 (自摸)
+        if self.check_for_win(player.hand, drawn_tile, len(player.melds)):
+            # 執行槓上開花結算
+            self.score_final_hand([claimant_id], None, drawn_tile, is_kong_draw=True)
+            return
+
+        # 3. 槓後打牌：如果沒有胡牌，玩家必須打出一張牌
+        # 回到 UI 階段，讓玩家選擇打出哪張牌
+        print(f"玩家 {claimant_id} 槓上補牌後，必須選擇一張牌打出。")
+
+    # 假設 get_tai_info 函式能從遊戲狀態中準備 TaiInfo 物件
+    def get_tai_info(self, player_id: int, win_tile: str, is_self_draw: bool) -> TaiInfo:
+        # 這裡需要從 self.players[player_id] 和遊戲狀態 (self.is_last_tile, self.has_claimed_yet 等)
+        # 收集所有資訊，並構建 TaiInfo 實例。
+        # ... 實作細節 ...
+        return TaiInfo(...)
+    
+    def get_dealer_streak(self) -> int:
+        """獲取當前莊家的連莊次數 (假設遊戲狀態中儲存了這個資訊)。"""
+        # return self.dealer_streak_count 
+        return 0 # 暫時返回 0
+    
+    def score_final_hand(self, winning_players: List[int], discarder_id: int, win_tile: str):
+        """計算並結算胡牌玩家的台數。"""
+        
+        for winner_id in winning_players:
+            is_self_draw = (winner_id == discarder_id)
+            is_dealer = (winner_id == 0) # 假設莊家 ID 為 0
+            
+            # 1. 準備資訊包
+            info = self.get_tai_info(winner_id, win_tile, is_self_draw)
+            
+            # 2. 計算台數
+            calculator = TaiCalculator(info)
+            total_tai, breakdown = calculator.calculate_all(
+                is_dealer=is_dealer, 
+                dealer_streak=self.get_dealer_streak()
+            )
+
+            # 3. 結算 (範例)
+            print("====================================")
+            print(f"**玩家 {winner_id} 胡牌！** (自摸: {is_self_draw})")
+            print(f"總台數: {total_tai} 台")
+            print("--- 台數明細 ---")
+            for name, tai in breakdown.items():
+                print(f"  {name.ljust(10)}: {tai} 台")
+            print("====================================")
+            
+            # 4. 實際結算金額 (底金+台金) 邏輯將在這裡執行
+            # self.settle_payments(winner_id, total_tai, discarder_id)
+    
+    #
+    # 流局結算函式 (end_game_draw)
+    #
+    def end_game_draw(self, draw_reason: str = "Deck Empty"):
+        """
+        執行流局結算，處理不聽牌的包賠規則。
+
+        Args:
+            draw_reason: 流局的原因 ('Deck Empty', 'No More Kong Tile', etc.)
+        """
+        print(f"\n======== 遊戲流局：{draw_reason} ========")
+        self.game_over = True
+
+        # 1. 檢查並宣告聽牌玩家 (Ting/Waiting Status)
+        # 在流局時，所有玩家必須公開手牌，證明自己是否處於聽牌狀態。
+        waiting_players = []
+        non_waiting_players = []
+
+        for player_id, player in self.players.items():
+            # 輔助函式：檢查玩家是否處於聽牌狀態
+            # 這裡需要遍歷所有可能胡牌的牌張 (總共 34 種牌)
+            is_waiting = self.check_if_player_is_waiting(player) 
+            
+            if is_waiting:
+                waiting_players.append(player_id)
+                print(f"✅ 玩家 {player_id} (聽牌)")
+            else:
+                non_waiting_players.append(player_id)
+                print(f"❌ 玩家 {player_id} (未聽牌)")
+
+        # 2. 執行流局結算 (不聽牌包賠 / 公平分配)
+        if not waiting_players:
+            print("所有玩家皆未聽牌，本局無輸贏，莊家繼續。")
+            self.end_round_no_score()
+            return
+
+        if not non_waiting_players:
+             print("所有玩家皆聽牌，本局無輸贏，莊家繼續。")
+             self.end_round_no_score()
+             return
+
+        # 3. 處理不聽牌的包賠規則 (主流台灣麻將規則)
+        # 規則：未聽牌的玩家必須付錢給所有聽牌的玩家。
+        
+        # 流局的基礎分數 (可設定為遊戲參數)
+        base_fine = 16  # 假設一個基礎罰分值 (例如 16 台對應的底金)
+        
+        num_waiting = len(waiting_players)
+        num_non_waiting = len(non_waiting_players)
+        
+        total_payment_per_non_waiting = base_fine * num_waiting
+        
+        settlements = {pid: 0 for pid in range(self.num_players)}
+        
+        print("\n--- 流局金結算 ---")
+        
+        # 未聽牌玩家的支出
+        for nwp_id in non_waiting_players:
+            # 支付給每個聽牌玩家 base_fine 的罰金
+            settlements[nwp_id] -= total_payment_per_non_waiting
+            print(f"玩家 {nwp_id} 須支付：{total_payment_per_non_waiting}")
+            
+            # 聽牌玩家的收入
+            payment_from_nwp = base_fine
+            for wp_id in waiting_players:
+                 settlements[wp_id] += payment_from_nwp
+                 
+        # 4. 顯示最終結算
+        for pid, amount in settlements.items():
+            action = "贏得" if amount > 0 else "支付"
+            print(f"玩家 {pid} 最終結算：{action} {abs(amount)}")
+            # self.players[pid].score += amount # 實際更新分數
+
+        # 5. 結束本局並準備下一局 (莊家續莊)
+        self.end_round_dealer_continues()
+        
+    def check_if_player_is_waiting(self, player) -> bool:
+        """
+        核心輔助函式：檢查玩家手牌是否只需要一張牌即可胡牌。
+        遍歷 34 種牌，將其加到手牌中，檢查是否胡牌。
+        """
+        # 假設我們已經知道所有 34 種牌的列表
+        all_34_tiles = self.get_all_34_tiles_types() 
+        
+        hand_counts = Counter(player.hand)
+        
+        for check_tile in all_34_tiles:
+            # 嘗試加入這張牌
+            hand_counts[check_tile] += 1
+            
+            # 檢查是否能組成胡牌結構 (5搭1對)
+            # 這裡 target_melds=5, target_pairs=1，因為總張數是 17
+            is_hu = self.can_form_target_melds(hand_counts, 5, 1) 
+            
+            # 移除這張牌，準備檢查下一張
+            hand_counts[check_tile] -= 1
+            
+            if is_hu:
+                return True # 只要能胡其中任何一張牌，即為聽牌
                 
-    #         # 檢查摸牌後是否自摸胡牌
-    #         if self.check_for_win(player.hand[:-1], new_tile, len(player.melds)):
-    #             print(f"🎉 **玩家 {player_id} 自摸胡牌！**")
-    #             # 執行結算
-    #             self.score_final_hand([player_id], player_id, new_tile)
-    #             self.game_over = True
-    #             return
-            
-    #         # 檢查摸牌後是否要槓牌 (暗槓/加槓)
-    #         # 這裡需要詢問玩家是否執行 execute_concealed_gang 或 execute_add_on_gang
-    #         # 如果執行槓牌，則進入 _draw_gang_tile 流程，然後再次詢問打牌
-            
-    #         # 最終：玩家必須打牌
-    #         print(f"▶️ 玩家 {player_id} 必須從 17 張牌中選擇一張打出。")
+        return False
 
-    #     except Exception as e:
-    #         # 牌牆已空，檢查流局
-    #         print("牌牆已空，執行流局檢查。")
-    #         self.check_for_draw()
-
-    # # 假設 get_tai_info 函式能從遊戲狀態中準備 TaiInfo 物件
-    # def get_tai_info(self, player_id: int, win_tile: str, is_self_draw: bool) -> TaiInfo:
-    #     # 這裡需要從 self.players[player_id] 和遊戲狀態 (self.is_last_tile, self.has_claimed_yet 等)
-    #     # 收集所有資訊，並構建 TaiInfo 實例。
-    #     # ... 實作細節 ...
-    #     return TaiInfo(...)
-    
-    # def get_dealer_streak(self) -> int:
-    #     """獲取當前莊家的連莊次數 (假設遊戲狀態中儲存了這個資訊)。"""
-    #     # return self.dealer_streak_count 
-    #     return 0 # 暫時返回 0
-    
-    # def score_final_hand(self, winning_players: List[int], discarder_id: int, win_tile: str):
-    #     """計算並結算胡牌玩家的台數。"""
+    def end_round_no_score(self):
+        """流局但無輸贏，莊家繼續坐莊。"""
+        # 這裡可以加入連莊計數的邏輯
+        pass
         
-    #     for winner_id in winning_players:
-    #         is_self_draw = (winner_id == discarder_id)
-    #         is_dealer = (winner_id == 0) # 假設莊家 ID 為 0
-            
-    #         # 1. 準備資訊包
-    #         info = self.get_tai_info(winner_id, win_tile, is_self_draw)
-            
-    #         # 2. 計算台數
-    #         calculator = TaiCalculator(info)
-    #         total_tai, breakdown = calculator.calculate_all(
-    #             is_dealer=is_dealer, 
-    #             dealer_streak=self.get_dealer_streak()
-    #         )
-
-    #         # 3. 結算 (範例)
-    #         print("====================================")
-    #         print(f"**玩家 {winner_id} 胡牌！** (自摸: {is_self_draw})")
-    #         print(f"總台數: {total_tai} 台")
-    #         print("--- 台數明細 ---")
-    #         for name, tai in breakdown.items():
-    #             print(f"  {name.ljust(10)}: {tai} 台")
-    #         print("====================================")
-            
-    #         # 4. 實際結算金額 (底金+台金) 邏輯將在這裡執行
-    #         # self.settle_payments(winner_id, total_tai, discarder_id)
+    def end_round_dealer_continues(self):
+        """流局後莊家繼續坐莊。"""
+        # 這裡可以加入連莊計數的邏輯
+        pass
+        
+    def get_all_34_tiles_types(self) -> List[str]:
+        """返回所有 34 種牌的列表，用於遍歷檢查。"""
+        # 示例：['1m', '2m', ..., '9m', '1p', ..., 'White', 'Red']
+        return [] # 實作此列表

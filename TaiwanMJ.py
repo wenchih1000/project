@@ -16,13 +16,18 @@ ACTION_PRIORITY = {
 
 # Player 類別：管理手牌與公開牌
 class Player:
-    IsDealer:bool = False
     Name:str = ''
     Money:int = 3000
-    Wind:WIND = None
 
+    # 是否為莊家
+    IsDealer:bool = False
+    # wind seat
+    Wind:WIND = None
+    # 存放明搭 <=5 搭
     Melds:list[Meld] = None
+    # 存放花牌
     Flowers:list[Tile] = None
+    # 存放摸進的牌 <= 17
     Hand:list[Tile] = None
 
     def __init__(self, name:str, wind:WIND):
@@ -34,7 +39,7 @@ class Player:
         # 已亮出的花牌 Exposed Flowers
         self.Flowers = []
         # 已完成的搭子 (碰/槓/吃) Exposed Melds
-        self.Melds = []   
+        self.Melds = []
 
     def SetHandTile(self, hand:list[Tile]):
         for _ in range(len(hand)):
@@ -56,10 +61,11 @@ class Player:
     def SetDealer(self, dealer:bool = True):
         self.IsDealer = dealer
 
+    # 用於開局時檢查手上所有花牌
     def CheckFlowers(self) -> list[Tile]:
         """
         檢查並從手牌中取出所有花牌。
-        
+
         Returns:
             這一輪從手牌中取出的花牌列表。
         """
@@ -90,7 +96,7 @@ class Player:
         """計算玩家外露搭子（碰、吃、明槓）的總數。"""
         # 暗槓不算外露搭子
         return sum(1 for meld in self.Melds if meld.Exposed)
-    
+
     def NumMelds(self) -> int:
         """計算玩家外露搭子（碰、吃、明槓、暗槓）的總數。"""
         return len(self.Melds)
@@ -176,7 +182,7 @@ class Deck:
         # 從切牌位置開始放到牌牆
         for i in range(offset, count):
             self.Wall.append(self.Tiles.pop(offset-1))
-        
+
         # 從切牌位置取到尾巴還不夠，則從頭取足放到牌牆
         for i in range(remain):    
             self.Wall.append(self.Tiles.pop(0))
