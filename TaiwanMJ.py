@@ -4,18 +4,18 @@
 from Tile import *
 
 from collections import Counter
-# from enum import Enum
+from enum import Enum
 import random
 
-ACTION_PRIORITY = {
-    'HU': 4,
-    'KONG': 3,
-    'PONG': 2,
-    'CHOW': 1
-}
+class Action(Enum):
+    HU = 4
+    KONG = 3
+    PONG = 2
+    CHOW = 1
+    PASS = 0
 
 # Player 類別：管理手牌與公開牌
-class Player:
+class Player: # thread.Thread
     Name:str = ''
     Money:int = 3000
 
@@ -24,7 +24,7 @@ class Player:
     # wind seat
     Wind:WIND = None
     # 存放明搭 <=5 搭
-    Melds:list[Meld] = None
+    ExposedMelds:list[Meld] = None
     # 存放花牌
     Flowers:list[Tile] = None
     # 存放摸進的牌 <= 17
@@ -34,12 +34,16 @@ class Player:
         self.Name = name
         self.Wind = wind
 
+        # 東風玩家預設起始為莊家
+        if self.Wind == WIND.EAST:
+            self.IsDealer = True
+
         # 玩家手牌 (16 或 17 張) 
         self.Hand = []
         # 已亮出的花牌 Exposed Flowers
         self.Flowers = []
-        # 已完成的搭子 (碰/槓/吃) Exposed Melds
-        self.Melds = []
+        # 已完成的搭子 (吃/碰/槓/暗槓) Exposed Melds
+        self.ExposedMelds = []
 
     def SetHandTile(self, hand:list[Tile]):
         for _ in range(len(hand)):
@@ -52,7 +56,7 @@ class Player:
             hand.append(self.Hand.pop(0))
         for _ in range(len(self.Flowers)):
             hand.append(self.Flowers.pop(0))
-        for meld in self.Melds:
+        for meld in self.ExposedMelds:
             for _ in range(len(meld.Tiles)):
                 hand.append(meld.Tiles.pop(0))
         return hand
@@ -89,17 +93,18 @@ class Player:
     def HandCounts(self) -> Counter:
         return Counter(self.Hand)
 
+    # 新增明搭
     def AddMeld(self, tiles: list[Tile], action: MELD, concealed: bool = False):
-        self.Melds.append(Meld(not concealed, tiles))
+        self.ExposedMelds.append(Meld(not concealed, tiles))
 
-    def NumExposedMelds(self) -> int:
-        """計算玩家外露搭子（碰、吃、明槓）的總數。"""
-        # 暗槓不算外露搭子
-        return sum(1 for meld in self.Melds if meld.Exposed)
+    # def NumExposedMelds(self) -> int:
+    #     """計算玩家外露搭子（碰、吃、明槓）的總數。"""
+    #     # 暗槓不算外露搭子
+    #     return sum(1 for meld in self.ExposedMelds if meld.Exposed)
 
     def NumMelds(self) -> int:
-        """計算玩家外露搭子（碰、吃、明槓、暗槓）的總數。"""
-        return len(self.Melds)
+        """計算玩家外露搭子（吃/碰/槓/暗槓）的總數。"""
+        return len(self.ExposedMelds)
 
     def RemoveTiles(self, tiles:list[str]):
         for tile in tiles:
@@ -121,7 +126,7 @@ class Deck:
     Wall:list[Tile] = []
     # 牌尾（死牌區，用於補牌）
     DeadWall:list[Tile] = []
-    # 棄牌區
+    # 棄牌區 / 河區
     Discard:dict = {WIND.EAST:list[Tile], WIND.SOUTH:list[Tile], WIND.WEST:list[Tile], WIND.NORTH:list[Tile]}
 
     def __init__(self):
@@ -216,11 +221,12 @@ class Deck:
         # 槓牌補牌通常是從牌尾取牌，所以我們從 dead_wall 的最右邊 pop()
         return self.DeadWall.pop()
 
+    # 處理玩家的棄牌
     def DiscardTile(self, wind:int, tile:Tile):
         self.Discard[wind].append(tile)
 
+    # 當局結束時，回收玩家手牌
     def FlushTiles(self, handTiles:dict) -> bool:
-        # 回收玩家手牌
         for key,val in handTiles.items():
             for i in val:
                 self.Tiles.append(i.pop(0))
@@ -243,6 +249,11 @@ class Deck:
         random.shuffle(self.Tiles)
         return True
 
+    #
+    # 開局呼叫 function
+    #
+
+    # 開局發牌給所有玩家完時叫用
     def ReplaceFlowers(self, players:list[Player]) -> bool:
         """
         執行完整的補花程序，直到所有玩家手牌中不再有花牌。
@@ -302,6 +313,7 @@ class Deck:
         PrintLog("--- 補花程序完成 ---")
         return True
 
+    # 開局發牌叫用
     def DealTiles(self, handTiles:dict):
         # 發牌
         # 每人抓4次，1次4張
@@ -310,8 +322,8 @@ class Deck:
             for key,val in handTiles.items():
                 val.extend([self.Wall.pop(0) for _ in range(pcs)])
 
-        # 莊家開門
-        handTiles[WIND.EAST].append(self.Wall.pop(0))
+        # # 莊家開門
+        # handTiles[WIND.EAST].append(self.Wall.pop(0))
 
 # ------------------------------------------------------------------------------------------------
 # debug testing
@@ -365,12 +377,26 @@ def DemoReplaceFlowersWhenStartGame():
 
     for key,val in handTiles.items():
         players[key.value-1].SetHandTile(val)
-
         for i in val:
             PrintLog(i.toStr(), end=' ')
-
     PrintLog()
+
+    # 所有玩家補花
     deck.ReplaceFlowers(players)
+
+    # 莊家開門
+    tile = deck.DrawWallTile()
+    player = players[WIND.EAST.value-1]
+    player.SetHandTile([tile])
+    if tile.IsFlower():
+        deck.ReplaceFlowers([player])
+
+    # 確認莊家手牌是否胡牌
+    # GameDesc notify player to do action
+    # ex: Player turn/Hu/Kong/Pong/Chow/Pass
+    print(player.HandCounts().values())
+
+    # 莊家出第一張牌
 
 def DemoAlias2Tile():
     #
