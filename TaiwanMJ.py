@@ -1,11 +1,15 @@
 #
 # define Taiwan Mahjong tile class
 #
+import time
 from Tile import *
 
 from collections import Counter
 from enum import Enum
 import random
+from threading import Thread, Event
+import threading
+
 
 class Action(Enum):
     HU = 4
@@ -14,8 +18,20 @@ class Action(Enum):
     CHOW = 1
     PASS = 0
 
+    DRAWING = -1
+    DISCARD = -2
+
+action = {Action.HU:False, Action.KONG:False, Action.PONG:False, Action.CHOW:False, Action.PASS:False}
+
+class Deck:
+    pass
+
 # Player 類別：管理手牌與公開牌
-class Player: # thread.Thread
+class Player(Thread): # 
+
+    ExitEvent = Event()
+    ActionEvent = Event()
+    Actions:Action = None
     Name:str = ''
     Money:int = 3000
 
@@ -30,9 +46,13 @@ class Player: # thread.Thread
     # 存放摸進的牌 <= 17
     Hand:list[Tile] = None
 
-    def __init__(self, name:str, wind:WIND):
+    deck = None
+
+    def __init__(self, name:str, wind:WIND, deck:Deck):
+        super().__init__()
         self.Name = name
         self.Wind = wind
+        self.deck = deck
 
         # 東風玩家預設起始為莊家
         if self.Wind == WIND.EAST:
@@ -44,6 +64,28 @@ class Player: # thread.Thread
         self.Flowers = []
         # 已完成的搭子 (吃/碰/槓/暗槓) Exposed Melds
         self.ExposedMelds = []
+
+    def Exit(self):
+        self.ExitEvent.set()
+
+    def run(self):
+
+        while not self.ExitEvent.is_set():
+            if self.ActionEvent.is_set():
+                # Hu/吃/碰/槓/Pass
+                if self.Actions == Action.DRAWING:
+                    tile = self.deck.DrawWallTile()
+                    self.SetHandTile([tile])
+                    if tile.IsFlower():
+                        self.deck.ReplaceFlowers({self.Wind:self})
+                elif self.Actions == Action.DISCARD:
+                    self.Hand.pop(0)
+                    pass
+                self.ActionEvent.clear()
+            else:
+                time.sleep(0.5)
+                # print('sleep')
+
 
     def SetHandTile(self, hand:list[Tile]):
         for _ in range(len(hand)):
@@ -254,7 +296,7 @@ class Deck:
     #
 
     # 開局發牌給所有玩家完時叫用
-    def ReplaceFlowers(self, players:list[Player]) -> bool:
+    def ReplaceFlowers(self, players:dict[WIND,Player]) -> bool:
         """
         執行完整的補花程序，直到所有玩家手牌中不再有花牌。
 
@@ -277,7 +319,11 @@ class Deck:
             # 玩家逆時針補花 (0:東 -> 3:北 -> 2:西 -> 1:南)
             # for index in range(num):
             for index in range(num, 0, -1):
-                player = players[index%num]
+                wind = WIND(index%num+1)
+                if num == 1:
+                    player = next(iter(players.values()))
+                else:
+                    player = players[wind]
 
                 # 1. 檢查並從手牌中移除花牌 (第一次或補牌後)
                 # num of flowers to replace
@@ -373,10 +419,15 @@ def DemoReplaceFlowersWhenStartGame():
     deck.BreakingWall(wind, diceScore)
     handTiles = {WIND.EAST:[], WIND.SOUTH:[], WIND.WEST:[], WIND.NORTH:[]}
     deck.DealTiles(handTiles)
-    players = [Player('東', WIND.EAST), Player('南', WIND.SOUTH), Player('西', WIND.WEST), Player('北', WIND.NORTH)]
+    players = {
+        WIND.EAST:Player('東', WIND.EAST, deck), 
+        WIND.SOUTH:Player('南', WIND.SOUTH, deck), 
+        WIND.WEST:Player('西', WIND.WEST, deck), 
+        WIND.NORTH:Player('北', WIND.NORTH, deck)
+    }
 
     for key,val in handTiles.items():
-        players[key.value-1].SetHandTile(val)
+        players[key].SetHandTile(val)
         for i in val:
             PrintLog(i.toStr(), end=' ')
     PrintLog()
@@ -385,15 +436,19 @@ def DemoReplaceFlowersWhenStartGame():
     deck.ReplaceFlowers(players)
 
     # 莊家開門
-    tile = deck.DrawWallTile()
-    player = players[WIND.EAST.value-1]
-    player.SetHandTile([tile])
-    if tile.IsFlower():
-        deck.ReplaceFlowers([player])
+    # tile = deck.DrawWallTile()
+    # # tile = Tile({'alias':'春'})
+    player = players[WIND.EAST]
+    # player.SetHandTile([tile])
+    # if tile.IsFlower():
+    #     deck.ReplaceFlowers({player.Wind:player})
 
     # 確認莊家手牌是否胡牌
     # GameDesc notify player to do action
     # ex: Player turn/Hu/Kong/Pong/Chow/Pass
+    player.start()
+    player.Actions = Action.DRAWING
+    player.ActionEvent.set()
     print(player.HandCounts().values())
 
     # 莊家出第一張牌
@@ -426,7 +481,9 @@ def DemoAlias2Tile():
         PrintLog(t, t.toStr(), t.IsFlower(), t.IsHonor())
 
 if __name__ == '__main__':
-    
+    # for i in range(len(WIND), 0, -1):
+    #     print(i%4+1, WIND(i%4+1))
+
     # DemoTiles()
 
     # DemoAlias2Tile()
