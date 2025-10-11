@@ -74,6 +74,7 @@ class Rule:
     PairLen = 2
     MeldLen = 3
     KongLen = 4
+    PongLen = 3
     NumHiLimit = 7 # ex:7,8,9
     AllTiles:list[Tile] = None
     Melds:list[Meld] = None
@@ -88,18 +89,55 @@ class Rule:
             self.AllTiles.extend([Tile({'suit':SUIT.HONOR, 'num':i})])
 
     # 確認手牌是否可槓牌
-    def CanKong(self, hand: list[Tile]) -> bool:
+    @staticmethod
+    def CanConcealKong(hand: list[Tile]) -> bool:
         HandCounts = Counter(hand)
         for tile in HandCounts:
-            if HandCounts[tile] >= self.KongLen:
+            if HandCounts[tile] >= Rule.KongLen:
                 return True
         return False
 
-    def GetKongTile(self, hand: list[Tile]) -> list[Tile]:
+    @staticmethod
+    def CanKong(hand: list[Tile], discard: Tile) -> bool:
+        HandCounts = Counter(hand)
+        for tile in HandCounts:
+            if HandCounts[tile] >= Rule.KongLen-1 and tile == discard:
+                return True
+        return False
+
+    @staticmethod
+    def CanPong(hand: list[Tile], discard: Tile) -> bool:
+        HandCounts = Counter(hand)
+        for tile in HandCounts:
+            if HandCounts[tile] >= Rule.PongLen-1 and tile == discard:
+                return True
+        return False
+
+    @staticmethod
+    def CanChow(hand: list[Tile], discard: Tile) -> bool:
+        if discard.IsHonor() or discard.IsFlower():
+            return False
+
+        t1, t2 = None, None
+        # 邊張
+        if discard.Num == 1:
+            t1, t2 = discard + 1, discard + 2
+        elif discard.Num == 9:
+            t1, t2 = discard - 1, discard - 2
+        # 中洞
+        else:
+            t1, t2 = discard - 1, discard + 1
+
+        if t1 in hand and t2 in hand:
+            return True
+        return False
+
+    @staticmethod
+    def GetKongTile(hand: list[Tile]) -> list[Tile]:
         HandCounts = Counter(hand)
         tmp = []
         for tile in HandCounts:
-            if HandCounts[tile] >= self.KongLen:
+            if HandCounts[tile] >= Rule.KongLen:
                 tmp.append(tile)
         return tmp
 

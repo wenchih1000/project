@@ -174,6 +174,16 @@ class Tile(object):
 
         return Tile({'suit':self.Suit, 'num':val})
 
+    def __sub__(self, num:int) -> 'Tile':
+        if num < self.NumMin:
+            num = self.NumMin
+
+        val = self.Num - num
+        if val < self.NumMin:
+            val = self.NumMin
+
+        return Tile({'suit':self.Suit, 'num':val})
+
     # for sorting
     def __lt__(self, other:'Tile') -> bool:
         if self.Suit == other.Suit:

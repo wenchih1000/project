@@ -97,21 +97,25 @@ def DemoDealerDrawAndDiscard():
     ret = rule.CanHu(player.Hand)
     PrintLog("胡:"+str(ret))
 
-    ret = rule.CanKong(player.Hand)
+    ret = Rule.CanConcealKong(player.Hand)
     PrintLog("槓:"+str(ret))
     if ret:
-        kong = rule.GetKongTile(player.Hand)
+        # 可能有多組槓搭，通知UI，讓玩家決定要不要槓
+        kongs = Rule.GetKongTile(player.Hand)
         # 模擬玩家選槓牌
-        player.LastKong = kong[0]
+        player.LastKong = kongs[0]
+        player.ConcealedKong = True
         player.Actions = Action.KONG
         player.Notify()
         player.Wait()
 
-        # 從死牆抓牌
+        # 由於槓牌後，要摸一打一
+        # 通知UI，讓玩家從死牆抓牌
         player.Actions = Action.DRAWING
         player.Notify()
         player.Wait()
 
+    # 通知UI，讓玩家打出一張牌(有時間限制)
     # 莊家出第一張牌
     # 摸擬玩家出牌(從UI)
     rand = random.randrange(0, len(player.Hand))
@@ -121,6 +125,73 @@ def DemoDealerDrawAndDiscard():
     player.Actions = Action.DISCARD
     player.Notify()
     player.Wait()
+
+def DemoPickUpDiscard():
+    # 當玩家打出牌到河區時，其它三位玩家可視情況 胡/槓/碰/吃/過 但有時間限制
+    deck = Deck()
+    diceScore = random.randint(3,18)
+    wind = WIND.EAST
+    deck.BreakingWall(wind, diceScore)
+    handTiles = {WIND.EAST:[], WIND.SOUTH:[], WIND.WEST:[], WIND.NORTH:[]}
+    deck.DealTiles(handTiles)
+    players = {
+        WIND.EAST:Player('小東', WIND.EAST, deck), 
+        WIND.SOUTH:Player('小南', WIND.SOUTH, deck), 
+        WIND.WEST:Player('小西', WIND.WEST, deck), 
+        WIND.NORTH:Player('小北', WIND.NORTH, deck)
+    }
+
+    for key,val in handTiles.items():
+        players[key].SetHandTile(val)
+        for i in val:
+            PrintLog(i.toStr(), end=' ')
+    PrintLog()
+
+    # 所有玩家補花
+    deck.ReplaceFlowers(players)
+
+    player = players[WIND.EAST]
+    player.daemon = True
+    player.start()
+    # 莊家開門
+    player.Actions = Action.DRAWING
+    player.Notify()
+    player.Wait()
+    # 莊家出牌
+        # 通知UI，讓玩家打出一張牌(有時間限制)
+    # 莊家出第一張牌
+    # 摸擬玩家出牌(從UI)
+    rand = random.randrange(0, len(player.Hand))
+    tile = player.Hand[rand]
+
+    player.LastDiscard = tile
+
+    player.Actions = Action.DISCARD
+    player.Notify()
+    player.Wait()
+
+    rule = Rule()
+    for w in WIND:
+        if w == player.Wind:
+            continue
+
+        #check 胡/槓/碰/吃
+        tile = deck.LastDiscard
+        PrintLog(players[w].Name)
+        ret = rule.CanHu(players[w].Hand + [tile])
+        PrintLog("胡:"+str(ret))
+
+        ret = Rule.CanKong(players[w].Hand, tile)
+        PrintLog("槓:"+str(ret))
+        
+        ret = Rule.CanPong(players[w].Hand, tile)
+        PrintLog("碰:"+str(ret))
+
+        ret = Rule.CanChow(players[w].Hand, tile)
+        PrintLog("吃:"+str(ret))
+        # discard = deck.PickUPDiscardTile(player.Wind)
+
+
 
 def DemoAlias2Tile():
     #
@@ -162,7 +233,8 @@ if __name__ == '__main__':
     #
     # DemoReplaceFlowersWhenStartGame()
 
-    DemoDealerDrawAndDiscard()
+    # DemoDealerDrawAndDiscard()
+    DemoPickUpDiscard()
 
 
     # count = players[1].HandCounts()

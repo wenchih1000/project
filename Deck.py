@@ -29,6 +29,7 @@ class Deck:
     DeadWall:list[Tile] = []
     # 棄牌區 / 河區
     Discard:dict = {WIND.EAST:[], WIND.SOUTH:[], WIND.WEST:[], WIND.NORTH:[]}
+    LastDiscard:Tile = None
 
     def __init__(self):
         # initial all tiles
@@ -122,9 +123,13 @@ class Deck:
         # 槓牌補牌通常是從牌尾取牌，所以我們從 dead_wall 的最右邊 pop()
         return self.DeadWall.pop()
 
-    # 處理玩家的棄牌
+    # 放置玩家的棄牌
     def DiscardTile(self, wind:WIND, tile:Tile):
         self.Discard[wind].append(tile)
+        self.LastDiscard = tile
+
+    def PickUPDiscardTile(self, wind:WIND) -> Tile:
+        return self.Discard[wind].pop()
 
     # 當局結束時，回收玩家手牌
     def FlushTiles(self, handTiles:dict) -> bool:

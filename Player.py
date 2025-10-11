@@ -1,4 +1,5 @@
 from Tile import *
+from Rule import *
 # from Deck import *
 # import Deck
 
@@ -43,7 +44,8 @@ class Player(Thread):
     Hand:list[Tile] = None
     LastDiscard:Tile = None
     LastKong:Tile = None
-    KongTiles:list[Tile] = None
+    ConcealedKong:bool = False
+    # KongTiles:list[Tile] = None
 
     DeckRef:Deck = None
     # 給UI對應操作的狀態
@@ -70,8 +72,9 @@ class Player(Thread):
         self.ExposedMelds = []
         # 上次出的牌
         self.LastDiscard = None
-        self.KongTiles = []
+        # self.KongTiles = []
         self.LastKong = None
+        self.ConcealedKong = False
 
         # Game Deck 檢查後，通知玩家目前可操作的狀態
         self.ActionState = {
@@ -93,12 +96,15 @@ class Player(Thread):
                         pass
                     case Action.KONG:
                         kong = self.LastKong
-                        tiles = [kong]*4
+                        tiles = [kong]*Rule.KongLen
                         t = ''
                         for tile in tiles:
                             t += tile.toStr() + ' '
                         PrintLog(self.Name + ' 槓牌: ' + t)
-                        self.AddMeld(tiles, True)
+                        # 將手牌的槓搭複制進Meld list
+                        self.AddMeld(tiles, self.ConcealedKong)
+                        # 清除手牌的槓搭
+                        self.ConcealedKong = False
                         self.RemoveTiles(tiles)
                         self.FinishEvent.set()
                     case Action.PONG:
