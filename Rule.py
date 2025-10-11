@@ -14,7 +14,7 @@ class HandCondition:
     IsLastTileDiscard: bool = False # 河底撈魚
     IsHeavenlyHand: bool = False    # 天胡
     IsWinningHand: bool = False     # 地胡
-    IsHumanlyHand: bool = False     # 人胡
+    CanHumanlyHand: bool = False     # 人胡
     IsPlainHand: bool = False       # 平胡
     # 新增的聽牌型態旗標 (假設這些情況互斥，且只算最高的一種)
     IsSingleWait: bool = False      # 獨聽/單吊 (1台)
@@ -73,6 +73,7 @@ class Rule:
     HandLen = 17
     PairLen = 2
     MeldLen = 3
+    KongLen = 4
     NumHiLimit = 7 # ex:7,8,9
     AllTiles:list[Tile] = None
     Melds:list[Meld] = None
@@ -86,7 +87,24 @@ class Rule:
         for i in range(TileRange.HonorMin.value, TileRange.HonorMax.value + 1):
             self.AllTiles.extend([Tile({'suit':SUIT.HONOR, 'num':i})])
 
-    def IsHu(self, hand: list[Tile]) -> bool:
+    # 確認手牌是否可槓牌
+    def CanKong(self, hand: list[Tile]) -> bool:
+        HandCounts = Counter(hand)
+        for tile in HandCounts:
+            if HandCounts[tile] >= self.KongLen:
+                return True
+        return False
+
+    def GetKongTile(self, hand: list[Tile]) -> list[Tile]:
+        HandCounts = Counter(hand)
+        tmp = []
+        for tile in HandCounts:
+            if HandCounts[tile] >= self.KongLen:
+                tmp.append(tile)
+        return tmp
+
+    # 確認手牌是否可胡牌
+    def CanHu(self, hand: list[Tile]) -> bool:
         self.Melds = []
         """
         主函式：判斷牌組是否胡牌
@@ -428,7 +446,7 @@ class Score:
             ScoreNameList.append(Name); Score = Name.Score
             return Score, ScoreNameList
         # 人胡 16台
-        elif self.condition.IsHumanlyHand:
+        elif self.condition.CanHumanlyHand:
             Name = TaiID.HumanlyHand
             ScoreNameList.append(Name); Score = Name.Score
             return Score, ScoreNameList
@@ -632,12 +650,12 @@ if __name__ == '__main__':
     # 假設從玩家取得牌組
     hand = Tile.Alias2Tile(["1萬","2萬","3萬","3索","3索","3索","5筒","6筒","7筒","東","東","東","南","南","南","中","中"])
     rule = Rule()
-    ret = rule.IsHu(hand)
+    ret = rule.CanHu(hand)
     PrintLog("胡:"+str(ret))
 
     # # 測試1-2
     # hand = Tile.Alias2Tile(["3索","3索","3索","5筒","6筒","7筒","5筒","6筒","7筒","南","南","南","白","白"])
-    # ret = rule.IsHu(hand)
+    # ret = rule.CanHu(hand)
     # PrintLog("胡:"+str(ret))
     # melds = rule.GetMelds()
     # for meld in melds:
@@ -661,7 +679,7 @@ if __name__ == '__main__':
 
     # # 測試3: 莊家連一，門清自摸，混一色碰碰胡帶門風
 
-    # IsHu() 回傳True, 代表牌組可以胡，並可透過GetMelds，取出未明牌的Melds
+    # CanHu() 回傳True, 代表牌組可以胡，並可透過GetMelds，取出未明牌的Melds
     melds = rule.GetMelds()
     # 需在加入手牌明搭的牌組:明吃/明碰/明槓
     # melds.append((Meld(True, [t1, t2, t3]))
