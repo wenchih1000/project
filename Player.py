@@ -10,8 +10,9 @@ import random
 from threading import Thread, Event
 
 class Action(Enum):
-    HU = 4
-    KONG = 3
+    HU = 5
+    KONG = 4
+    ADD_KONG = 3
     PONG = 2
     CHOW = 1
     PASS = 0
@@ -42,10 +43,16 @@ class Player(Thread):
     Flowers:list[Tile] = None
     # 存放摸進的牌 <= 17
     Hand:list[Tile] = None
+
+    # UI玩家選擇的暫存牌
     LastDiscard:Tile = None
     LastKong:Tile = None
     ConcealedKong:bool = False
-    # KongTiles:list[Tile] = None
+
+    LastPong:Tile = None
+    # 存放手牌預被吃成搭的2張牌
+    LastChows:list[Tile] = None
+    LastHu:Tile = None
 
     DeckRef:Deck = None
     # 給UI對應操作的狀態
@@ -64,7 +71,7 @@ class Player(Thread):
         self.Reset()
 
     def Reset(self):
-        # 玩家手牌 (16 或 17 張) 
+        # 玩家手牌 (16 或 17 張)
         self.Hand = []
         # 已亮出的花牌 Exposed Flowers
         self.Flowers = []
@@ -72,9 +79,11 @@ class Player(Thread):
         self.ExposedMelds = []
         # 上次出的牌
         self.LastDiscard = None
-        # self.KongTiles = []
         self.LastKong = None
         self.ConcealedKong = False
+        self.LastPong = None
+        self.LastChows = []
+        self.LastHu = None
 
         # Game Deck 檢查後，通知玩家目前可操作的狀態
         self.ActionState = {
@@ -93,26 +102,61 @@ class Player(Thread):
                 # 胡/吃/碰/槓/Pass
                 match self.Actions:
                     case Action.HU:
-                        pass
+                        # 暗胡(自摸) or 明胡(其他家放槍)
+                        hu = self.LastHu
+                        PrintLog(self.Name + ' 胡牌: ' + hu.toStr())
+                        # 確認玩家手牌所有情況
+                        # HandCondition
+                        # 下一步計算玩家台數
+                        self.FinishEvent.set()
                     case Action.KONG:
                         kong = self.LastKong
-                        tiles = [kong]*Rule.KongLen
-                        t = ''
-                        for tile in tiles:
-                            t += tile.toStr() + ' '
-                        PrintLog(self.Name + ' 槓牌: ' + t)
+                        tiles = [kong]*(Rule.KongLen-1)
+                        PrintLog(self.Name + ' 槓牌: ' + kong.toStr())
                         # 將手牌的槓搭複制進Meld list
-                        self.AddMeld(tiles, self.ConcealedKong)
+                        self.AddMeld(tiles+[kong], self.ConcealedKong)
                         # 清除手牌的槓搭
                         self.ConcealedKong = False
                         self.RemoveTiles(tiles)
+                        # 下一步通知玩家摸一打一
+                        self.FinishEvent.set()
+                    case Action.ADD_KONG:
+                        # 將明搭裡的碰搭變更成槓搭
+                        tile = self.LastKong
+                        for meld in self.ExposedMelds:
+                            if meld.Type == MELD.PONG and tile in meld.Tiles:
+                                meld.Type = MELD.KONG
+                                meld.Tiles.append(tile)
+                                PrintLog(self.Name + ' 加槓牌: ' + tile.toStr())
+                                break
+                        # 下一步通知玩家摸一打一
                         self.FinishEvent.set()
                     case Action.PONG:
-                        pass
+                        pong = self.LastPong
+                        tiles = [pong]*(Rule.PongLen-1)
+                        PrintLog(self.Name + ' 碰牌: ' + pong.toStr())
+                        # 將手牌的碰搭複制進Meld list
+                        self.AddMeld(tiles+[pong])
+                        # 清除手牌的碰搭
+                        self.RemoveTiles(tiles)
+                        # 下一步通知玩家出牌
+                        self.FinishEvent.set()
                     case Action.CHOW:
-                        pass
+                        # 玩家指家吃的牌型
+                        # ex: 6 in LastDiscard
+                        chow = self.DeckRef.LastDiscard
+                        # ex: 5,7 in LastChows
+                        tiles = self.LastChows
+                        # 將手牌的碰搭複制進Meld list
+                        self.AddMeld(tiles+[chow])
+                        # 清除手牌的碰搭
+                        self.RemoveTiles(tiles)
+                        # 下一步通知玩家出牌
+                        self.FinishEvent.set()
                     case Action.PASS:
-                        pass
+                        # 放棄胡/槓/碰/吃的機會
+                        PrintLog(self.Name + ' 跳過')
+                        self.FinishEvent.set()
                     case Action.DRAWING:
                         if self.LastKong != None:
                             fromEnd = True
@@ -216,6 +260,13 @@ class Player(Thread):
         """計算玩家外露搭子（吃/碰/槓/暗槓）的總數。"""
         return len(self.ExposedMelds)
 
-    def RemoveTiles(self, tiles:list[str]):
+    def RemoveTiles(self, tiles:list[Tile]):
         for tile in tiles:
             self.Hand.remove(tile)
+
+if __name__ == '__main__':
+
+    tile = Tile({'alias':'東'})
+    hand = Tile.Alias2Tile(["東","東","東"])
+    print(hand+[tile])
+

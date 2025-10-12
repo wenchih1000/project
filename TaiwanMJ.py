@@ -170,27 +170,35 @@ def DemoPickUpDiscard():
     player.Notify()
     player.Wait()
 
-    rule = Rule()
+    # rule = Rule()
     for w in WIND:
         if w == player.Wind:
             continue
 
-        #check 胡/槓/碰/吃
+        # 依優先權通知3家，是否要 胡/槓/碰/吃 丟出的牌
+        # check 胡/槓/碰/吃
         tile = deck.LastDiscard
         PrintLog(players[w].Name)
-        ret = rule.CanHu(players[w].Hand + [tile])
+        ret = Rule.CanHu(players[w].Hand + [tile])
         PrintLog("胡:"+str(ret))
 
         ret = Rule.CanKong(players[w].Hand, tile)
         PrintLog("槓:"+str(ret))
-        
+
+        ret = Rule.CanAddKong(players[w].ExposedMelds, tile)
+        PrintLog("加槓:"+str(ret))
+        # players[w].Actions = Action.ADD_KONG
+        # players[w].Notify()
+        # players[w].Wait()
+
         ret = Rule.CanPong(players[w].Hand, tile)
         PrintLog("碰:"+str(ret))
 
         ret = Rule.CanChow(players[w].Hand, tile)
         PrintLog("吃:"+str(ret))
-        # discard = deck.PickUPDiscardTile(player.Wind)
 
+    # 當丟出的牌被3家其中一家拿去，則從棄牌區取回
+    # discard = deck.PickUPDiscardTile(player.Wind)
 
 
 def DemoAlias2Tile():
@@ -236,6 +244,7 @@ if __name__ == '__main__':
     # DemoDealerDrawAndDiscard()
     DemoPickUpDiscard()
 
+    # Decide whose turn
 
     # count = players[1].HandCounts()
     # for c in count:

@@ -3,12 +3,7 @@ from Player import Player
 from Tile import *
 from Player import *
 
-# import time
-# from collections import Counter
-# from enum import Enum
 import random
-# from threading import Thread, Event
-# import threading
 
 
 # 牌組
