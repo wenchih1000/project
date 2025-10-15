@@ -4,6 +4,14 @@
 讓 client 知道目前玩家當前的狀態，Server會主動告知Client，各玩家目前手牌情況和當前遊戲狀態，  
 玩家當前可以做什麼動作。例如:胡/槓/碰/吃/過、摸牌/出牌。 
 
+### Client 傳送玩家加入遊戲的請求
+1. Client 傳送的JSON格式
+
+        "join_game":{
+            "player_name":"阿土伯",
+            "avatar_image":"26.png"
+        }
+
 ### Server 檢查後，通知Client該玩家目前可操作的狀態和手牌情況
 1. Server 傳送的JSON格式  
 
@@ -204,7 +212,7 @@
             "hand":["3C", "4C", "5C", "3S", "4S", "5S", "6S", "7S", "8S", "4W", "4W", "4W", "2A", "2A", "2A", "1A", "1A"],
             "round_wind":"east",
             "dealer_wind":"east",
-            "win_type":"self-drawn" //discard-win
+            "win_type":"自摸",
             "dealer_num":3,
             "score_list":[
                 {"name":"三暗刻", value:2},
