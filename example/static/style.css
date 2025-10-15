@@ -1,0 +1,304 @@
+/* -------------------- 基礎設定 -------------------- */
+body {
+    font-family: sans-serif;
+    margin: 0;
+    background-color: #333; /* 深色背景模擬麻將桌 */
+    color: white;
+}
+
+#mahjong-table {
+    /* 綠色桌布背景 */
+    background-color: #38761d;
+    height: 100vh;
+    width: 100vw;
+    display: grid;
+    /* 3x3 佈局: 1fr 用於玩家區, 2fr 用於中央區 */
+    grid-template-rows: 1fr 2fr 1.5fr;
+    grid-template-columns: 1fr 2fr 1fr;
+    /* 讓玩家 3, 1 橫跨三列 */
+    grid-template-areas: 
+        "top-zone top-zone top-zone"
+        "left-zone center-zone right-zone"
+        "bottom-zone bottom-zone bottom-zone";
+}
+
+/* 將區域對應到 Grid 佈局 */
+#player-3 { grid-area: top-zone; }
+#player-2 { grid-area: left-zone; }
+#center-zone { grid-area: center-zone; }
+#player-4 { grid-area: right-zone; }
+#player-1 { grid-area: bottom-zone; }
+
+/* 牌牆容器，負責環繞牌桌的蓋牌 */
+.wall-area {
+    /* 假設牌牆是獨立於主要 Grid 的裝飾 */
+    position: absolute;
+    background-color: transparent;
+    z-index: 10;
+}
+
+/* 牌牆卡片基礎樣式 */
+.tile-back {
+    /* 牌背尺寸 */
+    width: 28px; 
+    height: 42px;
+    background-color: #5d5d5d; /* 深灰色 */
+    border: 1px solid #333;
+    border-radius: 4px;
+    box-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+    /* 確保牌背不影響佈局，讓它能被堆疊 */
+    flex-shrink: 0; 
+}
+
+/* -------------------- 牌疊樣式 -------------------- */
+.tile-stack {
+    position: relative;
+    /* 確保兩張牌背有足夠的空間 */
+    width: 30px; 
+    height: 45px; 
+    margin: 0 1px; /* 牌疊之間的微小間距 */
+}
+
+/* 實作疊牌效果: 第二張牌 (代表下層牌) */
+.tile-stack .tile-back:last-child {
+    /* 讓第二張牌往右下方微小偏移，造成疊牌的 3D 效果 */
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    z-index: 1; 
+}
+/* 讓第一張牌 (代表上層牌) 在上面 */
+.tile-stack .tile-back:first-child {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 2; 
+}
+
+/* -------------------- 牌牆容器佈局 -------------------- */
+.wall-segment {
+    position: absolute; /* 讓牌牆可以放置在 Grid 佈局的外圍 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 5px;
+}
+
+/* 頂部與底部牌牆 (水平排列) */
+#wall-top {
+    top: 0;
+    left: 50px; /* 避開左側玩家區 */
+    right: 50px; /* 避開右側玩家區 */
+    height: 55px;
+}
+#wall-bottom {
+    bottom: 50px; /* 調整高度以不蓋住手牌 */
+    left: 50px;
+    right: 50px;
+    height: 55px;
+}
+
+/* 左側與右側牌牆 (垂直排列) */
+.wall-segment.vertical {
+    flex-direction: column;
+}
+
+#wall-left {
+    top: 50px;
+    bottom: 100px;
+    left: 0;
+    width: 55px;
+}
+#wall-right {
+    top: 50px;
+    bottom: 100px;
+    right: 0;
+    width: 55px;
+}
+
+/* 調整垂直牌牆的牌背，使其旋轉 (符合您圖片中的效果) */
+#wall-left .tile-stack, 
+#wall-right .tile-stack {
+    /* 讓垂直牆的牌看起來是直立堆疊的 */
+    transform: rotate(90deg); 
+    margin: 5px 0; /* 調整垂直間距 */
+}
+
+#center-zone {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    /* 牌河容器 */
+    #river-container {
+        width: 80%;
+        height: 80%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    #discard-pile {
+        /* 棄牌區是所有玩家打出的牌，排列成 4xN 網格 */
+        display: flex;
+        flex-wrap: wrap; /* 關鍵：讓牌張滿了自動換行 */
+        max-width: 320px; /* 根據牌的寬度設定最大寬度，例如 4張*80px寬 */
+        padding: 10px;
+        background-color: rgba(0, 0, 0, 0.2);
+        border-radius: 8px;
+    }
+    /* 狀態框 */
+    #game-status-box {
+        margin-top: 15px;
+        text-align: center;
+        /* 讓風向指示和剩餘張數上下堆疊 */
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+}
+
+#player-1 {
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* 垂直置中 */
+    align-items: center; /* 水平置中 */
+    padding-bottom: 10px;
+}
+
+#action-buttons {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 10px;
+}
+
+#ting-hint {
+    background-color: #3d3d3d;
+    color: #ffcc00; /* 提示文字顏色 */
+    padding: 5px 15px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+#my-hand-area {
+    display: flex;
+    gap: 15px; /* 搭子和手牌的分隔 */
+}
+
+/* 手牌和搭子的水平排列 */
+#my-active-hand, .melds-exposed {
+    display: flex;
+    align-items: flex-end; /* 讓牌底對齊 */
+}
+
+/* 自己的手牌需要讓玩家點擊 (參照您圖片中的實體牌) */
+#my-active-hand .tile {
+    cursor: pointer;
+    border: 2px solid transparent;
+}
+#my-active-hand .tile:hover {
+    border-color: yellow;
+    transform: translateY(-5px);
+}
+
+/* -------------------- 側邊欄區域 -------------------- */
+#side-areas {
+    grid-row: 2;
+    display: flex;
+    /* 定義左右玩家 (1fr), 中央棄牌區 (4fr), 右邊玩家 (1fr) */
+    grid-template-columns: 1fr 4fr 1fr; 
+    align-items: stretch;
+}
+
+/* -------------------- 牌張基礎樣式 (Tile) -------------------- */
+.tile {
+    /* 牌張大小 */
+    width: 40px; 
+    height: 55px;
+    background-color: white;
+    border: 1px solid #000;
+    border-radius: 4px;
+    box-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    margin-right: 2px;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 10px;
+    color: #333;
+    cursor: default;
+}
+
+/* -------------------- 玩家手牌區 (Player 0 - 自己) -------------------- */
+#player-0 {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    padding: 10px;
+}
+
+.player-content {
+    display: flex;
+    gap: 10px; /* 手牌和搭子之間的間隔 */
+}
+
+/* 自己的手牌佈局 */
+#my-hand {
+    display: flex;
+    flex-wrap: nowrap;
+    border: 2px solid gold;
+    padding: 5px;
+}
+.tile.selectable {
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+.tile.selectable:hover {
+    transform: translateY(-5px); /* 懸停時略微抬起 */
+    box-shadow: 0 5px 10px rgba(255, 255, 0, 0.5);
+}
+
+/* -------------------- 棄牌區 (牌河) -------------------- */
+#river-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+}
+
+#discard-pile {
+    width: 400px; /* 固定寬度，讓棄牌區成網格狀 */
+    display: flex;
+    flex-wrap: wrap; /* 牌張滿了就換行 */
+    gap: 2px;
+    border: 1px dashed #666;
+    padding: 5px;
+}
+
+/* 棄牌在河裡應是平躺的，且不可互動 */
+#discard-pile .tile {
+    margin: 1px;
+    transform: rotate(90deg); /* 讓棄牌看起來是橫躺的 (可選) */
+    width: 45px;
+    height: 30px;
+    font-size: 8px;
+}
+
+/* -------------------- 其他玩家手牌 (蓋著) -------------------- */
+.concealed-hand .tile {
+    background-color: #666; /* 蓋牌顏色 */
+    width: 30px;
+    height: 45px;
+}
+
+.top-player {
+    grid-row: 1;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start; /* 牌張貼近頂部 */
+}
+
+.left-player, .right-player {
+    /* 需要 Flexbox 或 Grid 配合 rotate 才能垂直排列 */
+    writing-mode: vertical-rl; /* 嘗試垂直書寫 */
+    transform: rotate(180deg);
+}

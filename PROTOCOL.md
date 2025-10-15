@@ -117,7 +117,7 @@
                 "drawing":False, "discard":False,
                 "hu":False, "kong":False, "pong":False, "chow":False, "pass":True
             },
-            "tiles":["5D", "7D"]
+            "tiles":[]
         }
 
         // 吃牌
