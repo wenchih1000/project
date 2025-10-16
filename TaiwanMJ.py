@@ -185,7 +185,7 @@ def DemoPickUpDiscard():
         ret = Rule.CanKong(players[w].Hand, tile)
         PrintLog("槓:"+str(ret))
 
-        ret = Rule.CanAddKong(players[w].ExposedMelds, tile)
+        ret = Rule.CanAddKong(players[w].Melds, tile)
         PrintLog("加槓:"+str(ret))
         # players[w].Actions = Action.ADD_KONG
         # players[w].Notify()

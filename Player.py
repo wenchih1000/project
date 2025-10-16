@@ -38,7 +38,7 @@ class Player(Thread):
     # 風位
     Wind:WIND = None
     # 存放明搭 <=5 搭
-    ExposedMelds:list[Meld] = None
+    Melds:list[Meld] = None
     # 存放花牌
     Flowers:list[Tile] = None
     # 存放摸進的牌 <= 17
@@ -76,7 +76,7 @@ class Player(Thread):
         # 已亮出的花牌 Exposed Flowers
         self.Flowers = []
         # 已完成的搭子 (吃/碰/槓/暗槓) Exposed Melds
-        self.ExposedMelds = []
+        self.Melds = []
         # 上次出的牌
         self.LastDiscard = None
         self.LastKong = None
@@ -123,7 +123,7 @@ class Player(Thread):
                     case Action.ADD_KONG:
                         # 將明搭裡的碰搭變更成槓搭
                         tile = self.LastKong
-                        for meld in self.ExposedMelds:
+                        for meld in self.Melds:
                             if meld.Type == MELD.PONG and tile in meld.Tiles:
                                 meld.Type = MELD.KONG
                                 meld.Tiles.append(tile)
@@ -210,7 +210,7 @@ class Player(Thread):
             hand.append(self.Hand.pop(0))
         for _ in range(len(self.Flowers)):
             hand.append(self.Flowers.pop(0))
-        for meld in self.ExposedMelds:
+        for meld in self.Melds:
             for _ in range(len(meld.Tiles)):
                 hand.append(meld.Tiles.pop(0))
         return hand
@@ -249,16 +249,16 @@ class Player(Thread):
 
     # 新增明搭
     def AddMeld(self, tiles: list[Tile], concealed: bool = False):
-        self.ExposedMelds.append(Meld(not concealed, tiles))
+        self.Melds.append(Meld(not concealed, tiles))
 
-    # def NumExposedMelds(self) -> int:
+    # def NumMelds(self) -> int:
     #     """計算玩家外露搭子（碰、吃、明槓）的總數。"""
     #     # 暗槓不算外露搭子
-    #     return sum(1 for meld in self.ExposedMelds if meld.Exposed)
+    #     return sum(1 for meld in self.Melds if meld.Exposed)
 
     def NumMelds(self) -> int:
         """計算玩家外露搭子（吃/碰/槓/暗槓）的總數。"""
-        return len(self.ExposedMelds)
+        return len(self.Melds)
 
     def RemoveTiles(self, tiles:list[Tile]):
         for tile in tiles:
