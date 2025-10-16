@@ -13,46 +13,46 @@
 
     | 骰子: 1~6點 |
     |:--|
-    <font size="10">🎲</font>
+    # <font size="10">🎲</font>
 
 1. 數字牌  
 
     | 萬子: 1~9萬 |
     |:--|
-    <font size="13">🀇🀈🀉🀊🀋🀌🀍🀎🀏</font>
+    # <font size="13">🀇🀈🀉🀊🀋🀌🀍🀎🀏</font>
 
     | 索子(條子): 1~9索 |
     |:--|
-    <font size="13">🀐🀑🀒🀓🀔🀕🀖🀗🀘</font>
+    # <font size="13">🀐🀑🀒🀓🀔🀕🀖🀗🀘</font>
     
     | 筒子(餅子): 1~9筒 |
     |:--|
-    <font size="13">🀙🀚🀛🀜🀝🀞🀟🀠🀡</font>
+    # <font size="13">🀙🀚🀛🀜🀝🀞🀟🀠🀡</font>
 
 2. 字牌  
 
     | 風牌: 東、南、西、北 |
     |:--|
-    <font size="13">🀀🀁🀂🀃</font>
+    # <font size="13">🀀🀁🀂🀃</font>
 
     | 三元牌(箭牌): 中、發、白 |
     |:--|
-    <font size="13">🀄🀅🀆</font>
+    # <font size="13">🀄🀅🀆</font>
 
 3. 花牌  
 
     | 四君子牌: 梅、蘭、竹、菊 |
     |:--|
-    <font size="13">🀢🀣🀤🀥</font>
+    # <font size="13">🀢🀣🀤🀥</font>
 
     | 四季牌: 春、夏、秋、冬 |
     |:--|
-    <font size="13">🀦🀧🀨🀩</font>
+    # <font size="13">🀦🀧🀨🀩</font>
 
 4. 其他牌  
     | 蓋牌: 背面朝上 |
     |:--|
-    <font size="13">🀫</font>
+    # <font size="13">🀫</font>
 
 5. 人數：4 人  
   
