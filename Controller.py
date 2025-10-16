@@ -67,7 +67,9 @@ class Controller:
     def DecideWhoseTurn(self) -> WIND:
         pass
 
-
+    # 通知 client 進行活動
+    def Notify(self):
+        pass
 
 if __name__ == '__main__':
     

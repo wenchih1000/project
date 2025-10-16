@@ -6,7 +6,6 @@ from Rule import *
 import time
 from enum import Enum
 from collections import Counter
-import random
 from threading import Thread, Event
 
 class Action(Enum):
@@ -17,8 +16,9 @@ class Action(Enum):
     CHOW = 1
     PASS = 0
 
-    DRAWING = -1
-    DISCARD = -2
+    DICE    = 10 # roll dice
+    DRAWING = 11
+    DISCARD = 12
 
 # Player 類別：管理手牌與公開牌
 class Player(Thread):
@@ -110,6 +110,7 @@ class Player(Thread):
                         # 下一步計算玩家台數
                         self.FinishEvent.set()
                     case Action.KONG:
+                        # 玩家進行槓牌
                         kong = self.LastKong
                         tiles = [kong]*(Rule.KongLen-1)
                         PrintLog(self.Name + ' 槓牌: ' + kong.toStr())
@@ -132,6 +133,7 @@ class Player(Thread):
                         # 下一步通知玩家摸一打一
                         self.FinishEvent.set()
                     case Action.PONG:
+                        # 玩家進行碰牌
                         pong = self.LastPong
                         tiles = [pong]*(Rule.PongLen-1)
                         PrintLog(self.Name + ' 碰牌: ' + pong.toStr())
@@ -157,7 +159,14 @@ class Player(Thread):
                         # 放棄胡/槓/碰/吃的機會
                         PrintLog(self.Name + ' 跳過')
                         self.FinishEvent.set()
+
+                    case Action.DICE:
+                        # 玩家進行擲骰子
+                        dice = self.DeckRef.RollDice()
+                        PrintLog(self.Name + ' 擲骰子: ' + dice)
+                        self.FinishEvent.set()
                     case Action.DRAWING:
+                        # 玩家進行摸牌
                         if self.LastKong != None:
                             fromEnd = True
                             self.LastKong = None
@@ -171,6 +180,7 @@ class Player(Thread):
                             self.DeckRef.ReplaceFlowers({self.Wind:self})
                         self.FinishEvent.set()
                     case Action.DISCARD:
+                        # 玩家進行出牌
                         self.Hand.remove(self.LastDiscard)
                         PrintLog(self.Name + ' 出牌: ' + self.LastDiscard.toStr())
                         self.DeckRef.DiscardTile(self.Wind, self.LastDiscard)
@@ -268,5 +278,5 @@ if __name__ == '__main__':
 
     tile = Tile({'alias':'東'})
     hand = Tile.Alias2Tile(["東","東","東"])
-    print(hand+[tile])
-
+    for tile in (hand+[tile]):
+        print(tile)

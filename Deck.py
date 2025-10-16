@@ -1,7 +1,7 @@
 # import Player
-from Player import Player
+# from Player import *#Player
 from Tile import *
-from Player import *
+# from Player import *
 
 import random
 
@@ -9,12 +9,19 @@ import random
 # 牌組
 # 管理麻將牌堆的洗牌、切牌和摸牌操作
 class Deck:
+    import Player
+
     DICE_SCORE_MAX = 18
     DICE_SCORE_MIN = 3
+    DICE_NUM = 3
+
     TILES_SIZE = 144
     ONE_WALL_SIZE = 36
     DEAD_WALL_SIZE = 16
     WALL_SIZE = TILES_SIZE - DEAD_WALL_SIZE
+
+    # 擲骰子
+    Dice:list[int] = [1,1,1]
 
     # 牌堆
     Tiles:list[Tile] = []
@@ -53,6 +60,14 @@ class Deck:
     #     # 1. 洗牌 (Shuffle)
     #     random.shuffle(self.Tiles)
     #     return True
+
+    def RollDice(self) -> list[int]:
+        for i in range(self.DICE_NUM):
+            self.Dice[i] = random.randint(1,6)
+        return self.Dice
+
+    def Shuffle(self):
+        random.shuffle()
 
     # 切牌
     # wind: Dealer wind index, scoe: Total score of 3 dices
@@ -229,3 +244,8 @@ class Deck:
 
         # # 莊家開門
         # handTiles[WIND.EAST].append(self.Wall.pop(0))
+
+if __name__ == '__main__':
+    deck = Deck()
+    dice = deck.RollDice()
+    print(dice)

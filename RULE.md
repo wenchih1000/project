@@ -205,7 +205,8 @@ c.天胡/地胡/人胡 成立時，通常 不再計算 門清、自摸等基礎�
 發牌    (Dealing)  
 摸牌    (Drawing)  
 棄牌區  (Discard River)  
-  
+擲骰子  (Roll Dice)
+
 ### MJGame管理  
 牌組  
 玩家  

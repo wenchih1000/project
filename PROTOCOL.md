@@ -37,11 +37,11 @@
             "dealer_wind":"east",
             "current_player":"north",
             "dealer_num":0,
-            "dice_score":9
+            "dice_score":[1,1,1]
         },
         "action_state":{
             "player":"east",
-            "drawing":false, "discard":false,
+            "dice":false, "drawing":false, "discard":false,
             "hu":false, "kong":false, "pong":false, "chow":false, "pass":false
         },
         "hand_tiles":{
@@ -89,13 +89,14 @@
 | dealer_wind | str | 莊家風位 | east, south, west, north |
 | current_player | str | 當前回合的玩家 | east, south, west, north |
 | dealer_num | int | 第幾莊 | 莊家連莊 |
-| dice_score | int | 莊家擲骰子點數 | 共3顆骰子:3~18點 |
+| dice_score | list [ int ] | 莊家擲骰子點數 | 共3顆骰子:3~18點 |
 
 3. 活動狀態(action_state)JSON參數說明
 
 | 欄位 | 型別 | 說明 | 備註 |
 |:--|:--|:--|:--|
 | player | str | 當前玩家 | east, south, west, north |
+| dice | bool | 擲骰子 | false:按鈕disable, true:按鈕enable |
 | drawing | bool | 摸牌  | false:按鈕disable, true:按鈕enable |
 | discard | bool | 出牌  | false:按鈕disable, true:按鈕enable |
 | hu | bool | 胡牌  | false:按鈕disable, true:按鈕enable |
@@ -139,7 +140,7 @@
     {
         "action_state":{
             "player":"east",
-            "drawing":false, "discard":false,
+            "dice":false, "drawing":false, "discard":false,
             "hu":false, "kong":false, "pong":false, "chow":false, "pass":true
         },
         "tiles":[]
@@ -149,7 +150,7 @@
     {
         "action_state":{
             "player":"east",
-            "drawing":false, "discard":false,
+            "dice":false, "drawing":false, "discard":false,
             "hu":false, "kong":false, "pong":false, "chow":true, "pass":false
         },
         "tiles":["5D", "7D"]
@@ -159,7 +160,7 @@
     {
         "action_state":{
             "player":"east",
-            "drawing":false, "discard":false,
+            "dice":false, "drawing":false, "discard":false,
             "hu":false, "kong":false, "pong":true, "chow":false, "pass":false
         },
         "tiles":["2A", "2A"]
@@ -169,7 +170,7 @@
     {
         "action_state":{
             "player":"east",
-            "drawing":false, "discard":false,
+            "dice":false, "drawing":false, "discard":false,
             "hu":false, "kong":true, "pong":false, "chow":false, "pass":false
         },
         "tiles":["2W", "2W", "2W"]
@@ -179,8 +180,18 @@
     {
         "action_state":{
             "player":"east",
-            "drawing":false, "discard":false,
+            "dice":false, "drawing":false, "discard":false,
             "hu":true, "kong":false, "pong":false, "chow":false, "pass":false
+        },
+        "tiles":[]
+    }
+
+    // 擲骰子
+    {
+        "action_state":{
+            "player":"east",
+            "dice":true, "drawing":false, "discard":false,
+            "hu":false, "kong":false, "pong":false, "chow":false, "pass":false
         },
         "tiles":[]
     }
@@ -189,7 +200,7 @@
     {
         "action_state":{
             "player":"east",
-            "drawing":false, "discard":true,
+            "dice":false, "drawing":false, "discard":true,
             "hu":false, "kong":false, "pong":false, "chow":false, "pass":false
         },
         "tiles":["9D"]
@@ -199,7 +210,7 @@
     {
         "action_state":{
             "player":"east",
-            "drawing":true, "discard":false,
+            "dice":false, "drawing":true, "discard":false,
             "hu":false, "kong":false, "pong":false, "chow":false, "pass":false
         },
         "tiles":[]
@@ -210,6 +221,7 @@
 | 欄位 | 型別 | 說明 | 備註 |
 |:--|:--|:--|:--|
 | player | str | 當前玩家 | east, south, west, north |
+| dice | bool | 擲骰子  | 玩家進行擲骰子 |
 | drawing | bool | 摸牌  | 玩家決定摸牌 |
 | discard | bool | 出牌  | 玩家決定出牌 |
 | hu | bool | 胡牌  | 玩家決定胡牌 |
