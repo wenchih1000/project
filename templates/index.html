@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>Working with Flask and SocketIO</title>
+</head>
+<!-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.js"></script> -->
+<script src="{{url_for('static', filename='jquery.js')}}"></script>
+<script>
+
+  $(document).ready(function() {
+    $("#join").click(function() {
+      data = {"action": "join", "name": $("#name").val(), "avatar": "27.png"}
+      console.log(data);
+      return false;
+    });
+  });
+
+</script>
+
+<body>
+  <form action="/desktop" method="POST">
+    玩家名稱: <input type="text" id="name" name="name" autocomplete="false" />
+    玩家頭像: <input type="text" id="avatar" name="avatar" autocomplete="false" />
+    <input type="submit" value="加入遊戲">
+  </form>
+</body>
+
+</html>
