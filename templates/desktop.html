@@ -67,8 +67,12 @@
   });
 
   socket.on('message', function(msg){
-      $('#msg').html($('<li>').text(msg.data["join_game"]["wait_num"]));
-      console.log(msg.data["action_state"]);
+      console.log("message");
+      if('join_game' in msg.data)
+        $('#msg').html($('<li>').text(msg.data["join_game"]["wait_num"]));
+        console.log(msg.data["join_game"]);
+      if('action_state' in msg.data)
+        console.log(msg.data["action_state"]);
   });
 </script>
 

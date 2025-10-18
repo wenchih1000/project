@@ -2,8 +2,10 @@ from flask import Flask, render_template, request, jsonify
 from flask_socketio import SocketIO
 from flask_cors import CORS
 from queue import Queue
-from threading import Thread
-import time
+from threading import Thread,Event
+
+from pubsub import pub as Publisher
+from Controller import Controller
 
 class Web:
     app = None
@@ -13,25 +15,34 @@ class Web:
     Msg = Queue()
     Exit = False
 
+    ctrl:Controller = None
+    ClientFullEvent = Event()
+    ClientMaxNum = 4
+    ClientNum = 0
+
     def __init__(self):
         self.app = Flask(__name__)
+        CORS(self.app)
+
         self.app.config['SECRET_KEY'] = 'SINBON'
         self.app.route('/')(self.index)
-        self.app.route('/desktop', methods=['GET', 'POST'])(self.desktop)
+        self.app.route('/desktop', methods=['POST'])(self.desktop)
 
         self.socketio = SocketIO(self.app, async_mode='threading')
         self.socketio.on_event('connect', self.OnConnect, namespace='/update')
         self.socketio.on_event('disconnect', self.OnDisconnect, namespace='/update')
         self.socketio.on_event('message', self.OnMessage, namespace='/update')
 
-        CORS(self.app)
+        # internal communication
+        # controller send message to web app and pass to client ui
+        Publisher.subscribe(self.SendMessage, "webapp")
 
         self.clients = []
         # start socketio background thread to update message to client
         self.socketio.start_background_task(target=self.WorkerTask)#, queue=self.Msg)
 
-        self.MsgThread = Thread(target=self.PutMsg)
-        self.MsgThread.start()
+    def SetController(self, ctrl:Controller):
+        self.ctrl = ctrl
 
     def Stop(self):
         self.Exit = True
@@ -44,37 +55,34 @@ class Web:
         # use_reloader=False, avoid app run twice
         self.socketio.run(self.app, port=80, debug=True, use_reloader=False)
 
-    def SendMsg(self, msg):
+    # controller send message to web app and pass to client ui
+    # controller -> web app -> client ui
+    def SendMessage(self, msg):
+        print('web app received message:')
+        print(msg)
         self.Msg.put(msg)
 
-    def PutMsg(self):
-
+    def WorkerTask(self):
         while not self.Exit:
-            cmd = {
-                "join_game":{
-                    "state":"waiting",
-                    "wait_num":4 - len(self.clients)
-                },
-                "action_state":{
-                    "player":"east",
-                    "dice":True, "drawing":False, "discard":False,
-                    "hu":False, "kong":False, "pong":False, "chow":False, "pass":False
-                }
-            }
-            # print('PutMsg')
-            self.Msg.put(cmd)
-            time.sleep(2)
-        print('End PutMsg')
+            if self.ctrl == None:
+                continue
 
-    # send message to client
-    def WorkerTask(self):    
-        while not self.Exit:
+            # send message to client ui
+            # current waiting number.
+            if len(self.clients) <= self.ClientMaxNum and not self.ctrl.IsStart:
+                num = self.ClientMaxNum-len(self.clients)
+                if num != self.ClientNum:
+                    join = {"join_game":{"state":"waiting","wait_num":num}}
+                    self.socketio.emit('message', dict(data=join), namespace='/update')
+                    self.ClientNum = num
+
             if len(self.clients) > 0 and self.Msg.qsize() > 0:
-
                 talk = self.Msg.get()
-                # talk = f"{str(self.clients)}:{data}"
-                # broadcast=True
-                self.socketio.emit('message', dict(data=talk), namespace='/update') 
+                self.socketio.emit('message', dict(data=talk), namespace='/update') # broadcast=True
+
+            if self.ClientFullEvent.is_set():
+                self.ctrl.StartGame()
+                self.ClientFullEvent.clear()
 
     #
     # route function
@@ -87,6 +95,9 @@ class Web:
 
     # @app.route('/desktop', methods=['GET', 'POST'])
     def desktop(self):
+        if len(self.clients) >= self.ClientMaxNum:
+            return render_template('index.html')
+
         # name = request.form.get('name')  # Access a specific field by its name attribute
         # avatar = request.form.get('avatar')
         name = request.values.get('name')
@@ -99,16 +110,23 @@ class Web:
     # socketio event function
     #
 
+    # received client message
+    # client ui -> web server -> controller
     # @socketio.on('message', namespace='/update')
     def OnMessage(self, json):
         print(f'received {request.sid} message: ' + str(json))
-        # emit('update message', str(json), broadcast=True)
-        render_template('desktop.html')
+
+        Publisher.sendMessage('controller', msg=json)
 
     # @socketio.on('connect', namespace='/update')
     def OnConnect(self):
-        self.clients.append(request.sid)
-        print(f"Client {request.sid} on_connect.")
+        if len(self.clients) < self.ClientMaxNum:
+            self.clients.append(request.sid)
+            print(f"Client {request.sid} on_connect.")
+
+        if len(self.clients) >= self.ClientMaxNum and not self.ctrl.IsStart:
+            self.ClientFullEvent.set()
+            return
 
     # @socketio.on('disconnect', namespace='/update')
     def OnDisconnect(self):
@@ -118,6 +136,9 @@ class Web:
 def StartWebApp():
     # run on the main thread only
     web = Web()
+    ctrl = Controller()
+    web.SetController(ctrl)
+
     webapp_thread = Thread(target=web.RunWebApp())
     webapp_thread.daemon = True
     webapp_thread.start()
