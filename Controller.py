@@ -18,6 +18,13 @@ class Controller:
     GameNum: int = 0 # 第幾莊
 
     Exit:bool = False
+    State = {
+        "player":"",
+        "dice":False, "drawing":False, "discard":False,
+        "hu":False, "kong":False, "pong":False, "chow":False, "pass":False
+    }
+    ActionState:dict[WIND, dict] = {}
+    Pass:dict[WIND, bool] = {}
 
     def __init__(self):
         # internal communication
@@ -35,6 +42,13 @@ class Controller:
             player.daemon = True
             player.start()
 
+        for w in WIND:
+            self.ActionState[w] = self.State.copy()
+            self.ActionState[w]["player"] = w.name.lower()
+            self.Pass[w] = False
+
+
+    # def Start(self):
     #     self.MsgThread = Thread(target=self.PutMsg)
     #     self.MsgThread.start()
 
@@ -93,12 +107,54 @@ class Controller:
         for key,val in handTiles.items():
             self.Players[key].SetHandTile(val)
 
+        # 所有玩家補花
+        self.DeckRef.ReplaceFlowers(self.Players)
+
     def EndRound(self):
         pass
 
     # 處理動作優先級 (吃/碰/槓/胡)
-    def DecideWhoseTurn(self) -> WIND:
-        pass
+    # 決定閒家(1.下家/2.對家/3.上家)優先權
+    def DecideWhoseTurn(self, next:bool = False) -> WIND:
+        # 找出閒家
+        other = self.CurrentWind.Other()
+        # 下家
+        right = other[0]
+        # 判斷閒家對打出的牌具有哪些動作
+        tile = self.DeckRef.LastDiscard
+        if not next:
+            for w in other:
+                hand = self.Players[w].Hand
+                self.ActionState[w]['hu'] = Rule.CanHu(hand, tile)
+                self.ActionState[w]['kong'] = Rule.CanKong(hand, tile)
+                self.ActionState[w]['pong'] = Rule.CanPong(hand, tile)
+                # 只有下家具有吃的動作
+                self.ActionState[w]['chow'] = False
+                self.ActionState[w]['drawing'] = False
+                if w == right:
+                    self.ActionState[w]['chow'] = Rule.CanChow(hand, tile)
+                    self.ActionState[w]['drawing']
+                if self.ActionState[w]['hu'] or self.ActionState[w]['kong'] or self.ActionState[w]['pong'] or self.ActionState[w]['chow'] or self.ActionState[w]['drawing']:
+                    self.ActionState[w]['pass'] = True
+
+        # check priority
+        for w in other:
+            if not self.Pass[w] and self.ActionState[w]['hu']:
+                return w
+        for w in other:
+            if not self.Pass[w] and self.ActionState[w]['kong']:
+                return w
+        for w in other:
+            if not self.Pass[w] and self.ActionState[w]['pong']:
+                return w
+        for w in other:
+            if not self.Pass[w] and self.ActionState[w]['chow']:
+                return w
+        for w in other:
+            if not self.Pass[w] and self.ActionState[w]['drawing']:
+                return w
+        # 預設換下家
+        return right
 
     # 通知 client 進行活動
     # controller -> web app

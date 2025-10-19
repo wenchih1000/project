@@ -1,5 +1,5 @@
 from Tile import *
-# from Deck import *
+from Deck import *
 # import Deck
 
 import time
@@ -21,7 +21,7 @@ class Action(Enum):
 
 # Player 類別：管理手牌與公開牌
 class Player(Thread):
-    import Deck
+    # import Deck
     # from Deck import Deck
 
     ExitEvent = Event()

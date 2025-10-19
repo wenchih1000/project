@@ -1,7 +1,4 @@
-# import Player
-# from Player import *#Player
 from Tile import *
-# from Player import *
 
 import random
 
@@ -9,7 +6,7 @@ import random
 # 牌組
 # 管理麻將牌堆的洗牌、切牌和摸牌操作
 class Deck:
-    import Player
+    # import Player
 
     DICE_SCORE_MAX = 18
     DICE_SCORE_MIN = 3
@@ -170,13 +167,12 @@ class Deck:
     #
 
     # 開局發牌給所有玩家完時叫用
-    def ReplaceFlowers(self, players:dict[WIND,Player]) -> bool:
+    def ReplaceFlowers(self, players:dict[WIND,any]) -> bool:
         """
         執行完整的補花程序，直到所有玩家手牌中不再有花牌。
 
         Args:
-            players: 包含所有 Player 物件的字典。
-            deck: 遊戲牌堆，用於提供補牌。
+            players: key:WIND, value:Player 物件的字典。
         """
 
         # 順抓逆打:玩家逆向打牌，順向從牆牌抓牌

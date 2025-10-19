@@ -23,6 +23,21 @@ class SUIT(Enum):
 class WIND(Enum):
     # 風牌:東南西北
     EAST, SOUTH, WEST, NORTH = 1,2,3,4
+
+    def Next(self) -> 'WIND':
+        v = (self.value + 1) % len(WIND)
+        v = (v,len(WIND))[v==0]
+        return WIND(v)
+
+    # get other winds in order
+    def Other(self) -> list['WIND']:
+        other = []
+        wind = self
+        for _ in range(len(WIND)-1):
+            wind = wind.Next()
+            other.append(wind)
+        return other
+
 # 三元牌 or 箭牌
 class ARROW(Enum):
     # 三元牌(or 箭牌):中發白
@@ -361,13 +376,18 @@ def DemoAlias2Tile():
         PrintLog(f"{t}, {t.toStr()}, {t.IsFlower()}, {t.IsHonor()}")
 
 if __name__ == '__main__':
+    wind = WIND.SOUTH
+    print(wind.Next())
 
-    t1 = Tile({'suit':SUIT.CHAR, 'num':7})
-    t2 = Tile({'suit':SUIT.CHAR, 'num':7})
-    print(t1 == t2)
-    print(t1)
-    print(t1+1)
-    print(t1+2)
+    winds = wind.Other()
+    print(winds)
+
+    # t1 = Tile({'suit':SUIT.CHAR, 'num':7})
+    # t2 = Tile({'suit':SUIT.CHAR, 'num':7})
+    # print(t1 == t2)
+    # print(t1)
+    # print(t1+1)
+    # print(t1+2)
 
 
     # DemoTiles()
