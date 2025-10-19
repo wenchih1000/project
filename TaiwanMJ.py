@@ -5,7 +5,7 @@
 from Tile import *
 from Deck import *
 from Player import *
-from Rule import *
+from Model import Rule16 as Rule
 
 # ------------------------------------------------------------------------------------------------
 # debug testing
@@ -93,8 +93,7 @@ def DemoDealerDrawAndDiscard():
 
     # time.sleep(1)
     # player.Hand
-    rule = Rule()
-    ret = rule.CanHu(player.Hand)
+    ret = Rule.CanHu(player.Hand)
     PrintLog("胡:"+str(ret))
 
     ret = Rule.CanConcealKong(player.Hand)

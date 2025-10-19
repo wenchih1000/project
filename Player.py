@@ -1,5 +1,4 @@
 from Tile import *
-from Rule import *
 # from Deck import *
 # import Deck
 
@@ -112,7 +111,7 @@ class Player(Thread):
                     case Action.KONG:
                         # 玩家進行槓牌
                         kong = self.LastKong
-                        tiles = [kong]*(Rule.KongLen-1)
+                        tiles = [kong]*(MELD.KONG_LEN.value-1)
                         PrintLog(self.Name + ' 槓牌: ' + kong.toStr())
                         # 將手牌的槓搭複制進Meld list
                         self.AddMeld(tiles+[kong], self.ConcealedKong)
@@ -135,7 +134,7 @@ class Player(Thread):
                     case Action.PONG:
                         # 玩家進行碰牌
                         pong = self.LastPong
-                        tiles = [pong]*(Rule.PongLen-1)
+                        tiles = [pong]*(MELD.PONG_LEN.value-1)
                         PrintLog(self.Name + ' 碰牌: ' + pong.toStr())
                         # 將手牌的碰搭複制進Meld list
                         self.AddMeld(tiles+[pong])

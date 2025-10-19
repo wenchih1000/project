@@ -1,7 +1,7 @@
 from Tile import *
 from Deck import Deck
 from Player import *
-from Rule import *
+from Model import Rule16 as Rule
 
 from pubsub import pub as Publisher
 

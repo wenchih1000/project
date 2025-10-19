@@ -1,5 +1,5 @@
 from Tile import *
-from Rule import *
+from Model import *
 
 from dataclasses import dataclass
 # from collections import Counter
@@ -419,7 +419,7 @@ if __name__ == '__main__':
     # 假設從玩家取得牌組
     hand = Tile.Alias2Tile(["1萬","2萬","3萬","3索","3索","3索","5筒","6筒","7筒","東","東","東","南","南","南","中","中"])
     # rule = Rule()
-    ret, melds = Rule.CanHu(hand)
+    ret, melds = Rule16.CanHu(hand)
     PrintLog("胡:"+str(ret))
 
     # # 測試1-2
