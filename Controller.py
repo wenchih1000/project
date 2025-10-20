@@ -12,7 +12,7 @@ class Controller:
     Players: dict[WIND, Player] = {}
     DeckRef: Deck = None
     RoundWind: WIND = WIND.EAST # 局風位
-    CurrentWind: WIND = WIND.EAST # 當前回合的玩家
+    ActiveWind: WIND = WIND.EAST # 當前活動的玩家
     DealerWind: WIND = WIND.EAST # 莊家風位
     RoundNum: int = 0 # 局數 (東南西北)
     GameNum: int = 0 # 第幾莊
@@ -88,7 +88,7 @@ class Controller:
 
         # 重置牌堆
         self.DeckRef = Deck()
-        self.CurrentWind = self.DealerWind # 回合從莊家開始
+        self.ActiveWind = self.DealerWind # 回合從莊家開始
 
     # 4位client到齊，開桌
     # 直到玩完一雀
@@ -113,29 +113,43 @@ class Controller:
     def EndRound(self):
         pass
 
+    # 打出牌後，叫用DecideWhoseTurn()決定閒家優先權
     # 處理動作優先級 (吃/碰/槓/胡)
-    # 決定閒家(1.下家/2.對家/3.上家)優先權
+    # 決定閒家(1.下家right 2.對家opposite 3.上家left)優先權
+    # 參數next:下家決定pass，換對家或上家，無需重新確認手牌動作
     def DecideWhoseTurn(self, next:bool = False) -> WIND:
         # 找出閒家
-        other = self.CurrentWind.Other()
+        other = self.ActiveWind.Other()
         # 下家
         right = other[0]
         # 判斷閒家對打出的牌具有哪些動作
         tile = self.DeckRef.LastDiscard
         if not next:
+            self.ClearActionState()
             for w in other:
                 hand = self.Players[w].Hand
-                self.ActionState[w]['hu'] = Rule.CanHu(hand, tile)
-                self.ActionState[w]['kong'] = Rule.CanKong(hand, tile)
-                self.ActionState[w]['pong'] = Rule.CanPong(hand, tile)
-                # 只有下家具有吃的動作
-                self.ActionState[w]['chow'] = False
-                self.ActionState[w]['drawing'] = False
+                CanHu = Rule.CanHu(hand, tile)
+                CanKong = Rule.CanKong(hand, tile)
+                CanAddKong = Rule.CanAddKong(self.Players[w].Melds, tile)
+                CanPong = Rule.CanPong(hand, tile)
+                CanChow = False
+                CanDrawing = False
+                CanPass = False
+
+                # 只有下家具有吃/摸的動作
                 if w == right:
-                    self.ActionState[w]['chow'] = Rule.CanChow(hand, tile)
-                    self.ActionState[w]['drawing']
-                if self.ActionState[w]['hu'] or self.ActionState[w]['kong'] or self.ActionState[w]['pong'] or self.ActionState[w]['chow'] or self.ActionState[w]['drawing']:
-                    self.ActionState[w]['pass'] = True
+                    CanChow = Rule.CanChow(hand, tile)
+                    CanDrawing = True
+                # 只有下家沒有pass的動作
+                elif CanHu or CanKong or CanAddKong or CanPong:
+                    CanPass = True
+
+                self.ActionState[w]['hu'] = CanHu
+                self.ActionState[w]['kong'] = (CanKong or CanAddKong)
+                self.ActionState[w]['pong'] = CanPong
+                self.ActionState[w]['chow'] = CanChow
+                self.ActionState[w]['drawing'] = CanDrawing
+                self.ActionState[w]['pass'] = CanPass
 
         # check priority
         for w in other:
@@ -147,14 +161,23 @@ class Controller:
         for w in other:
             if not self.Pass[w] and self.ActionState[w]['pong']:
                 return w
-        for w in other:
-            if not self.Pass[w] and self.ActionState[w]['chow']:
-                return w
-        for w in other:
-            if not self.Pass[w] and self.ActionState[w]['drawing']:
-                return w
-        # 預設換下家
+
+        # 只有下家具有吃/摸的動作，但沒有pass的動作
+        if self.ActionState[right]['chow']:
+            return right
+        if self.ActionState[right]['drawing']:
+            return right
+
+        # 預設換下家摸牌
         return right
+
+    def ClearActionState(self):
+        for w in WIND:
+            for key in self.State.keys():
+                if key == 'player':
+                    continue
+                self.ActionState[w][key] = False
+            self.Pass[w] = False
 
     # 通知 client 進行活動
     # controller -> web app
