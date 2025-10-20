@@ -14,6 +14,13 @@
   // var socket = io()
   var socket = io('http://127.0.0.1/update')
 
+  // client-side
+  socket.on("connect", () => {
+    console.log("connect:" + socket.id);
+    // var formData = sessionStorage.getItem('data');
+    // console.log("formData:"+JSON.parse(formData));
+  });
+
   $(document).ready(function() {
     $("#pass").click(function() {
       data = {"action": "pass"}
@@ -68,6 +75,8 @@
 
   socket.on('message', function(msg){
       console.log("message");
+      if('info' in msg.data)
+        console.log(socket.id + ":" + msg.data["info"]["name"] + ":" + msg.data["info"]["sid"]);
       if('join_game' in msg.data)
         $('#msg').html($('<li>').text(msg.data["join_game"]["wait_num"]));
         console.log(msg.data["join_game"]);

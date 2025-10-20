@@ -100,10 +100,11 @@ class Web:
 
         # name = request.form.get('name')  # Access a specific field by its name attribute
         # avatar = request.form.get('avatar')
-        name = request.values.get('name')
+        self.name = request.values.get('name')
         avatar = request.values.get('avatar')
-        print(f'received {name}, {avatar}')
-        print('desktop')
+        print(f'received {self.name}, {avatar}')
+
+
         return render_template('desktop.html')
 
     #
@@ -123,6 +124,10 @@ class Web:
         if len(self.clients) < self.ClientMaxNum:
             self.clients.append(request.sid)
             print(f"Client {request.sid} on_connect.")
+            data = {'info':{'name':self.name, 'sid':request.sid}}
+            tmp = self.clients.copy()
+            tmp.remove(request.sid)
+            self.socketio.emit('message', dict(data=data), namespace='/update', skip_sid=tmp)
 
         if len(self.clients) >= self.ClientMaxNum and not self.ctrl.IsStart:
             self.ClientFullEvent.set()

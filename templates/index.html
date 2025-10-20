@@ -11,8 +11,10 @@
 
   $(document).ready(function() {
     $("#join").click(function() {
-      data = {"action": "join", "name": $("#name").val(), "avatar": "27.png"}
-      console.log(data);
+      data = {"action": "join", "name": $("#name").val(), "avatar": $("#avatar").val()}
+      sessionStorage.setItem('data', JSON.stringify(data));
+      console.log(data)
+      document.location.href = 'desktop'
       return false;
     });
   });
@@ -24,6 +26,7 @@
     玩家名稱: <input type="text" id="name" name="name" autocomplete="false" />
     玩家頭像: <input type="text" id="avatar" name="avatar" autocomplete="false" />
     <input type="submit" value="加入遊戲">
+     <!-- <input type="button" id="join" value="加入遊戲"> -->
   </form>
 </body>
 

@@ -69,7 +69,7 @@ class Controller:
             # }
             # self.Notify(cmd)
 
-            print('StepFlow')
+            # print('StepFlow')
             time.sleep(2)
 
     def ResetGame(self):
