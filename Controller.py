@@ -26,6 +26,8 @@ class Controller:
     ActionState:dict[WIND, dict] = {}
     Pass:dict[WIND, bool] = {}
 
+    StepWorker:Thread = None
+
     def __init__(self):
         # internal communication
         # web app send message to controller
@@ -47,28 +49,28 @@ class Controller:
             self.ActionState[w]["player"] = w.name.lower()
             self.Pass[w] = False
 
+        # 用來處理步驟流程
+        self.StepWorker = Thread(target=self.StepFlow)
+        self.StepWorker.daemon = True
+        self.StepWorker.start()
 
-    # def Start(self):
-    #     self.MsgThread = Thread(target=self.PutMsg)
-    #     self.MsgThread.start()
+    def StepFlow(self):
+        while not self.Exit:
+            # cmd = {
+            #     "join_game":{
+            #         "state":"waiting",
+            #         "wait_num":4
+            #     },
+            #     "action_state":{
+            #         "player":"east",
+            #         "dice":True, "drawing":False, "discard":False,
+            #         "hu":False, "kong":False, "pong":False, "chow":False, "pass":False
+            #     }
+            # }
+            # self.Notify(cmd)
 
-    # def PutMsg(self):
-    #     while not self.Exit:
-    #         cmd = {
-    #             "join_game":{
-    #                 "state":"waiting",
-    #                 "wait_num":4
-    #             },
-    #             "action_state":{
-    #                 "player":"east",
-    #                 "dice":True, "drawing":False, "discard":False,
-    #                 "hu":False, "kong":False, "pong":False, "chow":False, "pass":False
-    #             }
-    #         }
-    #         # print('PutMsg')
-    #         self.Notify(cmd)
-    #         time.sleep(2)
-    #     print('End PutMsg')
+            print('StepFlow')
+            time.sleep(2)
 
     def ResetGame(self):
         # 回收所有牌
@@ -90,10 +92,15 @@ class Controller:
         self.DeckRef = Deck()
         self.ActiveWind = self.DealerWind # 回合從莊家開始
 
+    # WebApp 通知 Controller
     # 4位client到齊，開桌
     # 直到玩完一雀
     def StartGame(self):
         self.IsStart = True
+
+
+
+        
         self.StartRound()
 
     def StartRound(self):

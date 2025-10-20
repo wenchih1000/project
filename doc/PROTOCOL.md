@@ -32,6 +32,9 @@
 1. Server 傳送的JSON格式  
 ```JSON
     {
+        "player_seat":{
+            "east":"阿土伯","south":"柯南","west":"黑傑克","north":"一枝花"
+        },
         "game_state":{
             "round_wind":"east",
             "dealer_wind":"east",
