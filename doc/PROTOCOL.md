@@ -8,8 +8,8 @@
 1. Client 傳送的JSON格式
 ```JSON
     "join_game":{
-        "player_name":"阿土伯",
-        "avatar_image":"26.png"
+        "name":"阿土伯",
+        "avatar":"26.png"
     }
 ```
 2. Server 回傳的JSON格式
@@ -28,12 +28,13 @@
 
 | 欄位 | 型別 | 說明 | 備註 |
 |:--|:--|:--|:--|
-| player_name | str | 玩家名稱 | 中文名字長度最多10個字 |
-| avatar_image | str | 玩家頭像 | 從 images 資料夾中選取 |
+| name | str | 玩家名稱 | 中文名字長度最多10個字 |
+| avatar | str | 玩家頭像 | 從 images 資料夾中選取 |
 | state | str | 加入遊戲的狀態 |  waiting, full, playing |
 | wait_num | int | 當前等待人數 | 0~3人 |
 
 4. 玩家資訊(info)JSON參數說明
+
 | 欄位 | 型別 | 說明 | 備註 |
 |:--|:--|:--|:--|
 | name | str | 玩家名稱 | 中文名字長度最多10個字 |
