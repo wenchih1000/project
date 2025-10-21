@@ -18,6 +18,11 @@
         "state":"waiting",
         "wait_num":3
     }
+    "info":{
+        "name":"阿土伯",
+        "avatar":"26.png", 
+        "cid":"id number"
+    }
 ```
 3. 加入遊戲(join_game)JSON參數說明
 
@@ -25,8 +30,15 @@
 |:--|:--|:--|:--|
 | player_name | str | 玩家名稱 | 中文名字長度最多10個字 |
 | avatar_image | str | 玩家頭像 | 從 images 資料夾中選取 |
-| state | str | 加入遊戲的狀態 |  waiting, fully, playing |
+| state | str | 加入遊戲的狀態 |  waiting, full, playing |
 | wait_num | int | 當前等待人數 | 0~3人 |
+
+4. 玩家資訊(info)JSON參數說明
+| 欄位 | 型別 | 說明 | 備註 |
+|:--|:--|:--|:--|
+| name | str | 玩家名稱 | 中文名字長度最多10個字 |
+| avatar | str | 玩家頭像 | 從 images 資料夾中選取 |
+| cid | int | 玩家ID | client ID |
 
 ### Server 檢查後，通知Client該玩家目前可操作的狀態和手牌情況
 1. Server 傳送的JSON格式  
