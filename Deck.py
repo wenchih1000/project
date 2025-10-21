@@ -44,8 +44,8 @@ class Deck:
         for i in range(TileRange.FlowerMin.value, TileRange.FlowerMax.value + 1):
             self.Tiles.append(Tile({'suit':SUIT.FLOWER, 'num':i}))
 
-        #  洗牌 (Shuffle)
-        random.shuffle(self.Tiles)
+        # #  洗牌 (Shuffle)
+        # random.shuffle(self.Tiles)
         # self.BuildWall()
 
     # def BuildWall(self) -> bool:
@@ -64,7 +64,8 @@ class Deck:
         return self.Dice
 
     def Shuffle(self):
-        random.shuffle()
+        #  洗牌 (Shuffle)
+        random.shuffle(self.Tiles)
 
     # 切牌
     # wind: Dealer wind index, scoe: Total score of 3 dices
@@ -215,6 +216,7 @@ class Deck:
                                 IsFlower = True
                                 PrintLog(f"   --> 補到新花牌：{NewTile.toStr()} (將於下輪處理)")
                             else:
+                                player.LastDraw = NewTile
                                 PrintLog(f"   --> 補到牌：{NewTile.toStr()}")
 
                         except IndexError:

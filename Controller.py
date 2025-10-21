@@ -10,14 +10,16 @@ class Step(Enum):
     INIT = 0
     START_GAME = 1
     PLAYER_SEAT = 2
-
     ROLL_DICE_NOTIFY = 3
     ROLL_DICE = 4
-    DEAL_TILES = 5
-    REPLACE_FLOWERS = 5
-    DEALER_DRAW = 6
-    PLAYER_DISCARD = 7
-    PLAYER_ACTION = 8
+    START_ROUND = 5
+
+    # DEAL_TILES = 6
+    # REPLACE_FLOWERS = 5
+    PLAYER_DRAW_NOTIFY = 6
+    PLAYER_DRAW = 7
+    PLAYER_DISCARD = 8
+    PLAYER_ACTION = 9
     NEXT_TURN = 9
     END_ROUND = 10
     END_GAME = 11
@@ -107,25 +109,62 @@ class Controller:
                         player = self.Players[self.DealerWind]
                         player.Actions = Action.DICE
                         player.Notify()
-                        # player.Wait()
-                        # state = {
-                        #     "game_state":{
-                        #         "round_wind":self.RoundWind.name.lower(),
-                        #         "dealer_wind":self.DealerWind.name.lower(),
-                        #         "current_player":self.ActiveWind.name.lower(),
-                        #         "dealer_num":self.DealerNum,
-                        #         "dice_score":self.DeckRef.Dice
-                        #     }
-                        # }
-                        # self.Notify(state)
+                        player.Wait()
+                        state = {
+                            "game_state":{
+                                "round_wind":self.RoundWind.name.lower(),
+                                "dealer_wind":self.DealerWind.name.lower(),
+                                "current_player":self.ActiveWind.name.lower(),
+                                "dealer_num":self.DealerNum,
+                                "dice_score":self.DeckRef.Dice
+                            }
+                        }
+                        self.Notify(state)
                         # PrintLog("骰子:" + str(self.DeckRef.Dice))
+                        self.StepAction = Step.START_ROUND
+                        self.StepEvent.set()
 
-                    case Step.DEAL_TILES:
-                        self.StepAction = Step.REPLACE_FLOWERS
-                    case Step.REPLACE_FLOWERS:
-                        self.StepAction = Step.DEALER_DRAW
-                    case Step.DEALER_DRAW:
-                        self.StepAction = Step.PLAYER_DISCARD
+                    case Step.START_ROUND:
+                        self.StartRound()
+                        self.StepAction = Step.PLAYER_DRAW_NOTIFY
+                        self.StepEvent.set()
+                    case Step.PLAYER_DRAW_NOTIFY:
+                        action = {
+                            "action_state":{
+                                "player":self.ActiveWind.name.lower(),
+                                "dice":False, "drawing":True, "discard":False,
+                                "hu":False, "kong":False, "pong":False, "chow":False, "pass":False
+                            }
+                        }
+                        self.Notify(action)
+
+                    case Step.PLAYER_DRAW:
+                        player = self.Players[self.ActiveWind]
+                        player.Actions = Action.DRAWING
+                        player.Notify()
+                        player.Wait()
+
+                        tiles = []
+                        for t in player.Hand:
+                            tiles.append(t.Name)
+
+                        flower = []
+                        for f in player.Flowers:
+                            flower.append(f.Name)
+
+                        hand = {
+                            "hand_tiles":{
+                                "east":{
+                                    "hand":tiles,
+                                    "meld":[],
+                                    "hide":[],
+                                    "flower":flower,
+                                    "discard":[],
+                                    "drawed":player.LastDraw.Name
+                                }
+                            }
+                        }
+                        self.Notify(hand)
                     case Step.PLAYER_DISCARD:
                         self.StepAction = Step.PLAYER_ACTION
             else:
@@ -168,16 +207,22 @@ class Controller:
             self.Players[w].CId = cid
             self.Players[w].Name = names
 
+        self.RoundWind = WIND.EAST # 局風位
+        self.ActiveWind = WIND.EAST # 當前活動的玩家
+        self.DealerWind = WIND.EAST # 莊家風位
+
         # 通知玩家自已的風位
         self.StepAction = Step.PLAYER_SEAT
         self.StepEvent.set()
 
-        # self.ResetGame()
-        # self.StartRound()
-
     def StartRound(self):
-        # 1. 洗牌、切牌
-        diceScore = random.randint(3,18)
+        # 1. 洗牌
+        self.DeckRef.Shuffle()
+
+        # 2. 切牌
+        # diceScore = random.randint(3,18)
+        diceScore = sum(self.DeckRef.Dice)
+        PrintLog("骰子:" + str(diceScore))
         self.DeckRef.BreakingWall(self.DealerWind, diceScore)
 
         # 2. 發牌
@@ -186,7 +231,7 @@ class Controller:
         for key,val in handTiles.items():
             self.Players[key].SetHandTile(val)
 
-        # 所有玩家補花
+        # 3. 所有玩家補花
         self.DeckRef.ReplaceFlowers(self.Players)
 
     def EndRound(self):
@@ -269,8 +314,10 @@ class Controller:
         PrintLog(msg)
         if 'action' in msg:
             if msg['action'] == 'dice':
-                PrintLog("start dice action")
                 self.StepAction = Step.ROLL_DICE
+                self.StepEvent.set()
+            elif msg['action'] == 'drawing':
+                self.StepAction = Step.PLAYER_DRAW
                 self.StepEvent.set()
 
 if __name__ == '__main__':

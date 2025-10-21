@@ -24,9 +24,9 @@ class Player(Thread):
     # import Deck
     # from Deck import Deck
 
-    ExitEvent = Event()
-    ActionEvent = Event()
-    FinishEvent = Event()
+    ExitEvent = None
+    ActionEvent = None
+    FinishEvent = None
     #Player 當前要執行的動作
     Actions:Action = None
     Name:str = ''
@@ -46,6 +46,7 @@ class Player(Thread):
     Hand:list[Tile] = None
 
     # UI玩家選擇的暫存牌
+    LastDraw:Tile = None
     LastDiscard:Tile = None
     LastKong:Tile = None
     ConcealedKong:bool = False
@@ -68,6 +69,10 @@ class Player(Thread):
         # 東風玩家預設起始為莊家
         if self.Wind == WIND.EAST:
             self.IsDealer = True
+
+        self.ExitEvent = Event()
+        self.ActionEvent = Event()
+        self.FinishEvent = Event()
 
         self.Reset()
 
@@ -164,7 +169,7 @@ class Player(Thread):
                     case Action.DICE:
                         # 玩家進行擲骰子
                         dice = self.DeckRef.RollDice()
-                        PrintLog(self.Name + ' 擲骰子: ' + dice)
+                        PrintLog(self.Name + ' 擲骰子: ' + str(dice))
                         self.FinishEvent.set()
                     case Action.DRAWING:
                         # 玩家進行摸牌
@@ -175,10 +180,11 @@ class Player(Thread):
                             fromEnd = False
 
                         tile = self.DeckRef.DrawWallTile(fromEnd)
-                        PrintLog(self.Name + ' 摸牌: ' + tile.toStr())
                         self.SetHandTile([tile])
+                        self.LastDraw = tile
                         if tile.IsFlower():
                             self.DeckRef.ReplaceFlowers({self.Wind:self})
+                        PrintLog(self.Name + ' 摸牌: ' + self.LastDraw.toStr())
                         self.FinishEvent.set()
                     case Action.DISCARD:
                         # 玩家進行出牌
@@ -195,7 +201,7 @@ class Player(Thread):
                 # PrintLog('sleep:'+self.Wind.name)
 
     def Wait(self):
-        PrintLog('Action waiting')
+        PrintLog('Action waiting\n')
         self.FinishEvent.wait()
         self.FinishEvent.clear()
         PrintLog('Action finish')
