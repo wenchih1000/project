@@ -4,6 +4,24 @@ from Player import *
 from Model import Rule16 as Rule
 
 from pubsub import pub as Publisher
+import json
+
+class Step(Enum):
+    INIT = 0
+    START_GAME = 1
+    PLAYER_SEAT = 2
+
+    ROLL_DICE_NOTIFY = 3
+    ROLL_DICE = 4
+    DEAL_TILES = 5
+    REPLACE_FLOWERS = 5
+    DEALER_DRAW = 6
+    PLAYER_DISCARD = 7
+    PLAYER_ACTION = 8
+    NEXT_TURN = 9
+    END_ROUND = 10
+    END_GAME = 11
+
 
 # 負責串聯所有邏輯：管理回合、處理動作優先級 (吃/碰/槓/胡)
 # Game controller
@@ -15,7 +33,7 @@ class Controller:
     ActiveWind: WIND = WIND.EAST # 當前活動的玩家
     DealerWind: WIND = WIND.EAST # 莊家風位
     RoundNum: int = 0 # 局數 (東南西北)
-    GameNum: int = 0 # 第幾莊
+    DealerNum: int = 0 # 第幾莊
 
     Exit:bool = False
     State = {
@@ -26,7 +44,9 @@ class Controller:
     ActionState:dict[WIND, dict] = {}
     Pass:dict[WIND, bool] = {}
 
+    StepEvent = Event()
     StepWorker:Thread = None
+    StepAction:Step = 0
 
     def __init__(self):
         # internal communication
@@ -35,10 +55,10 @@ class Controller:
 
         self.DeckRef = Deck()
         self.Players = {
-            WIND.EAST: Player('小東', WIND.EAST, self.DeckRef), 
-            WIND.SOUTH: Player('小南', WIND.SOUTH, self.DeckRef), 
-            WIND.WEST: Player('小西', WIND.WEST, self.DeckRef), 
-            WIND.NORTH: Player('小北', WIND.NORTH, self.DeckRef)
+            WIND.EAST: Player('', WIND.EAST, self.DeckRef), 
+            WIND.SOUTH: Player('', WIND.SOUTH, self.DeckRef), 
+            WIND.WEST: Player('', WIND.WEST, self.DeckRef), 
+            WIND.NORTH: Player('', WIND.NORTH, self.DeckRef)
         }
         for player in self.Players.values():
             player.daemon = True
@@ -56,21 +76,60 @@ class Controller:
 
     def StepFlow(self):
         while not self.Exit:
-            # cmd = {
-            #     "join_game":{
-            #         "state":"waiting",
-            #         "wait_num":4
-            #     },
-            #     "action_state":{
-            #         "player":"east",
-            #         "dice":True, "drawing":False, "discard":False,
-            #         "hu":False, "kong":False, "pong":False, "chow":False, "pass":False
-            #     }
-            # }
-            # self.Notify(cmd)
+            if self.StepEvent.is_set():
+                self.StepEvent.clear()
+                match self.StepAction:
+                    case Step.INIT:
+                        pass
+                    case Step.START_GAME:
+                        pass
+                    case Step.PLAYER_SEAT:
+                        seat = {
+                            "player_seat":{"east":"","south":"","west":"","north":""}
+                        }
+                        for w, p in self.Players.items():
+                            seat["player_seat"][w.name.lower()] = p.Name
+                        self.Notify(seat)
+                        time.sleep(2)
+                        # self.Notify(json.dumps(seat))
+                        self.StepAction = Step.ROLL_DICE_NOTIFY
+                        self.StepEvent.set()
+                    case Step.ROLL_DICE_NOTIFY:
+                        action = {
+                            "action_state":{
+                                "player":self.ActiveWind.name.lower(),
+                                "dice":True, "drawing":False, "discard":False,
+                                "hu":False, "kong":False, "pong":False, "chow":False, "pass":False
+                            }
+                        }
+                        self.Notify(action)
+                    case Step.ROLL_DICE:
+                        player = self.Players[self.DealerWind]
+                        player.Actions = Action.DICE
+                        player.Notify()
+                        # player.Wait()
+                        # state = {
+                        #     "game_state":{
+                        #         "round_wind":self.RoundWind.name.lower(),
+                        #         "dealer_wind":self.DealerWind.name.lower(),
+                        #         "current_player":self.ActiveWind.name.lower(),
+                        #         "dealer_num":self.DealerNum,
+                        #         "dice_score":self.DeckRef.Dice
+                        #     }
+                        # }
+                        # self.Notify(state)
+                        # PrintLog("骰子:" + str(self.DeckRef.Dice))
 
-            # print('StepFlow')
-            time.sleep(2)
+                    case Step.DEAL_TILES:
+                        self.StepAction = Step.REPLACE_FLOWERS
+                    case Step.REPLACE_FLOWERS:
+                        self.StepAction = Step.DEALER_DRAW
+                    case Step.DEALER_DRAW:
+                        self.StepAction = Step.PLAYER_DISCARD
+                    case Step.PLAYER_DISCARD:
+                        self.StepAction = Step.PLAYER_ACTION
+            else:
+                time.sleep(0.1)
 
     def ResetGame(self):
         # 回收所有牌
@@ -95,13 +154,26 @@ class Controller:
     # WebApp 通知 Controller
     # 4位client到齊，開桌
     # 直到玩完一雀
-    def StartGame(self):
+    def StartGame(self, names:dict[int,str]):
+        # names:dict[int,str]
+        # key:client id, value:name
         self.IsStart = True
 
+        # 隨機抽風位
+        seat = [WIND.EAST, WIND.SOUTH, WIND.WEST, WIND.NORTH]
+        random.shuffle(seat)
+        i = iter(names.items())
+        for w in seat:
+            cid, names = next(i)
+            self.Players[w].CId = cid
+            self.Players[w].Name = names
 
+        # 通知玩家自已的風位
+        self.StepAction = Step.PLAYER_SEAT
+        self.StepEvent.set()
 
-        
-        self.StartRound()
+        # self.ResetGame()
+        # self.StartRound()
 
     def StartRound(self):
         # 1. 洗牌、切牌
@@ -193,11 +265,16 @@ class Controller:
 
     # web app -> controller
     def OnMessage(self, msg):
-        print('controller received message:')
-        print(msg)
+        PrintLog('controller received message:')
+        PrintLog(msg)
+        if 'action' in msg:
+            if msg['action'] == 'dice':
+                PrintLog("start dice action")
+                self.StepAction = Step.ROLL_DICE
+                self.StepEvent.set()
 
 if __name__ == '__main__':
-    
+
     ctrl = Controller()
-    ctrl.StartGame()
-    PrintLog('Finish')    
+    ctrl.StartGame({1:"小東", 2:"小南", 3:"小西", 4:"小北"})
+    PrintLog('Finish')

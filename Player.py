@@ -30,6 +30,8 @@ class Player(Thread):
     #Player 當前要執行的動作
     Actions:Action = None
     Name:str = ''
+    # Client ID
+    CId:int = 0
     Money:int = 3000
 
     # 是否為莊家
@@ -58,7 +60,7 @@ class Player(Thread):
     ActionState:dict = None
 
     def __init__(self, name:str, wind:WIND, deck:Deck):
-        super().__init__()
+        super().__init__(name=wind.name)
         self.Name = name
         self.Wind = wind
         self.DeckRef = deck
@@ -189,8 +191,8 @@ class Player(Thread):
                 self.Actions = None
                 self.ActionEvent.clear()
             else:
-                time.sleep(0.1)
-                # print('sleep')
+                time.sleep(0.2)
+                # PrintLog('sleep:'+self.Wind.name)
 
     def Wait(self):
         PrintLog('Action waiting')

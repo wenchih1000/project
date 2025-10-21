@@ -6,7 +6,7 @@ from queue import Queue
 from threading import Thread,Event
 
 from pubsub import pub as Publisher
-from Controller import Controller
+from Controller import Controller, PrintLog
 
 class Web:
     app = None
@@ -53,7 +53,7 @@ class Web:
         try:
             self.socketio.stop()
         except:
-            print('End Web')
+            PrintLog('End Web')
 
     def RunWebApp(self):
         # use_reloader=False, avoid app run twice
@@ -62,8 +62,9 @@ class Web:
     # controller send message to web app and pass to client ui
     # controller -> web app -> client ui
     def SendMessage(self, msg):
-        print('web app received message:')
-        print(msg)
+        PrintLog('web app received message:')
+        # print(msg)
+        PrintLog(msg)
         self.Msg.put(msg)
 
     def WorkerTask(self):
@@ -76,8 +77,12 @@ class Web:
                 talk = self.Msg.get()
                 self.socketio.emit('message', dict(data=talk), namespace='/update') # broadcast=True
 
+            # client full and start game
             if self.ClientFullEvent.is_set():
-                self.ctrl.StartGame()
+                info = {}
+                for key,val in self.clients.items():
+                    info[key] = val['name']
+                self.ctrl.StartGame(info)
                 self.ClientFullEvent.clear()
 
     def ClientUpdate(self, data:dict, cid:int = 0):
@@ -117,7 +122,7 @@ class Web:
             # disconnect(request.sid, '/update')
             return render_template('index.html')
 
-        print(f'received: {self.name}, {self.avatar}')
+        PrintLog(f'received: {self.name}, {self.avatar}')
 
         return render_template('desktop.html')
 
@@ -129,13 +134,13 @@ class Web:
     # client ui -> web server -> controller
     # @socketio.on('message', namespace='/update')
     def OnMessage(self, json):
-        print(f'received {request.sid} message: ' + str(json))
+        PrintLog(f'received {request.sid} message: ' + str(json))
         Publisher.sendMessage('controller', msg=json)
 
     # @socketio.on('connect', namespace='/update')
     def OnConnect(self):
         if len(self.clients) <= self.ClientMaxNum:
-            print(f"Client {request.sid} on_connect.")
+            PrintLog(f"Client {request.sid} on_connect.")
 
             # client new connect or reconnect
             if self.name != "" or self.avatar != "":
@@ -147,11 +152,13 @@ class Web:
                 if cid in self.clients:
                     self.clients[cid]['sid'] = request.sid
 
+                # 更新玩家資訊
                 self.ClientUpdate(data, cid)
                 # clear variable for next client
                 self.name = ""
                 self.avatar = ""
 
+                # 更新等待人數
                 num = self.ClientMaxNum - len(self.clients)
                 state = "full" if num == 0 else "waiting"
                 join = {"join_game":{"state":state,"wait_num":num}}
@@ -168,7 +175,7 @@ class Web:
     # @socketio.on('disconnect', namespace='/update')
     def OnDisconnect(self):
         # sometime onconnect will be call before ondisconnect.
-        print(f"Client {request.sid} on_disconnected.")
+        PrintLog(f"Client {request.sid} on_disconnected.")
 
 def StartWebApp():
     # run on the main thread only
@@ -183,4 +190,4 @@ def StartWebApp():
 
 if __name__ == '__main__':
     StartWebApp()
-    print("finish")
+    PrintLog("finish")

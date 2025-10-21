@@ -92,13 +92,17 @@
         // console.log(msg.data["info"]["name"] + ":" + msg.data["info"]["avatar"]);
         console.log(JSON.stringify(msg.data));
       }
-      if('join_game' in msg.data)
+      else if('join_game' in msg.data)
       {
         $('#wait').text(msg.data["join_game"]["wait_num"]);
         // console.log(msg.data["join_game"]);
         console.log(JSON.stringify(msg.data));
       }
-      if('action_state' in msg.data)
+      else if('player_seat' in msg.data)
+      {
+        console.log(JSON.stringify(msg.data));
+      }
+      else if('action_state' in msg.data)
       {
         // console.log(msg.data["action_state"]);
         console.log(JSON.stringify(msg.data));
