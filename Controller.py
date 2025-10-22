@@ -171,6 +171,15 @@ class Controller:
                         self.Notify(hand)
 
                         # 檢查手牌狀態(滿17張) 胡牌/槓牌/出牌
+                        self.CheckHandState()
+
+                        # 通知玩家進行動作
+                        state = self.ActionState[self.ActiveWind]
+                        action = {
+                            "notify":self.ActiveWind.name.lower(),
+                            "action_state":state
+                        }
+                        self.Notify(action)
 
                     case Step.PLAYER_DISCARD:
                         self.StepAction = Step.PLAYER_ACTION
@@ -263,6 +272,26 @@ class Controller:
     def EndRound(self):
         pass
 
+    # CheckHandState()決定當前玩家下一步的動作
+    # 處理動作優先級 (胡牌/槓牌/出牌)
+    def CheckHandState(self):
+        # 當前玩家
+        wind = self.ActiveWind
+        player = self.Players[wind]
+
+        self.ClearActionState(wind)
+
+        # 判斷玩家對摸到的牌具有哪些動作
+        hand = player.Hand
+        tile = player.LastDraw
+        CanHu, melds = Rule.CanHu(hand + [tile])
+        CanKong = Rule.CanKong(hand, tile)
+        CanAddKong = Rule.CanAddKong(player.Melds, tile)
+
+        self.ActionState[wind]['hu'] = CanHu
+        self.ActionState[wind]['kong'] = (CanKong or CanAddKong)
+        self.ActionState[wind]['discard'] = True
+
     # 打出牌後，叫用DecideWhoseTurn()決定閒家優先權
     # 處理動作優先級 (吃/碰/槓/胡)
     # 決定閒家(1.下家right 2.對家opposite 3.上家left)優先權
@@ -278,7 +307,7 @@ class Controller:
             self.ClearActionState()
             for w in other:
                 hand = self.Players[w].Hand
-                CanHu = Rule.CanHu(hand, tile)
+                CanHu, melds = Rule.CanHu(hand + [tile])
                 CanKong = Rule.CanKong(hand, tile)
                 CanAddKong = Rule.CanAddKong(self.Players[w].Melds, tile)
                 CanPong = Rule.CanPong(hand, tile)

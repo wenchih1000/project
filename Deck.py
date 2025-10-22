@@ -179,8 +179,7 @@ class Deck:
             # 標記本輪是否有玩家補到了新的花牌
             # new flower drawn in this round
             IsFlower = False
-
-            if player.LastDraw.IsFlower():
+            if not player.LastDraw.IsFlower():
                 return False
 
             # 1. 檢查並從手牌中移除花牌 (第一次或補牌後)
