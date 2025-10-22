@@ -76,6 +76,12 @@ class Controller:
         self.StepWorker.daemon = True
         self.StepWorker.start()
 
+    def Seat(self, name:str) -> str:
+        for w, p in self.Players.items():
+            if p.Name == name:
+                return w.name.lower()
+        return ''
+
     def StepFlow(self):
         while not self.Exit:
             if self.StepEvent.is_set():

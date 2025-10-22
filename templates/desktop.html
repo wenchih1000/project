@@ -85,49 +85,46 @@
   // received from web server
   socket.on('message', function(msg){
       console.log("message");
-      if('info' in msg.data)
+
+      for (const key in msg.data)
       {
-        $('#name').text(msg.data["info"]["name"]);
-        $('#avatar').text(msg.data["info"]["avatar"]);
-        // console.log(msg.data["info"]["name"] + ":" + msg.data["info"]["avatar"]);
-        console.log(JSON.stringify(msg.data));
-      }
-      else if('join_game' in msg.data)
-      {
-        $('#wait').text(msg.data["join_game"]["wait_num"]);
-        // console.log(msg.data["join_game"]);
-        console.log(JSON.stringify(msg.data));
-      }
-      else if('game_state' in msg.data)
-      {
-        // {'game_state': {'round_wind': 'east', 'dealer_wind': 'east', 'current_player': 'east', 'dealer_num': 0, 'dice_score': [2, 6, 3]}}
-        $('#dice_score').text(msg.data["game_state"]["dice_score"].join(", "));
-        console.log(JSON.stringify(msg.data));
-      }
-      else if('player_seat' in msg.data)
-      {
-        // "player_seat":{
-        //     "east":"name 1","south":"name 2","west":"name 3","north":"name 4"
-        // }
-        for (const key in msg.data['player_seat'])
+        switch(key)
         {
-          if (msg.data['player_seat'][key] == $('#name').text()) {
-            $('#seat').text(key);
+          case 'info':
+            $('#name').text(msg.data["info"]["name"]);
+            $('#avatar').text(msg.data["info"]["avatar"]);
+            $('#seat').text(msg.data["info"]["seat"]);
             break;
-          }
+          case 'join_game':
+            $('#wait').text(msg.data["join_game"]["wait_num"]);
+            break;
+          case 'game_state':
+            // {'game_state': {'round_wind': 'east', 'dealer_wind': 'east', 'current_player': 'east', 'dealer_num': 0, 'dice_score': [2, 6, 3]}}
+            $('#dice_score').text(msg.data["game_state"]["dice_score"].join(", "));
+            break;
+          case 'player_seat':
+            // "player_seat":{
+            //     "east":"name 1","south":"name 2","west":"name 3","north":"name 4"
+            // }
+            for (const key in msg.data['player_seat'])
+            {
+              if (msg.data['player_seat'][key] == $('#name').text())
+              {
+                $('#seat').text(key);
+                break;
+              }
+            }
+            break;
+          case 'action_state':
+            break;
+          case 'hand_tiles':
+            break;
+          default:
+            break;
         }
-        console.log(JSON.stringify(msg.data));
       }
-      else if('action_state' in msg.data)
-      {
-        // console.log(msg.data["action_state"]);
-        console.log(JSON.stringify(msg.data));
-      }
-      else if('hand_tiles' in msg.data)
-      {
-        // console.log(msg.data["action_state"]);
-        console.log(JSON.stringify(msg.data));
-      }
+      // show log
+      console.log(JSON.stringify(msg.data));
   });
 </script>
 
@@ -137,7 +134,7 @@
   玩家頭像:<label id="avatar"></label><br>
   座位:<label id="seat"></label><br>
   骰子:<label id="dice_score"></label><br>
-  
+
 
   <button id="hu">胡</button>
   <button id="kong">槓</button>

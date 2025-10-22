@@ -11,6 +11,7 @@ from Controller import Controller, PrintLog
 class Web:
     app = None
     socketio = None
+    # key:client ID, value:{name:str, avatar:str, sid:str}
     clients:dict
  
     name = ""
@@ -48,24 +49,13 @@ class Web:
     def SetController(self, ctrl:Controller):
         self.ctrl = ctrl
 
-    def Stop(self):
-        self.Exit = True
-        try:
-            self.socketio.stop()
-        except:
-            PrintLog('End Web')
+    #
+    # working thread function
+    #
 
     def RunWebApp(self):
         # use_reloader=False, avoid app run twice
         self.socketio.run(self.app, port=80, debug=True, use_reloader=False)
-
-    # controller send message to web app and pass to client ui
-    # controller -> web app -> client ui
-    def SendMessage(self, msg):
-        PrintLog('web app received message:')
-        # print(msg)
-        PrintLog(msg)
-        self.Msg.put(msg)
 
     def WorkerTask(self):
         while not self.Exit:
@@ -85,6 +75,25 @@ class Web:
                 self.ctrl.StartGame(info)
                 self.ClientFullEvent.clear()
 
+    def Stop(self):
+        self.Exit = True
+        try:
+            self.socketio.stop()
+        except:
+            PrintLog('End Web')
+
+    #
+    # message deliver function
+    #
+
+    # controller send message to web app and pass to client ui
+    # controller -> web app -> client ui
+    def SendMessage(self, msg):
+        PrintLog('web app received message:')
+        # print(msg)
+        PrintLog(msg)
+        self.Msg.put(msg)
+
     def ClientUpdate(self, data:dict, cid:int = 0):
         skip = []
         # notify connect client only
@@ -97,6 +106,16 @@ class Web:
         self.socketio.emit('message', dict(data=data), namespace='/update', skip_sid=skip)
 
     #
+    # tool function
+    #
+
+    def ClientId(self) -> int:
+        val = self.name + ',' + self.avatar
+        # convert name and avatar to client id
+        cid = binascii.crc32(val.encode("UTF-8"))
+        return cid
+
+    #
     # route function
     #
 
@@ -107,11 +126,16 @@ class Web:
 
     # @app.route('/desktop', methods=['POST'])
     def desktop(self):
+        if 'name' not in request.values or 'avatar' not in request.values:
+            return render_template('index.html')
+
         self.name = request.values.get('name')
         self.avatar = request.values.get('avatar')
-        val = self.name + ',' + self.avatar
-        # convert name and avatar to client id
-        cid = binascii.crc32(val.encode("UTF-8"))
+        # val = self.name + ',' + self.avatar
+        # # convert name and avatar to client id
+        # cid = binascii.crc32(val.encode("UTF-8"))
+
+        cid = self.ClientId()
         if cid in self.clients:
             self.clients[cid]['sid'] = ''
         else:
@@ -144,10 +168,9 @@ class Web:
 
             # client new connect or reconnect
             if self.name != "" or self.avatar != "":
-                val = self.name + ',' + self.avatar
-                # convert name and avatar to client id
-                cid = binascii.crc32(val.encode("UTF-8"))
-                data = {'info':{'name':self.name,'avatar':self.avatar, 'cid':cid}}
+                cid = self.ClientId()
+                seat = self.ctrl.Seat(self.name)
+                data = {'info':{'name':self.name,'avatar':self.avatar, 'seat':seat, 'cid':cid}}
                 # reconnect
                 if cid in self.clients:
                     self.clients[cid]['sid'] = request.sid

@@ -20,8 +20,9 @@
     }
     "info":{
         "name":"阿土伯",
-        "avatar":"26.png", 
-        "cid":"id number"
+        "avatar":"26.png",
+        "seat":"east",
+        "cid":"123456"
     }
 ```
 3. 加入遊戲(join_game)JSON參數說明
@@ -39,7 +40,8 @@
 |:--|:--|:--|:--|
 | name | str | 玩家名稱 | 中文名字長度最多10個字 |
 | avatar | str | 玩家頭像 | 從 images 資料夾中選取 |
-| cid | int | 玩家ID | client ID |
+| seat | str | 玩家座位 | east, south, west, north |
+| cid | int | 玩家ID | Client ID |
 
 ### Server 檢查後，通知Client該玩家目前可操作的狀態和手牌情況
 1. Server 傳送的JSON格式  
