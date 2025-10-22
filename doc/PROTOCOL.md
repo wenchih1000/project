@@ -66,8 +66,9 @@
         },
         {
             "notify":"all",
-            "hand_tiles":{
-                "east":{
+            "hand_tiles":[
+                {
+                    "seat":"east",
                     "hand":["1C", "2C", "3C", "3D", "4D", "5D", "6D", "7D", "8D", "1A"],
                     "meld":[],
                     "hide":[["9C", "9C", "9C", "9C"], ["1W", "1W", "1W", "1W"]],
@@ -75,7 +76,8 @@
                     "discard":["6s", "3W"],
                     "drawed":"3A"
                 }, 
-                "south":{
+                {
+                    "seat":"south",
                     "hand":["3C", "4C", "5C", "3S", "4S", "5S", "6S", "7S", "8S", "4W", "2A", "2A", "2A"],
                     "meld":[["2W", "2W", "2W"]],
                     "hide":[],
@@ -83,7 +85,8 @@
                     "discard":["3W"],
                     "drawed":""
                 }, 
-                "west":{
+                {
+                    "seat":"west",
                     "hand":["5C", "6C", "7C", "8C", "8C", "8C", "2S", "3S", "4S", "6S", "7S", "8S", "4W", "4W", "4W", "3A"],
                     "meld":[],
                     "hide":[],
@@ -91,7 +94,8 @@
                     "discard":["1A", "2W"],
                     "drawed":""
                 }, 
-                "north":{
+                {
+                    "seat":"north",
                     "hand":["2D", "3D", "4D", "6S", "7S", "8S", "9S", "9S", "9S", "3W"],
                     "meld":[["6D", "7D", "8D"],["9D", "9D", "9D", "9D"]],
                     "hide":[],
@@ -99,7 +103,20 @@
                     "discard":[],
                     "drawed":""
                 }
-            }
+            ]
+        },
+        {
+            "notify":"east",
+            "hand_tiles":[
+                {
+                    "hand":["1C", "2C", "3C", "3D", "4D", "5D", "6D", "7D", "8D", "1A"],
+                    "meld":[],
+                    "hide":[["9C", "9C", "9C", "9C"], ["1W", "1W", "1W", "1W"]],
+                    "flower":["1G", "3G"],
+                    "discard":["6s", "3W"],
+                    "drawed":"3A"
+                } 
+            ]
         }
     }
 ```

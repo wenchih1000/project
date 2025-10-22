@@ -39,7 +39,6 @@ class Controller:
 
     Exit:bool = False
     State = {
-        "player":"",
         "dice":False, "drawing":False, "discard":False,
         "hu":False, "kong":False, "pong":False, "chow":False, "pass":False
     }
@@ -68,7 +67,6 @@ class Controller:
 
         for w in WIND:
             self.ActionState[w] = self.State.copy()
-            self.ActionState[w]["player"] = w.name.lower()
             self.Pass[w] = False
 
         # 用來處理步驟流程
@@ -103,12 +101,12 @@ class Controller:
                         self.StepAction = Step.ROLL_DICE_NOTIFY
                         self.StepEvent.set()
                     case Step.ROLL_DICE_NOTIFY:
+                        self.ClearActionState(self.ActiveWind)
+                        state = self.ActionState[self.ActiveWind]
+                        state['dice'] = True
                         action = {
                             "notify":self.ActiveWind.name.lower(),
-                            "action_state":{
-                                "dice":True, "drawing":False, "discard":False,
-                                "hu":False, "kong":False, "pong":False, "chow":False, "pass":False
-                            }
+                            "action_state":state
                         }
                         self.Notify(action)
                     case Step.ROLL_DICE:
@@ -126,7 +124,7 @@ class Controller:
                             }
                         }
                         self.Notify(state)
-                        # PrintLog("骰子:" + str(self.DeckRef.Dice))
+                        PrintLog("state:" + str(state))
                         self.StepAction = Step.START_ROUND
                         self.StepEvent.set()
 
@@ -134,13 +132,16 @@ class Controller:
                         self.StartRound()
                         self.StepAction = Step.PLAYER_DRAW_NOTIFY
                         self.StepEvent.set()
+
+                    # C. 牌局循環
                     case Step.PLAYER_DRAW_NOTIFY:
+                        self.ClearActionState(self.ActiveWind)
+                        state = self.ActionState[self.ActiveWind]
+                        state['drawing'] = True
+                        self.ActionState[self.ActiveWind]['drawing'] = True
                         action = {
                             "notify":self.ActiveWind.name.lower(),
-                            "action_state":{
-                                "dice":False, "drawing":True, "discard":False,
-                                "hu":False, "kong":False, "pong":False, "chow":False, "pass":False
-                            }
+                            "action_state":state
                         }
                         self.Notify(action)
 
@@ -150,28 +151,27 @@ class Controller:
                         player.Notify()
                         player.Wait()
 
-                        tiles = []
-                        for t in player.Hand:
-                            tiles.append(t.Name)
-
-                        flower = []
-                        for f in player.Flowers:
-                            flower.append(f.Name)
+                        tiles = Tile.List2StrList(player.Hand)
+                        flower = Tile.List2StrList(player.Flowers)
+                        discard = Tile.List2StrList(self.DeckRef.Discard[player.Wind])
+                        meld, hide = Meld.List2StrList(player.Melds)
 
                         hand = {
-                            "notify":self.ActiveWind.name.lower(), # all, east, south, west, north
-                            "hand_tiles":{
-                                "east":{
-                                    "hand":tiles,
-                                    "meld":[],
-                                    "hide":[],
-                                    "flower":flower,
-                                    "discard":[],
-                                    "drawed":player.LastDraw.Name
-                                }
-                            }
+                            "notify":player.Wind.name.lower(),
+                            "hand_tiles":[{
+                                "hand":tiles,
+                                "meld":meld,
+                                "hide":hide,
+                                "flower":flower,
+                                "discard":discard,
+                                "drawed":'' if player.LastDraw == None else player.LastDraw.Name
+                            }]
                         }
+                        # 通知玩家摸到的牌
                         self.Notify(hand)
+
+                        # 檢查手牌狀態(滿17張) 胡牌/槓牌/出牌
+
                     case Step.PLAYER_DISCARD:
                         self.StepAction = Step.PLAYER_ACTION
             else:
@@ -226,20 +226,39 @@ class Controller:
         # 1. 洗牌
         self.DeckRef.Shuffle()
 
-        # 2. 切牌
+        # 5. 根據骰子點數切牌牆
         # diceScore = random.randint(3,18)
         diceScore = sum(self.DeckRef.Dice)
         PrintLog("骰子:" + str(diceScore))
         self.DeckRef.BreakingWall(self.DealerWind, diceScore)
 
-        # 2. 發牌
+        # 6. 玩家抓牌並完成補花
         handTiles = {WIND.EAST:[], WIND.SOUTH:[], WIND.WEST:[], WIND.NORTH:[]}
         self.DeckRef.DealTiles(handTiles)
         for key,val in handTiles.items():
             self.Players[key].SetHandTile(val)
 
-        # 3. 所有玩家補花
         self.DeckRef.ReplaceFlowers(self.Players)
+
+        # 7. 通知玩家開局手牌
+        for player in self.Players.values():
+            tiles = Tile.List2StrList(player.Hand)
+            flower = Tile.List2StrList(player.Flowers)
+            discard = Tile.List2StrList(self.DeckRef.Discard[player.Wind])
+            meld, hide = Meld.List2StrList(player.Melds)
+
+            hand = {
+                "notify":player.Wind.name.lower(),
+                "hand_tiles":[{
+                    "hand":tiles,
+                    "meld":meld,
+                    "hide":hide,
+                    "flower":flower,
+                    "discard":discard,
+                    "drawed": '' if player.LastDraw == None else player.LastDraw.Name
+                }]
+            }
+            self.Notify(hand)
 
     def EndRound(self):
         pass
@@ -302,13 +321,16 @@ class Controller:
         # 預設換下家摸牌
         return right
 
-    def ClearActionState(self):
-        for w in WIND:
+    def ClearActionState(self, wind:WIND = None):
+        if wind != None:
             for key in self.State.keys():
-                if key == 'player':
-                    continue
-                self.ActionState[w][key] = False
-            self.Pass[w] = False
+                self.ActionState[wind][key] = False
+            self.Pass[wind] = False
+        else:
+            for w in WIND:
+                for key in self.State.keys():
+                    self.ActionState[w][key] = False
+                self.Pass[w] = False
 
     # 通知 client 進行活動
     # controller -> web app
@@ -328,7 +350,18 @@ class Controller:
                 self.StepEvent.set()
 
 if __name__ == '__main__':
+    hand1 = Tile.Alias2Tile(["東","東","東"])
+    hand2 = Tile.Alias2Tile(["南","南","南"])
+    hand3 = Tile.Alias2Tile(["西","西","西"])
+    melds = []
+    melds.append(Meld(False, hand1))
+    melds.append(Meld(True, hand2))
+    melds.append(Meld(False, hand3))
+    meld, hide = Meld.List2StrList(melds)
+    print(meld)
+    print(hide)
+    print(Tile.List2StrList(hand1))
 
     ctrl = Controller()
-    ctrl.StartGame({1:"小東", 2:"小南", 3:"小西", 4:"小北"})
+    # ctrl.StartGame({1:"小東", 2:"小南", 3:"小西", 4:"小北"})
     PrintLog('Finish')

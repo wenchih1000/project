@@ -292,6 +292,13 @@ class Tile(object):
             tiles.append(Tile({'alias':a}))
         return tiles
 
+    @staticmethod
+    def List2StrList(tiles:list['Tile']) -> list[str]:
+        data = []
+        for t in tiles:
+            data.append(t.Name)
+        return data
+
 # 定義搭(Meld), 用來形成 對子/順子/刻子/槓子
 # 並標註此搭為明搭或暗搭
 class Meld:
@@ -310,6 +317,16 @@ class Meld:
         elif len(tiles) == MELD.KONG_LEN.value:
             self.Type = MELD.KONG
 
+    @staticmethod
+    def List2StrList(melds:list['Meld']) -> tuple[list[str],list[str]]:
+        meld, hide = [], []
+        for m in melds:
+            if m.Exposed:
+                meld.append(Tile.Tiles2StrList(m.Tiles))
+            else:
+                hide.append(Tile.Tiles2StrList(m.Tiles))
+
+        return (meld, hide)
 # ------------------------------------------------------------------------------------------------
 # debug testing
 # ------------------------------------------------------------------------------------------------
