@@ -57,43 +57,48 @@
             "dealer_num":0,
             "dice_score":[1,1,1]
         },
-        "action_state":{
-            "player":"east",
-            "dice":false, "drawing":false, "discard":false,
-            "hu":false, "kong":false, "pong":false, "chow":false, "pass":false
+        {
+            "notify":"east",
+            "action_state":{
+                "dice":false, "drawing":false, "discard":false,
+                "hu":false, "kong":false, "pong":false, "chow":false, "pass":false
+            }
         },
-        "hand_tiles":{
-            "east":{
-                "hand":["1C", "2C", "3C", "3D", "4D", "5D", "6D", "7D", "8D", "1A"],
-                "meld":[],
-                "hide":[["9C", "9C", "9C", "9C"], ["1W", "1W", "1W", "1W"]],
-                "flower":["1G", "3G"],
-                "discard":["6s", "3W"],
-                "drawed":"3A"
-            }, 
-            "south":{
-                "hand":["3C", "4C", "5C", "3S", "4S", "5S", "6S", "7S", "8S", "4W", "2A", "2A", "2A"],
-                "meld":[["2W", "2W", "2W"]],
-                "hide":[],
-                "flower":[ "2G"],
-                "discard":["3W"],
-                "drawed":""
-            }, 
-            "west":{
-                "hand":["5C", "6C", "7C", "8C", "8C", "8C", "2S", "3S", "4S", "6S", "7S", "8S", "4W", "4W", "4W", "3A"],
-                "meld":[],
-                "hide":[],
-                "flower":["1P", "2P"],
-                "discard":["1A", "2W"],
-                "drawed":""
-            }, 
-            "north":{
-                "hand":["2D", "3D", "4D", "6S", "7S", "8S", "9S", "9S", "9S", "3W"],
-                "meld":[["6D", "7D", "8D"],["9D", "9D", "9D", "9D"]],
-                "hide":[],
-                "flower":[],
-                "discard":[],
-                "drawed":""
+        {
+            "notify":"all",
+            "hand_tiles":{
+                "east":{
+                    "hand":["1C", "2C", "3C", "3D", "4D", "5D", "6D", "7D", "8D", "1A"],
+                    "meld":[],
+                    "hide":[["9C", "9C", "9C", "9C"], ["1W", "1W", "1W", "1W"]],
+                    "flower":["1G", "3G"],
+                    "discard":["6s", "3W"],
+                    "drawed":"3A"
+                }, 
+                "south":{
+                    "hand":["3C", "4C", "5C", "3S", "4S", "5S", "6S", "7S", "8S", "4W", "2A", "2A", "2A"],
+                    "meld":[["2W", "2W", "2W"]],
+                    "hide":[],
+                    "flower":[ "2G"],
+                    "discard":["3W"],
+                    "drawed":""
+                }, 
+                "west":{
+                    "hand":["5C", "6C", "7C", "8C", "8C", "8C", "2S", "3S", "4S", "6S", "7S", "8S", "4W", "4W", "4W", "3A"],
+                    "meld":[],
+                    "hide":[],
+                    "flower":["1P", "2P"],
+                    "discard":["1A", "2W"],
+                    "drawed":""
+                }, 
+                "north":{
+                    "hand":["2D", "3D", "4D", "6S", "7S", "8S", "9S", "9S", "9S", "3W"],
+                    "meld":[["6D", "7D", "8D"],["9D", "9D", "9D", "9D"]],
+                    "hide":[],
+                    "flower":[],
+                    "discard":[],
+                    "drawed":""
+                }
             }
         }
     }
@@ -113,7 +118,6 @@
 
 | 欄位 | 型別 | 說明 | 備註 |
 |:--|:--|:--|:--|
-| player | str | 當前玩家 | east, south, west, north |
 | dice | bool | 擲骰子 | false:按鈕disable, true:按鈕enable |
 | drawing | bool | 摸牌  | false:按鈕disable, true:按鈕enable |
 | discard | bool | 出牌  | false:按鈕disable, true:按鈕enable |
@@ -123,7 +127,13 @@
 | chow | bool | 吃牌  | false:按鈕disable, true:按鈕enable |
 | pass | bool | 過牌  | false:按鈕disable, true:按鈕enable |
 
-4. 手牌(hand_tiles)JSON參數說明
+4. 通知玩家(notify)JSON參數說明
+
+| 欄位 | 型別 | 說明 | 備註 |
+|:--|:--|:--|:--|
+| notify | str | 通知對象 | all, east, south, west, north |
+
+5. 手牌(hand_tiles)JSON參數說明
 
 | 欄位 | 型別 | 說明 | 備註 |
 |:--|:--|:--|:--|
@@ -138,7 +148,7 @@
 | discard | list [ str ] | 玩家棄牌 | 玩家丟棄在牌桌上的牌 |
 | drawed | str | 玩家摸到的牌 | |
 
-5. 牌的字串格式
+6. 牌的字串格式
 
 | 字串 | 牌名 | 備註 |  
 |:--|:--|:--|  

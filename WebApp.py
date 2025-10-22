@@ -11,7 +11,7 @@ from Controller import Controller, PrintLog
 class Web:
     app = None
     socketio = None
-    # key:client ID, value:{name:str, avatar:str, sid:str}
+    # key:client ID, value:{name:str, avatar:str, seat:str ,sid:str}
     clients:dict
  
     name = ""
@@ -65,7 +65,20 @@ class Web:
             # send message to client ui from controller
             if len(self.clients) > 0 and self.Msg.qsize() > 0:
                 talk = self.Msg.get()
-                self.ClientUpdate(talk)
+                # notify
+                cid = 0
+                if 'notify' in talk:
+                    if talk['notify'] != 'all':
+                        cid = self.ClientId(talk['notify'])
+
+                elif 'player_seat' in talk:
+                    for key,val in talk['player_seat'].items():
+                        for val2 in self.clients.values():
+                            if val2['name'] == val:
+                                val2['seat'] = key
+                                break
+
+                self.ClientUpdate(talk, cid)
 
             # client full and start game
             if self.ClientFullEvent.is_set():
@@ -109,10 +122,17 @@ class Web:
     # tool function
     #
 
-    def ClientId(self) -> int:
-        val = self.name + ',' + self.avatar
-        # convert name and avatar to client id
-        cid = binascii.crc32(val.encode("UTF-8"))
+    def ClientId(self, wind:str = '') -> int:
+        cid = 0
+        if wind != '':
+            for key,val in self.clients.items():
+                if val['seat'] == wind:
+                    cid = key
+                    break
+        else:
+            val = self.name + ',' + self.avatar
+            # convert name and avatar to client id
+            cid = binascii.crc32(val.encode("UTF-8"))
         return cid
 
     #
@@ -135,7 +155,7 @@ class Web:
         if cid in self.clients:
             self.clients[cid]['sid'] = ''
         else:
-            self.clients[cid] = {'name':self.name, 'avatar':self.avatar, 'sid':''}
+            self.clients[cid] = {'name':self.name, 'avatar':self.avatar, 'seat':'', 'sid':''}
 
         if len(self.clients) > self.ClientMaxNum:
             self.clients.pop(cid)
@@ -165,10 +185,13 @@ class Web:
             # client new connect or reconnect
             if self.name != "" or self.avatar != "":
                 cid = self.ClientId()
-                seat = self.ctrl.Seat(self.name)
+                # seat = self.ctrl.Seat(self.name)
+                seat = self.clients[cid]['seat']
                 data = {'info':{'name':self.name,'avatar':self.avatar, 'seat':seat, 'cid':cid}}
+
                 # reconnect
                 if cid in self.clients:
+                    # self.clients[cid]['seat'] = seat
                     self.clients[cid]['sid'] = request.sid
 
                 # 更新玩家資訊

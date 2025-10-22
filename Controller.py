@@ -104,8 +104,8 @@ class Controller:
                         self.StepEvent.set()
                     case Step.ROLL_DICE_NOTIFY:
                         action = {
+                            "notify":self.ActiveWind.name.lower(),
                             "action_state":{
-                                "player":self.ActiveWind.name.lower(),
                                 "dice":True, "drawing":False, "discard":False,
                                 "hu":False, "kong":False, "pong":False, "chow":False, "pass":False
                             }
@@ -136,8 +136,8 @@ class Controller:
                         self.StepEvent.set()
                     case Step.PLAYER_DRAW_NOTIFY:
                         action = {
+                            "notify":self.ActiveWind.name.lower(),
                             "action_state":{
-                                "player":self.ActiveWind.name.lower(),
                                 "dice":False, "drawing":True, "discard":False,
                                 "hu":False, "kong":False, "pong":False, "chow":False, "pass":False
                             }
@@ -159,6 +159,7 @@ class Controller:
                             flower.append(f.Name)
 
                         hand = {
+                            "notify":self.ActiveWind.name.lower(), # all, east, south, west, north
                             "hand_tiles":{
                                 "east":{
                                     "hand":tiles,
