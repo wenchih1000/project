@@ -183,97 +183,66 @@
 ```JSON
     // 過
     {
-        "action_state":{
-            "player":"east",
-            "dice":false, "drawing":false, "discard":false,
-            "hu":false, "kong":false, "pong":false, "chow":false, "pass":true
-        },
+        "player":"east",
+        "action":"pass",
         "tiles":[]
     }
 
     // 吃牌
     {
-        "action_state":{
-            "player":"east",
-            "dice":false, "drawing":false, "discard":false,
-            "hu":false, "kong":false, "pong":false, "chow":true, "pass":false
-        },
+        "player":"east",
+        "action":"chow",
         "tiles":["5D", "7D"]
     }
 
     // 碰牌
     {
-        "action_state":{
-            "player":"east",
-            "dice":false, "drawing":false, "discard":false,
-            "hu":false, "kong":false, "pong":true, "chow":false, "pass":false
-        },
+        "player":"east",
+        "action":"pong",
         "tiles":["2A", "2A"]
     }
 
     // 槓牌
     {
-        "action_state":{
-            "player":"east",
-            "dice":false, "drawing":false, "discard":false,
-            "hu":false, "kong":true, "pong":false, "chow":false, "pass":false
-        },
+        "player":"east",
+        "action":"kong",
         "tiles":["2W", "2W", "2W"]
     }
 
     // 胡牌
     {
-        "action_state":{
-            "player":"east",
-            "dice":false, "drawing":false, "discard":false,
-            "hu":true, "kong":false, "pong":false, "chow":false, "pass":false
-        },
+        "player":"east",
+        "action":"hu",
         "tiles":[]
     }
 
     // 擲骰子
     {
-        "action_state":{
-            "player":"east",
-            "dice":true, "drawing":false, "discard":false,
-            "hu":false, "kong":false, "pong":false, "chow":false, "pass":false
-        },
+        "player":"east",
+        "action":"dice",
         "tiles":[]
     }
 
     // 出牌
     {
-        "action_state":{
-            "player":"east",
-            "dice":false, "drawing":false, "discard":true,
-            "hu":false, "kong":false, "pong":false, "chow":false, "pass":false
-        },
+        "player":"east",
+        "action":"discard",
         "tiles":["9D"]
     }
 
     // 摸牌
     {
-        "action_state":{
-            "player":"east",
-            "dice":false, "drawing":true, "discard":false,
-            "hu":false, "kong":false, "pong":false, "chow":false, "pass":false
-        },
+        "player":"east",
+        "action":"drawing",
         "tiles":[]
     }
 ```
-2. 活動狀態(action_state)JSON參數說明
+2. Client 回應 Server 玩家決定要做的動作
 
 | 欄位 | 型別 | 說明 | 備註 |
 |:--|:--|:--|:--|
 | player | str | 當前玩家 | east, south, west, north |
-| dice | bool | 擲骰子  | 玩家進行擲骰子 |
-| drawing | bool | 摸牌  | 玩家決定摸牌 |
-| discard | bool | 出牌  | 玩家決定出牌 |
-| hu | bool | 胡牌  | 玩家決定胡牌 |
-| kong | bool | 槓牌  | 玩家決定槓牌 |
-| pong | bool | 碰牌  | 玩家決定碰牌 |
-| chow | bool | 吃牌  | 玩家決定吃牌 |
-| pass | bool | 過牌  | 玩家決定過牌 |
+| action | str | 要做的事 | dice, drawing, discard, hu, kong, pong, chow, pass |
 | tiles | list [ str ] | 玩家手中要組成的牌 | 槓/碰/吃, 出牌的牌 |
 
 ### 玩家胡牌時 Server 計算台數後，通知 Client 計算結果

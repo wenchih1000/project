@@ -367,10 +367,14 @@ class Controller:
         Publisher.sendMessage('webapp', msg=msg)
 
     # web app -> controller
-    def OnMessage(self, msg):
+    def OnMessage(self, msg:dict):
         PrintLog('controller received message:')
         PrintLog(msg)
         if 'action' in msg:
+            if msg['player'] != self.ActiveWind.name.lower():
+                PrintLog(f'{msg['player']}, not your turn!')
+                return
+
             if msg['action'] == 'dice':
                 self.StepAction = Step.ROLL_DICE
                 self.StepEvent.set()

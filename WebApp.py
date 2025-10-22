@@ -173,8 +173,8 @@ class Web:
     # received client message
     # client ui -> web server -> controller
     # @socketio.on('message', namespace='/update')
-    def OnMessage(self, json):
-        PrintLog(f'received {request.sid} message: ' + str(json))
+    def OnMessage(self, json:dict):
+        PrintLog(f'received message: ' + str(json))
         Publisher.sendMessage('controller', msg=json)
 
     # @socketio.on('connect', namespace='/update')

@@ -4,6 +4,17 @@
 <head>
   <meta charset="utf-8">
   <title>Working with Flask and SocketIO</title>
+  <style>
+    table, th, td {
+      border: 1px solid black;
+      border-collapse: collapse;
+      padding: 8px;
+    }
+    td:hover {
+      background-color: #f0f0f0;
+      cursor: pointer;
+    }
+  </style>
 </head>
 <!-- https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.4.5/ -->
 <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.0/socket.io.js"></script> -->
@@ -32,50 +43,50 @@
 
   $(document).ready(function() {
     $("#pass").click(function() {
-      data = {"action": "pass"}
+      data = {"player":$('#seat').text(), "action":"pass", "tiles":[]}
       socket.emit('message', data);
       console.log(data);
       return false;
     });
     $("#chow").click(function() {
-      data = {"action": "chow"}
+      data = {"player":$('#seat').text(), "action":"chow", "tiles":[]}
       socket.emit('message', data);
       console.log(data);
       return false;
     });
     $("#pong").click(function() {
-      data = {"action": "pong"}
+      data = {"player":$('#seat').text(), "action":"pong", "tiles":[]}
       socket.emit('message', data);
       console.log(data);
       return false;
     });
     $("#kong").click(function() {
-      data = {"action": "kong"}
+      data = {"player":$('#seat').text(), "action":"kong", "tiles":[]}
       socket.emit('message', data);
       console.log(data);
       return false;
     });
     $("#hu").click(function() {
-      data = {"action": "hu"}
+      data = {"player":$('#seat').text(), "action":"hu", "tiles":[]}
       socket.emit('message', data);
       console.log(data);
       return false;
     });
 
     $("#drawing").click(function() {
-      data = {"action": "drawing"}
+      data = {"player":$('#seat').text(), "action":"drawing", "tiles":[]}
       socket.emit('message', data);
       console.log(data);
       return false;
     });
     $("#discard").click(function() {
-      data = {"action": "discard"}
+      data = {"player":$('#seat').text(), "action":"discard", "tiles":[]}
       socket.emit('message', data);
       console.log(data);
       return false;
     });
     $("#dice").click(function() {
-      data = {"action": "dice"}
+      data = {"player":$('#seat').text(), "action":"dice", "tiles":[]}
       socket.emit('message', data);
       console.log(data);
       return false;
@@ -118,6 +129,13 @@
           case 'action_state':
             break;
           case 'hand_tiles':
+            hand = msg.data['hand_tiles'][0]['hand']
+            for (const key in hand)
+            {
+              $("#Tiles tr:eq(0) td:eq("+key+")").text(hand[key]);
+            }
+            drawed = msg.data['hand_tiles'][0]['drawed']
+            $("#Tiles tr:eq(0) td:eq(16)").text(drawed);
             break;
           default:
             break;
@@ -135,6 +153,27 @@
   座位:<label id="seat"></label><br>
   骰子:<label id="dice_score"></label><br>
 
+  <table id="Tiles">
+      <tr>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+      </tr>
+  </table>
 
   <button id="hu">胡</button>
   <button id="kong">槓</button>
@@ -145,6 +184,30 @@
   <button id="drawing">摸牌</button>
   <button id="discard">出牌</button>
   <button id="dice">擲骰子</button>
+  <p id="message"></p>
+
+<script>
+  const table = document.getElementById("Tiles");
+  const messageElement = document.getElementById("message");
+
+  // Get all table cells (td elements)
+  const cells = table.querySelectorAll("td");
+
+  // Iterate over each cell and attach a click event listener
+  cells.forEach(cell => {
+    cell.addEventListener("click", function() {
+      // 'this' refers to the clicked cell
+      const cellContent = this.textContent;
+      // const rowIndex = this.closest('tr').rowIndex; // Get row index
+      // const cellIndex = this.cellIndex; // Get cell index within the row
+      if(messageElement.textContent == "")
+        messageElement.textContent += cellContent;
+      else
+        messageElement.textContent += "," + cellContent;
+      
+    });
+  });
+</script>
 </body>
 
 </html>
