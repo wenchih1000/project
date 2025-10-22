@@ -65,7 +65,7 @@ class Web:
             # send message to client ui from controller
             if len(self.clients) > 0 and self.Msg.qsize() > 0:
                 talk = self.Msg.get()
-                self.socketio.emit('message', dict(data=talk), namespace='/update') # broadcast=True
+                self.ClientUpdate(talk)
 
             # client full and start game
             if self.ClientFullEvent.is_set():
@@ -80,7 +80,7 @@ class Web:
         try:
             self.socketio.stop()
         except:
-            PrintLog('End Web')
+            PrintLog('End WebApp')
 
     #
     # message deliver function
@@ -131,10 +131,6 @@ class Web:
 
         self.name = request.values.get('name')
         self.avatar = request.values.get('avatar')
-        # val = self.name + ',' + self.avatar
-        # # convert name and avatar to client id
-        # cid = binascii.crc32(val.encode("UTF-8"))
-
         cid = self.ClientId()
         if cid in self.clients:
             self.clients[cid]['sid'] = ''

@@ -180,10 +180,9 @@ class Player(Thread):
                             fromEnd = False
 
                         tile = self.DeckRef.DrawWallTile(fromEnd)
-                        self.SetHandTile([tile])
                         self.LastDraw = tile
                         if tile.IsFlower():
-                            self.DeckRef.ReplaceFlowers({self.Wind:self})
+                            self.DeckRef.PatchFlower(self)
                         PrintLog(self.Name + ' 摸牌: ' + self.LastDraw.toStr())
                         self.FinishEvent.set()
                     case Action.DISCARD:
@@ -220,6 +219,11 @@ class Player(Thread):
         for _ in range(len(hand)):
             self.Hand.append(hand.pop(0))
         self.Hand.sort()
+
+    def SetFlowerTile(self, tile:Tile):
+        if tile.IsFlower():
+            self.Flowers.append(tile)
+            self.Flowers.sort()
 
     def ReturnAllTile(self) -> list[Tile]:
         hand = [] #list[Tile]
