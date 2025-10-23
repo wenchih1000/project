@@ -135,6 +135,12 @@ class Web:
             cid = binascii.crc32(val.encode("UTF-8"))
         return cid
 
+    def ClientInfo(self) -> list:
+        tmp = []
+        for info in self.clients.values():
+            tmp.append(info)
+        return tmp
+
     #
     # route function
     #
@@ -155,7 +161,8 @@ class Web:
         if cid in self.clients:
             self.clients[cid]['sid'] = ''
         else:
-            self.clients[cid] = {'name':self.name, 'avatar':self.avatar, 'seat':'', 'sid':''}
+            seat = ('east', 'south', 'west', 'north')
+            self.clients[cid] = {'name':self.name, 'avatar':self.avatar, 'seat':seat[len(self.clients)], 'sid':''}
 
         if len(self.clients) > self.ClientMaxNum:
             self.clients.pop(cid)
@@ -175,7 +182,16 @@ class Web:
     # @socketio.on('message', namespace='/update')
     def OnMessage(self, json:dict):
         PrintLog(f'received message: ' + str(json))
-        Publisher.sendMessage('controller', msg=json)
+        # client ui -> web server
+        if 'get_info' in json:
+            info = self.ClientInfo()
+            data = {'info':info}
+            # 更新玩家資訊
+            self.ClientUpdate(data)
+
+        # client ui -> controller
+        else:
+            Publisher.sendMessage('controller', msg=json)
 
     # @socketio.on('connect', namespace='/update')
     def OnConnect(self):
@@ -187,15 +203,19 @@ class Web:
                 cid = self.ClientId()
                 # seat = self.ctrl.Seat(self.name)
                 seat = self.clients[cid]['seat']
-                data = {'info':{'name':self.name,'avatar':self.avatar, 'seat':seat, 'cid':cid}}
+                # data = {'info':{'name':self.name,'avatar':self.avatar, 'seat':seat, 'cid':cid}}
+                data = {'myself':{'name':self.name,'seat':seat}}
+                self.ClientUpdate(data, cid)
 
                 # reconnect
                 if cid in self.clients:
                     # self.clients[cid]['seat'] = seat
                     self.clients[cid]['sid'] = request.sid
 
+                info = self.ClientInfo()
+                data = {'info':info}
                 # 更新玩家資訊
-                self.ClientUpdate(data, cid)
+                self.ClientUpdate(data)#, cid)
                 # clear variable for next client
                 self.name = ""
                 self.avatar = ""
@@ -205,6 +225,10 @@ class Web:
                 state = "full" if num == 0 else "waiting"
                 join = {"join_game":{"state":state,"wait_num":num}}
                 self.ClientUpdate(join)
+
+                if self.ctrl.IsStart:
+                    data = {'player':seat,'action':'get_hand'}
+                    self.OnMessage(data)
 
             # client reconnect in direct path
             else:

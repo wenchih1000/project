@@ -10,7 +10,8 @@
     "join_game":{
         "name":"阿土伯",
         "avatar":"26.png"
-    }
+    },
+    "get_info":true
 ```
 2. Server 回傳的JSON格式
 ```JSON
@@ -18,12 +19,14 @@
         "state":"waiting",
         "wait_num":3
     }
-    "info":{
-        "name":"阿土伯",
-        "avatar":"26.png",
-        "seat":"east",
-        "cid":"123456"
-    }
+    "info":[
+        {
+            "name":"阿土伯",
+            "avatar":"26.png",
+            "seat":"east",
+            "cid":"123456"
+        }
+    ]
 ```
 3. 加入遊戲(join_game)JSON參數說明
 
@@ -235,6 +238,12 @@
         "player":"east",
         "action":"drawing",
         "tiles":[]
+    }
+
+    // 取手牌
+    {
+        "player":"east",
+        "action":"get_hand"
     }
 ```
 2. Client 回應 Server 玩家決定要做的動作

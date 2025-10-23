@@ -80,6 +80,26 @@ class Controller:
                 return w.name.lower()
         return ''
 
+    def GetHandDict(self, wind:WIND) -> dict:
+        player = self.Players[wind]
+        tiles = Tile.List2StrList(player.Hand)
+        flower = Tile.List2StrList(player.Flowers)
+        discard = Tile.List2StrList(self.DeckRef.Discard[player.Wind])
+        meld, hide = Meld.List2StrList(player.Melds)
+
+        hand = {
+            "notify":player.Wind.name.lower(),
+            "hand_tiles":[{
+                "hand":tiles,
+                "meld":meld,
+                "hide":hide,
+                "flower":flower,
+                "discard":discard,
+                "drawed":'' if player.LastDraw == None else player.LastDraw.Name
+            }]
+        }
+        return hand
+
     def StepFlow(self):
         while not self.Exit:
             if self.StepEvent.is_set():
@@ -151,22 +171,7 @@ class Controller:
                         player.Notify()
                         player.Wait()
 
-                        tiles = Tile.List2StrList(player.Hand)
-                        flower = Tile.List2StrList(player.Flowers)
-                        discard = Tile.List2StrList(self.DeckRef.Discard[player.Wind])
-                        meld, hide = Meld.List2StrList(player.Melds)
-
-                        hand = {
-                            "notify":player.Wind.name.lower(),
-                            "hand_tiles":[{
-                                "hand":tiles,
-                                "meld":meld,
-                                "hide":hide,
-                                "flower":flower,
-                                "discard":discard,
-                                "drawed":'' if player.LastDraw == None else player.LastDraw.Name
-                            }]
-                        }
+                        hand = self.GetHandDict(self.ActiveWind)
                         # 通知玩家摸到的牌
                         self.Notify(hand)
 
@@ -251,22 +256,7 @@ class Controller:
 
         # 7. 通知玩家開局手牌
         for player in self.Players.values():
-            tiles = Tile.List2StrList(player.Hand)
-            flower = Tile.List2StrList(player.Flowers)
-            discard = Tile.List2StrList(self.DeckRef.Discard[player.Wind])
-            meld, hide = Meld.List2StrList(player.Melds)
-
-            hand = {
-                "notify":player.Wind.name.lower(),
-                "hand_tiles":[{
-                    "hand":tiles,
-                    "meld":meld,
-                    "hide":hide,
-                    "flower":flower,
-                    "discard":discard,
-                    "drawed": '' if player.LastDraw == None else player.LastDraw.Name
-                }]
-            }
+            hand = self.GetHandDict(player.Wind)
             self.Notify(hand)
 
     def EndRound(self):
@@ -371,7 +361,7 @@ class Controller:
         PrintLog('controller received message:')
         PrintLog(msg)
         if 'action' in msg:
-            if msg['player'] != self.ActiveWind.name.lower():
+            if msg['action'] != 'get_hand' and msg['player'] != self.ActiveWind.name.lower():
                 PrintLog(f'{msg['player']}, not your turn!')
                 return
 
@@ -381,6 +371,14 @@ class Controller:
             elif msg['action'] == 'drawing':
                 self.StepAction = Step.PLAYER_DRAW
                 self.StepEvent.set()
+
+            # for client reconnect to get hand tiles
+            elif msg['action'] == 'get_hand':
+                for w in WIND:
+                    if w.name.lower() == msg['player']:
+                        hand = self.GetHandDict(w)
+                        self.Notify(hand)
+                        break
 
 if __name__ == '__main__':
     hand1 = Tile.Alias2Tile(["東","東","東"])

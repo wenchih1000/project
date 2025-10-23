@@ -10,7 +10,8 @@
       border-collapse: collapse;
       padding: 8px;
     }
-    td:hover {
+    #hand:hover {
+      /* td:hover { */
       background-color: #f0f0f0;
       cursor: pointer;
     }
@@ -24,49 +25,80 @@
 <script>
   // var socket = io()
   var socket = io('http://127.0.0.1/update');
-  var sid = '';
 
   // client-side
   socket.on("connect", () => {
-    data = {"connect":{"new": socket.id, "old":sid}}
+    data = {"connect":socket.id}
     // socket.emit('message', data);
-    sio = socket.id
     console.log("connect:" + JSON.stringify(data));
     // var formData = sessionStorage.getItem('data');
     // console.log("formData:"+JSON.parse(formData));
   });
   socket.on("disconnect", () => {
-    data = {"disconnect":{"new": socket.id, "old":sid}}
+    data = {"disconnect": socket.id}
     // socket.emit('message', data);
     console.log("disconnect:" + JSON.stringify(data));
   });
 
+  function tableTiles()
+  {
+    // pick tiles to discard
+    var tiles = [];
+    // top row of tiles table
+    $("#Tiles tr:eq(0) td").each(function(i){
+      if($(this).text() != "")
+      {
+        tiles.push($(this).text());
+      }
+    });
+    return tiles;
+  }
+  
+  function clearTiles()
+  {
+    // top row of tiles table
+    $("#Tiles tr:eq(0) td").each(function(i){
+      $(this).text("");
+    });
+  }
+
   $(document).ready(function() {
     $("#pass").click(function() {
+      $(this).prop('disabled', true);
       data = {"player":$('#seat').text(), "action":"pass", "tiles":[]}
       socket.emit('message', data);
       console.log(data);
       return false;
     });
     $("#chow").click(function() {
+      $(this).prop('disabled', true);
       data = {"player":$('#seat').text(), "action":"chow", "tiles":[]}
       socket.emit('message', data);
       console.log(data);
       return false;
     });
     $("#pong").click(function() {
+      $(this).prop('disabled', true);
+      // pick tiles to discard
+      var tiles = tableTiles();
       data = {"player":$('#seat').text(), "action":"pong", "tiles":[]}
       socket.emit('message', data);
       console.log(data);
+      clearTiles();
       return false;
     });
     $("#kong").click(function() {
+      $(this).prop('disabled', true);
+      // pick tiles to discard
+      var tiles = tableTiles();
       data = {"player":$('#seat').text(), "action":"kong", "tiles":[]}
       socket.emit('message', data);
       console.log(data);
+      clearTiles();
       return false;
     });
     $("#hu").click(function() {
+      $(this).prop('disabled', true);
       data = {"player":$('#seat').text(), "action":"hu", "tiles":[]}
       socket.emit('message', data);
       console.log(data);
@@ -74,22 +106,50 @@
     });
 
     $("#drawing").click(function() {
+      $(this).prop('disabled', true);
       data = {"player":$('#seat').text(), "action":"drawing", "tiles":[]}
       socket.emit('message', data);
       console.log(data);
       return false;
     });
     $("#discard").click(function() {
-      data = {"player":$('#seat').text(), "action":"discard", "tiles":[]}
+      // pick tiles to discard
+      $(this).prop('disabled', true);
+      var tiles = tableTiles();
+      data = {"player":$('#seat').text(), "action":"discard", "tiles":tiles}
       socket.emit('message', data);
       console.log(data);
+      clearTiles();
       return false;
     });
     $("#dice").click(function() {
+      // $("#dice").prop('disabled', false);
+      $(this).prop('disabled', true);
       data = {"player":$('#seat').text(), "action":"dice", "tiles":[]}
       socket.emit('message', data);
       console.log(data);
       return false;
+    });
+
+    // bottom row of tiles table
+    $("#Tiles tr:eq(1) td").each(function() {
+      // console.log("click"+$(this).html());
+      this.addEventListener("click", function() { 
+        // 'this' refers to the clicked cell
+        // const text = this.textContent;
+        // console.log(this.cellIndex);
+
+        // move tile to top/bottom row
+        if(this.textContent == "") {
+          tmp = $("#Tiles tr:eq(0) td:eq("+this.cellIndex+")").text();
+          this.textContent = tmp;
+          $("#Tiles tr:eq(0) td:eq("+this.cellIndex+")").text("");
+        } else {
+          $("#Tiles tr:eq(0) td:eq("+this.cellIndex+")").text(this.textContent);
+          this.textContent = "";
+        }
+
+      });
     });
   });
 
@@ -101,41 +161,73 @@
       {
         switch(key)
         {
+          case 'myself':
+            $('#name').text(msg.data["myself"]["name"]);
+            $('#seat').text(msg.data["myself"]["seat"]);
+            break;
           case 'info':
-            $('#name').text(msg.data["info"]["name"]);
-            $('#avatar').text(msg.data["info"]["avatar"]);
-            $('#seat').text(msg.data["info"]["seat"]);
+            // update player info into player table
+            info = msg.data["info"];
+            for (const i in info)
+            {
+              seat = info[i]['seat']
+              $('#'+seat+' td:eq(0)').text(seat);
+              $('#'+seat+' td:eq(1)').text(info[i]['name']);
+              $('#'+seat+' td:eq(2)').text(info[i]['avatar']);
+              // $('#'+seat+' td:eq(3)').text(info[i]['gold']);
+            }
+            // $('#name').text(msg.data["info"]["name"]);
+            // $('#avatar').text(msg.data["info"]["avatar"]);
+            // $('#seat').text(msg.data["info"]["seat"]);
             break;
           case 'join_game':
             $('#wait').text(msg.data["join_game"]["wait_num"]);
             break;
           case 'game_state':
             // {'game_state': {'round_wind': 'east', 'dealer_wind': 'east', 'current_player': 'east', 'dealer_num': 0, 'dice_score': [2, 6, 3]}}
-            $('#dice_score').text(msg.data["game_state"]["dice_score"].join(", "));
+            state = msg.data["game_state"];
+            $('#dice_score').text(state["dice_score"].join(", "));
+            $('#message').text(state["current_player"] + " 進行中")
+
             break;
           case 'player_seat':
             // "player_seat":{
             //     "east":"name 1","south":"name 2","west":"name 3","north":"name 4"
             // }
-            for (const key in msg.data['player_seat'])
+            seat = msg.data['player_seat']
+            for (const key in seat)
             {
-              if (msg.data['player_seat'][key] == $('#name').text())
+              if (seat[key] == $('#name').text())
               {
                 $('#seat').text(key);
                 break;
               }
             }
+            data = {"get_info":true}
+            socket.emit('message', data);
             break;
           case 'action_state':
+            state = msg.data['action_state'];
+            //{'dice': False, 'drawing': False, 'discard': True, 'hu': False, 'kong': False, 'pong': False, 'chow': False, 'pass': False}
+            for(const btn in state)
+            { 
+              if(state[btn] == true)
+              {
+                $("#"+btn).prop('disabled', false);
+              } else {
+                $("#"+btn).prop('disabled', true);
+              }
+            }
             break;
           case 'hand_tiles':
+            // update hand tiles to Tiles table
             hand = msg.data['hand_tiles'][0]['hand']
-            for (const key in hand)
+            for (const i in hand)
             {
-              $("#Tiles tr:eq(0) td:eq("+key+")").text(hand[key]);
+              $("#Tiles tr:eq(1) td:eq("+i+")").text(hand[i]);
             }
             drawed = msg.data['hand_tiles'][0]['drawed']
-            $("#Tiles tr:eq(0) td:eq(16)").text(drawed);
+            $("#Tiles tr:eq(1) td:eq(16)").text(drawed);
             break;
           default:
             break;
@@ -148,66 +240,48 @@
 
 <body>
   等待人數:<label id="wait"></label><br>
-  玩家名稱:<label id="name"></label><br>
-  玩家頭像:<label id="avatar"></label><br>
+  <!-- 玩家頭像:<label id="avatar"></label>  -->
+  玩家名稱:<label id="name"></label>
   座位:<label id="seat"></label><br>
   骰子:<label id="dice_score"></label><br>
-
+  
+  <table id="player">
+    <tr>
+      <th>座位</th><th>名稱</th><th>頭像</th><th>金幣</th>
+    </tr>
+    <tr id="east">
+        <td>east</td><td></td><td></td><td>100000</td>
+    </tr>
+    <tr id="south">
+        <td>south</td><td></td><td></td><td>100000</td>
+    </tr>
+    <tr id="west">
+        <td>west</td><td></td><td></td><td>100000</td>
+    </tr>
+    <tr id="north">
+        <td>north</td><td></td><td></td><td>100000</td>
+    </tr>
+  </table>
+  <p></p>
   <table id="Tiles">
       <tr>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
+        <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+      </tr>
+      <tr id="hand">
+        <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
       </tr>
   </table>
+  <p></p>
+  <button id="hu" disabled="true">胡</button>
+  <button id="kong" disabled="true">槓</button>
+  <button id="pong" disabled="true">碰</button>
+  <button id="chow" disabled="true">吃</button>
+  <button id="pass" disabled="true">過</button><br>
 
-  <button id="hu">胡</button>
-  <button id="kong">槓</button>
-  <button id="pong">碰</button>
-  <button id="chow">吃</button>
-  <button id="pass">過</button><br>
-
-  <button id="drawing">摸牌</button>
-  <button id="discard">出牌</button>
-  <button id="dice">擲骰子</button>
+  <button id="drawing" disabled="true">摸牌</button>
+  <button id="discard" disabled="true">出牌</button>
+  <button id="dice" disabled="true">擲骰子</button>
   <p id="message"></p>
-
-<script>
-  const table = document.getElementById("Tiles");
-  const messageElement = document.getElementById("message");
-
-  // Get all table cells (td elements)
-  const cells = table.querySelectorAll("td");
-
-  // Iterate over each cell and attach a click event listener
-  cells.forEach(cell => {
-    cell.addEventListener("click", function() {
-      // 'this' refers to the clicked cell
-      const cellContent = this.textContent;
-      // const rowIndex = this.closest('tr').rowIndex; // Get row index
-      // const cellIndex = this.cellIndex; // Get cell index within the row
-      if(messageElement.textContent == "")
-        messageElement.textContent += cellContent;
-      else
-        messageElement.textContent += "," + cellContent;
-      
-    });
-  });
-</script>
 </body>
 
 </html>
