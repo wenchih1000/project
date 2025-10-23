@@ -73,38 +73,55 @@
                 {
                     "seat":"east",
                     "hand":["1C", "2C", "3C", "3D", "4D", "5D", "6D", "7D", "8D", "1A"],
-                    "meld":[],
-                    "hide":[["9C", "9C", "9C", "9C"], ["1W", "1W", "1W", "1W"]],
-                    "flower":["1G", "3G"],
-                    "discard":["6s", "3W"],
                     "drawed":"3A"
                 }, 
                 {
                     "seat":"south",
                     "hand":["3C", "4C", "5C", "3S", "4S", "5S", "6S", "7S", "8S", "4W", "2A", "2A", "2A"],
-                    "meld":[["2W", "2W", "2W"]],
-                    "hide":[],
-                    "flower":[ "2G"],
-                    "discard":["3W"],
                     "drawed":""
                 }, 
                 {
                     "seat":"west",
                     "hand":["5C", "6C", "7C", "8C", "8C", "8C", "2S", "3S", "4S", "6S", "7S", "8S", "4W", "4W", "4W", "3A"],
-                    "meld":[],
-                    "hide":[],
-                    "flower":["1P", "2P"],
-                    "discard":["1A", "2W"],
                     "drawed":""
                 }, 
                 {
                     "seat":"north",
                     "hand":["2D", "3D", "4D", "6S", "7S", "8S", "9S", "9S", "9S", "3W"],
+                    "drawed":""
+                }
+            ]
+        },
+        {
+            "notify":"all",
+            "out_tiles":[
+                {
+                    "seat":"east",
+                    "meld":[],
+                    "hide":[],
+                    "flower":["1G", "3G"],
+                    "discard":["6s", "3W"],
+                }, 
+                {
+                    "seat":"south",
+                    "meld":[["2W", "2W", "2W"]],
+                    "hide":[],
+                    "flower":[ "2G"],
+                    "discard":["3W"],
+                }, 
+                {
+                    "seat":"west",
+                    "meld":[],
+                    "hide":[],
+                    "flower":["1P", "2P"],
+                    "discard":["1A", "2W"],
+                }, 
+                {
+                    "seat":"north",
                     "meld":[["6D", "7D", "8D"],["9D", "9D", "9D", "9D"]],
                     "hide":[],
                     "flower":[],
                     "discard":[],
-                    "drawed":""
                 }
             ]
         },

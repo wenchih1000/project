@@ -296,8 +296,48 @@ class Tile(object):
     def List2StrList(tiles:list['Tile']) -> list[str]:
         data = []
         for t in tiles:
-            data.append(t.Name)
+            data.append(str(t))
         return data
+
+    @staticmethod
+    def Str2Tile(name:str) -> 'Tile':
+        # ex: 3S -> Tile
+        num = int(name[0])
+        sign = name[1]
+        suit = None
+
+        match sign:
+            case 'G':
+                sign = 'F'
+            case 'P':
+                sign = 'F'
+                num += len(GENTLEMEN)
+            case 'W':
+                sign = 'H'
+            case 'A':
+                sign = 'H'
+                num += len(WIND)
+
+        for s in SUIT:
+            if s.name[0] == sign:
+                suit = s
+                break
+
+        return Tile({'suit':suit, 'num':num})
+
+    @staticmethod
+    def Name2Tile(name:str) -> 'Tile':
+        # ex: 3S -> Tile
+        num = int(name[0])
+        sign = name[1]
+        suit = None
+
+        for s in SUIT:
+            if s.name[0] == sign:
+                suit = s
+                break
+
+        return Tile({'suit':suit, 'num':num})
 
 # 定義搭(Meld), 用來形成 對子/順子/刻子/槓子
 # 並標註此搭為明搭或暗搭
@@ -370,12 +410,12 @@ def DemoAlias2Tile():
     #  Alias text to tile
     #
 
-    tmp = ["1萬","3索","5筒","中","發","白","梅","春","竹","冬"] 
-    tmp = ["東","南","西","北","中","發","白","梅","蘭","竹","菊","春","夏","秋","冬"]
-    for i in tmp:
-        t = Tile({'alias':i})
-        # PrintLog(t, end=' ')
-        PrintLog(f"{t}, {t.toStr()}, {t.IsFlower()}, {t.IsHonor()}")
+    # tmp = ["1萬","3索","5筒","中","發","白","梅","春","竹","冬"] 
+    # tmp = ["東","南","西","北","中","發","白","梅","蘭","竹","菊","春","夏","秋","冬"]
+    # for i in tmp:
+    #     t = Tile({'alias':i})
+    #     # PrintLog(t, end=' ')
+    #     PrintLog(f"{t}, {t.toStr()}, {t.IsFlower()}, {t.IsHonor()}")
 
     tmp = []
     for i in range(TileRange.CharMin.value, TileRange.CharMax.value + 1):
@@ -388,16 +428,31 @@ def DemoAlias2Tile():
         tmp.extend([Tile({'suit':SUIT.HONOR, 'num':i})])
     for i in range(TileRange.FlowerMin.value, TileRange.FlowerMax.value + 1):
         tmp.append(Tile({'suit':SUIT.FLOWER, 'num':i}))
+    
+    tmp2 = []
+    tmp3 = []
     for t in tmp:
-        # PrintLog(t, end=' ')
-        PrintLog(f"{t}, {t.toStr()}, {t.IsFlower()}, {t.IsHonor()}")
+        # print(t, end=',')
+        tmp2.append(Tile.Str2Tile(str(t)))
+        tmp3.append(Tile.Name2Tile(t.Name))
+    tmp.sort()
+    for t in tmp:
+        print(t.Name, end=',')
+    print()
+    for t in tmp2:
+        print(t, end=',')
+    print()
+    for t in tmp3:
+        print(t, end=',')
+
+        # PrintLog(f"{t}, {t.toStr()}, {t.IsFlower()}, {t.IsHonor()}")
 
 if __name__ == '__main__':
-    wind = WIND.SOUTH
-    print(wind.Next())
+    # wind = WIND.SOUTH
+    # print(wind.Next())
 
-    winds = wind.Other()
-    print(winds)
+    # winds = wind.Other()
+    # print(winds)
 
     # t1 = Tile({'suit':SUIT.CHAR, 'num':7})
     # t2 = Tile({'suit':SUIT.CHAR, 'num':7})
@@ -408,4 +463,4 @@ if __name__ == '__main__':
 
 
     # DemoTiles()
-    # DemoAlias2Tile()
+    DemoAlias2Tile()

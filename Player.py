@@ -186,6 +186,8 @@ class Player(Thread):
                         PrintLog(self.Name + ' 摸牌: ' + self.LastDraw.toStr())
                         self.FinishEvent.set()
                     case Action.DISCARD:
+                        self.SetHandTile([self.LastDraw])
+                        self.LastDraw = None
                         # 玩家進行出牌
                         self.Hand.remove(self.LastDiscard)
                         PrintLog(self.Name + ' 出牌: ' + self.LastDiscard.toStr())

@@ -45,11 +45,16 @@ class Controller:
     ActionState:dict[WIND, dict] = {}
     Pass:dict[WIND, bool] = {}
 
-    StepEvent = Event()
+    StepEvent = None
     StepWorker:Thread = None
     StepAction:Step = 0
 
+    Msg:list = None
+
     def __init__(self):
+
+        self.StepEvent = Event()
+        self.Msg = []
         # internal communication
         # web app send message to controller
         Publisher.subscribe(self.OnMessage, "controller")
@@ -80,22 +85,52 @@ class Controller:
                 return w.name.lower()
         return ''
 
+    # def GetHandDict(self, wind:WIND) -> dict:
+    #     player = self.Players[wind]
+    #     tiles = Tile.List2StrList(player.Hand)
+    #     flower = Tile.List2StrList(player.Flowers)
+    #     discard = Tile.List2StrList(self.DeckRef.Discard[player.Wind])
+    #     meld, hide = Meld.List2StrList(player.Melds)
+
+    #     hand = {
+    #         "notify":player.Wind.name.lower(),
+    #         "hand_tiles":[{
+    #             "hand":tiles,
+    #             "meld":meld,
+    #             "hide":hide,
+    #             "flower":flower,
+    #             "discard":discard,
+    #             "drawed":'' if player.LastDraw == None else str(player.LastDraw)
+    #         }]
+    #     }
+    #     return hand
+
     def GetHandDict(self, wind:WIND) -> dict:
         player = self.Players[wind]
         tiles = Tile.List2StrList(player.Hand)
-        flower = Tile.List2StrList(player.Flowers)
-        discard = Tile.List2StrList(self.DeckRef.Discard[player.Wind])
-        meld, hide = Meld.List2StrList(player.Melds)
 
         hand = {
             "notify":player.Wind.name.lower(),
             "hand_tiles":[{
                 "hand":tiles,
+                "drawed":'' if player.LastDraw == None else str(player.LastDraw)
+            }]
+        }
+        return hand
+
+    def GetOutHandDict(self, wind:WIND, notify:str = 'all') -> dict:
+        player = self.Players[wind]
+        flower = Tile.List2StrList(player.Flowers)
+        discard = Tile.List2StrList(self.DeckRef.Discard[player.Wind])
+        meld, hide = Meld.List2StrList(player.Melds)
+
+        hand = {
+            "notify":notify,
+            "out_tiles":[{
                 "meld":meld,
                 "hide":hide,
                 "flower":flower,
-                "discard":discard,
-                "drawed":'' if player.LastDraw == None else player.LastDraw.Name
+                "discard":discard
             }]
         }
         return hand
@@ -187,7 +222,23 @@ class Controller:
                         self.Notify(action)
 
                     case Step.PLAYER_DISCARD:
-                        self.StepAction = Step.PLAYER_ACTION
+                        # {'player': 'east', 'action': 'discard', 'tiles': ['2S']}
+                        msg = self.Msg.pop()
+                        tile = msg['tiles'].pop()
+                        player = self.Players[self.ActiveWind]
+                        player.Actions = Action.DISCARD
+                        player.LastDiscard = Tile.Str2Tile(tile)
+                        # player.LastDiscard = Tile.Name2Tile(tile)
+                        player.Notify()
+                        player.Wait()
+
+                        # 通知所有玩家打出的牌
+                        hand = self.GetOutHandDict(self.ActiveWind)
+                        self.Notify(hand)
+
+                        hand = self.GetHandDict(self.ActiveWind)
+                        # 通知當前玩家手牌情況
+                        self.Notify(hand)
             else:
                 time.sleep(0.1)
 
@@ -365,20 +416,26 @@ class Controller:
                 PrintLog(f'{msg['player']}, not your turn!')
                 return
 
-            if msg['action'] == 'dice':
-                self.StepAction = Step.ROLL_DICE
-                self.StepEvent.set()
-            elif msg['action'] == 'drawing':
-                self.StepAction = Step.PLAYER_DRAW
-                self.StepEvent.set()
+            match msg['action']:
+                case 'dice':
+                    self.StepAction = Step.ROLL_DICE
+                    self.StepEvent.set()
+                case 'drawing':
+                    self.StepAction = Step.PLAYER_DRAW
+                    self.StepEvent.set()
+                case 'discard':
+                    self.StepAction = Step.PLAYER_DISCARD
+                    self.Msg.append(msg)
+                    self.StepEvent.set()
 
-            # for client reconnect to get hand tiles
-            elif msg['action'] == 'get_hand':
-                for w in WIND:
-                    if w.name.lower() == msg['player']:
-                        hand = self.GetHandDict(w)
-                        self.Notify(hand)
-                        break
+                case 'get_hand':
+                    # for client reconnect to get hand tiles
+                    for w in WIND:
+                        if w.name.lower() == msg['player']:
+                            hand = self.GetHandDict(w)
+                            self.Notify(hand)
+                            break
+
 
 if __name__ == '__main__':
     hand1 = Tile.Alias2Tile(["東","東","東"])
