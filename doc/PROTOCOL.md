@@ -75,6 +75,13 @@
         },
         {
             "notify":"all",
+            "player_state":{
+                "whoes_turn":"north",
+                "action":"drawing"
+            }
+        },
+        {
+            "notify":"all",
             "hand_tiles":[
                 {
                     "seat":"east",
@@ -170,13 +177,20 @@
 | chow | bool | 吃牌  | false:按鈕disable, true:按鈕enable |
 | pass | bool | 過牌  | false:按鈕disable, true:按鈕enable |
 
-4. 通知玩家(notify)JSON參數說明
+4. 玩家狀態(player_state)JSON參數說明
+
+| 欄位 | 型別 | 說明 | 備註 |
+|:--|:--|:--|:--|
+| whoes_turn | str | 當前回合的玩家 | east, south, west, north |
+| action | str | 正在做的事 | dice, drawing, discard, hu, kong, pong, chow, pass |
+
+5. 通知玩家(notify)JSON參數說明
 
 | 欄位 | 型別 | 說明 | 備註 |
 |:--|:--|:--|:--|
 | notify | str | 通知對象 | all, east, south, west, north |
 
-5. 手牌(hand_tiles)JSON參數說明
+6. 手牌(hand_tiles)JSON參數說明
 
 | 欄位 | 型別 | 說明 | 備註 |
 |:--|:--|:--|:--|
@@ -184,7 +198,7 @@
 | hand | list [ str ]  | 玩家手牌 | 玩家自已看的牌 |
 | drawed | str | 玩家摸到的牌 | |
 
-6. 外露牌(out_tiles)JSON參數說明
+7. 外露牌(out_tiles)JSON參數說明
 
 | 欄位 | 型別 | 說明 | 備註 |
 |:--|:--|:--|:--|
@@ -194,7 +208,7 @@
 | flower | list  [ str ] | 玩家花牌 |  |
 | discard | list [ str ] | 玩家棄牌 | 玩家丟棄在牌桌上的牌 |
 
-7. 牌的字串格式
+8. 牌的字串格式
 
 | 字串 | 牌名 | 備註 |  
 |:--|:--|:--|  
@@ -213,8 +227,7 @@
     // 過
     {
         "player":"east",
-        "action":"pass",
-        "tiles":[]
+        "action":"pass"
     }
 
     // 吃牌
@@ -242,14 +255,13 @@
     {
         "player":"east",
         "action":"hu",
-        "tiles":[]
+        "tiles":["6S"]
     }
 
     // 擲骰子
     {
         "player":"east",
-        "action":"dice",
-        "tiles":[]
+        "action":"dice"
     }
 
     // 出牌
@@ -262,8 +274,7 @@
     // 摸牌
     {
         "player":"east",
-        "action":"drawing",
-        "tiles":[]
+        "action":"drawing"
     }
 
     // 取手牌

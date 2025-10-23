@@ -19,14 +19,17 @@ class Step(Enum):
     PLAYER_DRAW = 7
     PLAYER_DISCARD = 8
 
-    PLAYER_HU = 9
-    PLAYER_KONG = 10
-    PLAYER_PONG = 11
-    PLAYER_CHOW = 12
+    DECIDE_WHOSE_TURN = 9
 
-    NEXT_TURN = 15
-    END_ROUND = 16
-    END_GAME = 17
+    PLAYER_HU = 16
+    PLAYER_KONG = 19
+    PLAYER_PONG = 22
+    PLAYER_CHOW = 25
+    PLAYER_PASS = 28
+
+    NEXT_TURN = 35
+    END_ROUND = 36
+    END_GAME = 37
 
 
 # 負責串聯所有邏輯：管理回合、處理動作優先級 (吃/碰/槓/胡)
@@ -139,6 +142,18 @@ class Controller:
         }
         return hand
 
+    def UpdatePlayerState(self, action:str = ''):
+        # 通知所有玩家換誰進行活動
+        data = {
+            "notify":'all',
+            "player_state":{
+                "whoes_turn":self.ActiveWind.name.lower(),
+                "action":action
+            }
+        }
+        self.Notify(data)
+
+
     def StepFlow(self):
         while not self.Exit:
             if self.StepEvent.is_set():
@@ -160,6 +175,9 @@ class Controller:
                         self.StepAction = Step.ROLL_DICE_NOTIFY
                         self.StepEvent.set()
                     case Step.ROLL_DICE_NOTIFY:
+                        # 通知所有玩家換誰進行活動
+                        self.UpdatePlayerState('dice')
+
                         self.ClearActionState(self.ActiveWind)
                         state = self.ActionState[self.ActiveWind]
                         state['dice'] = True
@@ -194,6 +212,9 @@ class Controller:
 
                     # C. 牌局循環
                     case Step.PLAYER_DRAW_NOTIFY:
+                        # 通知所有玩家換誰進行活動
+                        self.UpdatePlayerState('drawing')
+
                         self.ClearActionState(self.ActiveWind)
                         state = self.ActionState[self.ActiveWind]
                         state['drawing'] = True
@@ -216,6 +237,8 @@ class Controller:
 
                         # 檢查手牌狀態(滿17張) 胡牌/槓牌/出牌
                         self.CheckHandState()
+                        # 通知所有玩家換誰進行活動
+                        self.UpdatePlayerState('discard')
 
                         # 通知玩家進行動作
                         state = self.ActionState[self.ActiveWind]
@@ -226,6 +249,9 @@ class Controller:
                         self.Notify(action)
 
                     case Step.PLAYER_DISCARD:
+                        # 通知所有玩家換誰進行活動
+                        self.UpdatePlayerState('discard')
+
                         # {'player': 'east', 'action': 'discard', 'tiles': ['2S']}
                         msg = self.Msg.pop()
                         tile = msg['tiles'].pop()
@@ -243,6 +269,24 @@ class Controller:
                         hand = self.GetHandDict(self.ActiveWind)
                         # 通知當前玩家手牌情況
                         self.Notify(hand)
+
+                        self.StepAction = Step.DECIDE_WHOSE_TURN
+                        self.StepEvent.set()
+                    case Step.DECIDE_WHOSE_TURN:
+                        self.ActiveWind = self.DecideWhoseTurn()
+
+                        # 通知所有玩家換誰進行活動
+                        self.UpdatePlayerState()
+                        
+                        # 通知玩家進行動作
+                        state = self.ActionState[self.ActiveWind]
+                        action = {
+                            "notify":self.ActiveWind.name.lower(),
+                            "action_state":state
+                        }
+                        self.Notify(action)
+                    case _:
+                        pass
             else:
                 time.sleep(0.1)
 

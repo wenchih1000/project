@@ -62,6 +62,11 @@
     });
   }
 
+  function getName(seat)
+  {
+     return $('#'+seat+' td:eq(1)').text();
+  }
+
   $(document).ready(function() {
     $("#pass").click(function() {
       $(this).prop('disabled', true);
@@ -176,9 +181,6 @@
               $('#'+seat+' td:eq(2)').text(info[i]['avatar']);
               // $('#'+seat+' td:eq(3)').text(info[i]['gold']);
             }
-            // $('#name').text(msg.data["info"]["name"]);
-            // $('#avatar').text(msg.data["info"]["avatar"]);
-            // $('#seat').text(msg.data["info"]["seat"]);
             break;
           case 'join_game':
             $('#wait').text(msg.data["join_game"]["wait_num"]);
@@ -187,8 +189,14 @@
             // {'game_state': {'round_wind': 'east', 'dealer_wind': 'east', 'current_player': 'east', 'dealer_num': 0, 'dice_score': [2, 6, 3]}}
             state = msg.data["game_state"];
             $('#dice_score').text(state["dice_score"].join(", "));
-            $('#message').text(state["current_player"] + " 進行中")
-
+            $('#message').text(getName(state["current_player"]) + " 進行中")
+            break;
+          case 'player_state':
+            // "player_state":{"whoes_turn":"north","action":"drawing"}
+            state = msg.data["player_state"];
+            data = {'dice':"擲骰子", 'drawing':"摸牌", 'discard':"出牌", 'hu':"胡牌", 'kong':"槓牌", 'pong':"碰牌", 'chow':"吃牌", 'pass':"跳過"}
+            action = state["action"] == "" ? "中" : data[state["action"]];
+            $('#message').text(getName(state["whoes_turn"]) + " 進行 " + action)
             break;
           case 'player_seat':
             // "player_seat":{
@@ -226,8 +234,9 @@
             {
               $("#Tiles tr:eq(1) td:eq("+i+")").text(hand[i]);
             }
+            // update drawed tile to drawed cell
             drawed = msg.data['hand_tiles'][0]['drawed']
-            $("#Tiles tr:eq(1) td:eq(16)").text(drawed);
+            $("#Tiles tr:eq(1) td:eq(17)").text(drawed);
             break;
           default:
             break;
@@ -265,10 +274,10 @@
   <p></p>
   <table id="Tiles">
       <tr>
-        <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+        <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
       </tr>
       <tr id="hand">
-        <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+        <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
       </tr>
   </table>
   <p></p>
