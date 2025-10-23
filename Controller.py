@@ -8,21 +8,25 @@ import json
 
 class Step(Enum):
     INIT = 0
+
     START_GAME = 1
     PLAYER_SEAT = 2
     ROLL_DICE_NOTIFY = 3
     ROLL_DICE = 4
     START_ROUND = 5
 
-    # DEAL_TILES = 6
-    # REPLACE_FLOWERS = 5
     PLAYER_DRAW_NOTIFY = 6
     PLAYER_DRAW = 7
     PLAYER_DISCARD = 8
-    PLAYER_ACTION = 9
-    NEXT_TURN = 9
-    END_ROUND = 10
-    END_GAME = 11
+
+    PLAYER_HU = 9
+    PLAYER_KONG = 10
+    PLAYER_PONG = 11
+    PLAYER_CHOW = 12
+
+    NEXT_TURN = 15
+    END_ROUND = 16
+    END_GAME = 17
 
 
 # 負責串聯所有邏輯：管理回合、處理動作優先級 (吃/碰/槓/胡)

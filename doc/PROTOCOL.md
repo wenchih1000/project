@@ -46,6 +46,12 @@
 | seat | str | 玩家座位 | east, south, west, north |
 | cid | int | 玩家ID | Client ID |
 
+5. 獲得所有玩家資訊(get_info)JSON參數
+
+| 欄位 | 型別 | 說明 | 備註 |
+|:--|:--|:--|:--|
+| get_info | bool | 取得所有玩家資訊 | 在斷線重新連線時使用 |
+
 ### Server 檢查後，通知Client該玩家目前可操作的狀態和手牌情況
 1. Server 傳送的JSON格式  
 ```JSON
@@ -174,18 +180,21 @@
 
 | 欄位 | 型別 | 說明 | 備註 |
 |:--|:--|:--|:--|
-| east | dict | 東風玩家 | |
-| south | dict | 南風玩家 | |
-| west | dict | 西風玩家 | |
-| north | dict | 北風玩家 | |
+| seat | str | 玩家座位 | east, south, west, north |
 | hand | list [ str ]  | 玩家手牌 | 玩家自已看的牌 |
+| drawed | str | 玩家摸到的牌 | |
+
+6. 外露牌(out_tiles)JSON參數說明
+
+| 欄位 | 型別 | 說明 | 備註 |
+|:--|:--|:--|:--|
+| seat | str | 玩家座位 | east, south, west, north |
 | meld | list [ list [ str ] ] | 玩家的搭子 | 玩家外露的搭(吃/碰/槓) |
 | hide | list [ list [ str ] ] | 玩家暗槓 | 玩家暗槓的搭組 |
 | flower | list  [ str ] | 玩家花牌 |  |
 | discard | list [ str ] | 玩家棄牌 | 玩家丟棄在牌桌上的牌 |
-| drawed | str | 玩家摸到的牌 | |
 
-6. 牌的字串格式
+7. 牌的字串格式
 
 | 字串 | 牌名 | 備註 |  
 |:--|:--|:--|  
