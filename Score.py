@@ -4,7 +4,7 @@ from Model import *
 from dataclasses import dataclass
 # from collections import Counter
 
-@dataclass
+# @dataclass
 class HandCondition:
     IsExposed: bool = False         # 標誌是否吃碰過
     IsDealer: bool = False          # 莊家
@@ -15,9 +15,9 @@ class HandCondition:
     IsLastTileDiscard: bool = False # 河底撈魚
     IsHeavenlyHand: bool = False    # 天胡
     IsWinningHand: bool = False     # 地胡
-    CanHumanlyHand: bool = False     # 人胡
+    IsHumanlyHand: bool = False     # 人胡W
     IsPlainHand: bool = False       # 平胡
-    # 新增的聽牌型態旗標 (假設這些情況互斥，且只算最高的一種)
+
     IsSingleWait: bool = False      # 獨聽/單吊 (1台)
     IsEdgeWait: bool = False        # 邊張 (1台)
     IsCenterWait: bool = False      # 中洞/崁張 (1台)
@@ -31,6 +31,34 @@ class HandCondition:
     # 花台
     SeatFlower: WIND = None         # 玩家正花台 (1:梅/春 2:蘭/夏 3:竹/秋 4:菊/冬)
     # RoundFlower: int = 0          # 圈花台     (5:春 6:夏 7:秋 8:冬)
+
+    def __init__(self):
+        pass
+
+    def Reset(self):
+        self.IsExposed = False
+        self.IsDealer = False
+        self.IsSelfDraw = False
+        self.IsRobbingGong = False
+        self.IsGongOnFlower = False
+        self.IsLastTileDraw = False
+        self.IsLastTileDiscard = False
+        self.IsHeavenlyHand = False
+        self.IsWinningHand = False
+        self.IsHumanlyHand = False
+        self.CanHumanlyHand = False
+        self.IsPlainHand = False
+
+        self.IsSingleWait = False
+        self.IsEdgeWait = False
+        self.IsCenterWait = False
+
+        self.IsPairWait = False
+        self.SeatWind = None
+        self.RoundWind = None
+        self.DealerStreak = 0
+        self.SeatFlower = None
+        # self.RoundFlower = 0
 
 # 檢查手牌組了幾個明/暗搭
 # 對子/順子/刻子/槓子
@@ -215,7 +243,7 @@ class Score:
             ScoreNameList.append(Name); Score = Name.Score
             return Score, ScoreNameList
         # 人胡 16台
-        elif self.condition.CanHumanlyHand:
+        elif self.condition.IsHumanlyHand:
             Name = TaiID.HumanlyHand
             ScoreNameList.append(Name); Score = Name.Score
             return Score, ScoreNameList
@@ -464,18 +492,17 @@ if __name__ == '__main__':
     # print(classify.IsValid)
 
     # 胡牌後，可由GameDesc 產生HandCondition所有參數
-    condition = HandCondition(
-        IsSingleWait=False,
-        IsEdgeWait=False,
-        IsCenterWait=True,
-        # IsPairWait=False,
-        IsDealer=True,
-        IsSelfDraw=True,
-        DealerStreak=3,
-        SeatWind=WIND.EAST, # 東 門風
-        RoundWind=WIND.SOUTH,  # 南 圈風
-        SeatFlower=WIND.SOUTH, # 蘭 正花
-    )
+    condition = HandCondition()
+    condition.IsSingleWait=False
+    condition.IsEdgeWait=False
+    condition.IsCenterWait=True
+    # condition.IsPairWait=False
+    condition.IsDealer=True
+    condition.IsSelfDraw=True
+    condition.DealerStreak=3
+    condition.SeatWind=WIND.EAST # 東 門風
+    condition.RoundWind=WIND.SOUTH  # 南 圈風
+    condition.SeatFlower=WIND.SOUTH # 蘭 正花
 
     score = Score(classify, condition)
     total, breakdown = score.Calculate()

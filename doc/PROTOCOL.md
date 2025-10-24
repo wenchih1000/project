@@ -218,8 +218,8 @@
 | 1W~4W | 東南西北 | Wind 風牌 |  
 | 1A~3A | 中發白 | Arrow 箭牌/三元牌 |  
 | 1G~4G | 梅蘭竹菊 | Gentlemen 花牌/四君子牌 |  
-| 1P~4P | 春夏秋冬 | Period 花牌/四季牌 |  
-
+| 1P~4P | 春夏秋冬 | Period 花牌/四季牌 |
+| 1X | 蓋 | Hide 蓋牌 |
   
 ### Client 回應 Server 玩家決定要做的動作
 1. Client 傳送的JSON格式  

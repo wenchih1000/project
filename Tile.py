@@ -18,6 +18,7 @@ class SUIT(Enum):
     STICK = 2   # 索牌 or Bamboo (1~9)
     HONOR = 3   # 字牌 (風牌:東南西北 + 三元牌:中發白:1~7)
     FLOWER = 4  # 花牌 (花牌:梅蘭竹菊 + 季節牌:春夏秋冬:1~8)
+    INVISIBLE = 5 # 蓋牌
 
 # 風牌
 class WIND(Enum):
@@ -103,6 +104,7 @@ class TileAlias:
     HonorList2:tuple = ('東', '南', '西', '北', '中', '發', '白')
     HonorList:tuple = ('東風', '南風', '西風', '北風', '紅中', '青發', '白板')
     FlowerList:tuple = ('梅', '蘭', '竹', '菊', '春', '夏', '秋', '冬')
+    InvisibleList:tuple = ('蓋',)
 
 class TileRange(Enum):
     CharMin,CharMax = 1, 9
@@ -139,6 +141,9 @@ class Tile(object):
     @property
     def Alias(self) -> str:
         return self.__Alias
+    @property
+    def HideName(self) -> str:
+        return f'{1}X'
 
     def __init__(self, args:dict):
         # {'suit':SUIT.CHAR, 'num':1}
@@ -167,6 +172,9 @@ class Tile(object):
         elif self.Suit == SUIT.FLOWER:
             self.__Alias = TileAlias.FlowerList[NumOffset]
             self.__SubName = str(FLOWER(self.Num))
+        elif self.Suit == SUIT.INVISIBLE:
+            self.__Alias = TileAlias.InvisibleList[NumOffset]
+            self.__Name = f'{self.Num}X'
         else:
             self.__Alias = TileAlias.NumList[NumOffset] + TileAlias.CharList[self.Suit.value]
 
@@ -293,10 +301,13 @@ class Tile(object):
         return tiles
 
     @staticmethod
-    def List2StrList(tiles:list['Tile']) -> list[str]:
+    def List2StrList(tiles:list['Tile'], show:bool = True) -> list[str]:
         data = []
         for t in tiles:
-            data.append(str(t))
+            if show:
+                data.append(str(t))
+            else:
+                data.append(t.HideName)
         return data
 
     @staticmethod
@@ -317,6 +328,8 @@ class Tile(object):
             case 'A':
                 sign = 'H'
                 num += len(WIND)
+            case 'X':
+                sign = 'I'
 
         for s in SUIT:
             if s.name[0] == sign:
@@ -331,6 +344,8 @@ class Tile(object):
         num = int(name[0])
         sign = name[1]
         suit = None
+        if sign == 'X':
+            sign = 'I'
 
         for s in SUIT:
             if s.name[0] == sign:
@@ -358,13 +373,13 @@ class Meld:
             self.Type = MELD.KONG
 
     @staticmethod
-    def List2StrList(melds:list['Meld']) -> tuple[list[str],list[str]]:
+    def List2StrList(melds:list['Meld'], show:bool = True) -> tuple[list[str],list[str]]:
         meld, hide = [], []
         for m in melds:
             if m.Exposed:
                 meld.append(Tile.Tiles2StrList(m.Tiles))
             else:
-                hide.append(Tile.Tiles2StrList(m.Tiles))
+                hide.append(Tile.Tiles2StrList(m.Tiles, show))
 
         return (meld, hide)
 # ------------------------------------------------------------------------------------------------

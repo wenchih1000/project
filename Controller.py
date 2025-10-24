@@ -17,17 +17,19 @@ class Step(Enum):
 
     PLAYER_DRAW_NOTIFY = 6
     PLAYER_DRAW = 7
-    PLAYER_DISCARD = 8
+    PLAYER_DISCARD_NOTIFY = 8
+    PLAYER_DISCARD = 9
 
-    DECIDE_WHOSE_TURN = 9
+    DECIDE_WHOSE_TURN = 10
+    WHOSE_NEXT_TURN = 11
 
-    PLAYER_HU = 16
-    PLAYER_KONG = 19
-    PLAYER_PONG = 22
-    PLAYER_CHOW = 25
-    PLAYER_PASS = 28
+    PLAYER_HU = 13
+    PLAYER_KONG = 14
+    PLAYER_PONG = 15
+    PLAYER_CHOW = 16
+    PLAYER_PASS = 17
 
-    NEXT_TURN = 35
+
     END_ROUND = 36
     END_GAME = 37
 
@@ -125,11 +127,11 @@ class Controller:
         }
         return hand
 
-    def GetOutHandDict(self, wind:WIND, notify:str = 'all') -> dict:
+    def GetOutHandDict(self, wind:WIND, notify:str = 'all', showhide:bool = True) -> dict:
         player = self.Players[wind]
         flower = Tile.List2StrList(player.Flowers)
         discard = Tile.List2StrList(self.DeckRef.Discard[player.Wind])
-        meld, hide = Meld.List2StrList(player.Melds)
+        meld, hide = Meld.List2StrList(player.Melds, showhide)
 
         hand = {
             "notify":notify,
@@ -219,13 +221,14 @@ class Controller:
                         self.ClearActionState(self.ActiveWind)
                         state = self.ActionState[self.ActiveWind]
                         state['drawing'] = True
-                        self.ActionState[self.ActiveWind]['drawing'] = True
+
                         action = {
                             "notify":self.ActiveWind.name.lower(),
                             "action_state":state
                         }
                         self.Notify(action)
 
+                    # 玩家決定進行摸牌動作
                     case Step.PLAYER_DRAW:
                         player = self.Players[self.ActiveWind]
                         player.Actions = Action.DRAWING
@@ -236,10 +239,10 @@ class Controller:
                         # 通知玩家摸到的牌
                         self.Notify(hand)
 
-                        # 檢查手牌狀態(滿17張) 胡牌/槓牌/出牌
+                        # 檢查手牌狀態(滿17張,16張手牌+摸1張牌) 胡牌/槓牌/出牌
                         self.CheckHandState()
                         # 通知所有玩家換誰進行活動
-                        self.UpdatePlayerState('discard')
+                        self.UpdatePlayerState()
 
                         # 通知玩家進行動作
                         state = self.ActionState[self.ActiveWind]
@@ -249,22 +252,38 @@ class Controller:
                         }
                         self.Notify(action)
 
-                    case Step.PLAYER_DISCARD:
-                        # # 通知所有玩家換誰進行活動
-                        # self.UpdatePlayerState('discard')
+                    # 進行碰/吃後，通知玩家出牌
+                    case Step.PLAYER_DISCARD_NOTIFY:
+                        # 通知所有玩家換誰進行活動
+                        self.UpdatePlayerState('discard')
 
+                        self.ClearActionState(self.ActiveWind)
+                        state = self.ActionState[self.ActiveWind]
+                        state['discard'] = True
+
+                        action = {
+                            "notify":self.ActiveWind.name.lower(),
+                            "action_state":state
+                        }
+                        self.Notify(action)
+
+                    # 玩家決定進行出牌動作
+                    case Step.PLAYER_DISCARD:
                         # {'player': 'east', 'action': 'discard', 'tiles': ['2S']}
                         msg = self.Msg.pop()
                         tile = msg['tiles'].pop()
                         player = self.Players[self.ActiveWind]
                         player.Actions = Action.DISCARD
                         player.LastDiscard = Tile.Str2Tile(tile)
-                        # player.LastDiscard = Tile.Name2Tile(tile)
                         player.Notify()
                         player.Wait()
 
+                        # 解除過水
+                        if player.PassHu:
+                            player.PassHu = False
+
                         # 通知所有玩家打出的牌
-                        hand = self.GetOutHandDict(self.ActiveWind)
+                        hand = self.GetOutHandDict(self.ActiveWind, showhide=False)
                         self.Notify(hand)
 
                         hand = self.GetHandDict(self.ActiveWind)
@@ -273,19 +292,130 @@ class Controller:
 
                         self.StepAction = Step.DECIDE_WHOSE_TURN
                         self.StepEvent.set()
+
                     case Step.DECIDE_WHOSE_TURN:
                         self.ActiveWind = self.DecideWhoseTurn()
 
                         # 通知所有玩家換誰進行活動
                         self.UpdatePlayerState()
-                        
+
                         # 通知玩家進行動作
+                        player = self.Players[self.ActiveWind]
                         state = self.ActionState[self.ActiveWind]
+                        # 玩家放棄胡牌，需等下一次打出牌後解除過水，才能再胡牌
+                        if state['hu'] and player.PassHu:
+                            state['hu'] = False
                         action = {
                             "notify":self.ActiveWind.name.lower(),
                             "action_state":state
                         }
                         self.Notify(action)
+
+                    case Step.WHOSE_NEXT_TURN:
+                        self.ActiveWind = self.DecideWhoseTurn(True)
+
+                        # 通知所有玩家換誰進行活動
+                        self.UpdatePlayerState()
+
+                        # 通知玩家進行動作
+                        state = self.ActionState[self.ActiveWind]
+                        player = self.Players[self.ActiveWind]
+                        state = self.ActionState[self.ActiveWind]
+                        # 玩家放棄胡牌，需等下一次打出牌後解除過水，才能再胡牌
+                        if state['hu'] and player.PassHu:
+                            state['hu'] = False
+                        action = {
+                            "notify":self.ActiveWind.name.lower(),
+                            "action_state":state
+                        }
+                        self.Notify(action)
+
+                    #
+                    # 玩家決定進行 pass/hu/kong/pong/chow 動作
+                    #
+                    case Step.PLAYER_PASS:
+                        state = self.ActionState[self.ActiveWind]
+                        # 玩家放棄胡牌，需等下一次打出牌後解除過水，才能再胡牌
+                        if state['hu']:
+                            player = self.Players[self.ActiveWind]
+                            player.PassHu = True
+
+                        self.Pass[self.ActiveWind] = True
+                        self.StepAction = Step.WHOSE_NEXT_TURN
+                        self.StepEvent.set()
+                    case Step.PLAYER_HU:
+                        # 自摸/閒家放槍胡
+                        self.StepAction = Step.END_ROUND
+                        self.StepEvent.set()
+                        pass
+                    case Step.PLAYER_KONG:
+                        # 暗槓/明槓
+                        # {'player': 'east', 'action': 'kong', 'tiles': ['2S','2S','2S']}
+                        msg = self.Msg.pop()
+                        tile = msg['tiles'].pop()
+                        player = self.Players[self.ActiveWind]
+                        player.Actions = Action.KONG
+                        player.LastKong = Tile.Str2Tile(tile)
+                        if player.LastDraw != None and player.LastDraw == player.LastKong:
+                            player.ConcealedKong = True
+
+                        player.Notify()
+                        player.Wait()
+
+                        # 通知所有玩家，當前玩家暗槓/明槓的牌
+                        hand = self.GetOutHandDict(self.ActiveWind, showhide=False)
+                        self.Notify(hand)
+
+                        hand = self.GetHandDict(self.ActiveWind)
+                        # 通知當前玩家手牌情況
+                        self.Notify(hand)
+
+                        # 通知玩家從死牆摸一張牌(然後通知玩家打一張)
+                        self.StepAction = Step.PLAYER_DRAW_NOTIFY
+                        self.StepEvent.set()
+                    case Step.PLAYER_PONG:
+                        # {'player': 'east', 'action': 'pong', 'tiles': ['2S','2S']}
+                        msg = self.Msg.pop()
+                        tile = msg['tiles'].pop()
+                        player = self.Players[self.ActiveWind]
+                        player.Actions = Action.PONG
+                        player.LastPong = Tile.Str2Tile(tile)
+                        player.Notify()
+                        player.Wait()
+
+                        # 通知所有玩家，當前玩家碰的牌
+                        hand = self.GetOutHandDict(self.ActiveWind, showhide=False)
+                        self.Notify(hand)
+
+                        hand = self.GetHandDict(self.ActiveWind)
+                        # 通知當前玩家手牌情況
+                        self.Notify(hand)
+
+                        # 通知玩家打一張牌
+                        self.StepAction = Step.PLAYER_DISCARD_NOTIFY
+                        self.StepEvent.set()
+                    case Step.PLAYER_CHOW:
+                        # {'player': 'east', 'action': 'chow', 'tiles': ['1S','3S']}
+                        msg = self.Msg.pop()
+                        tiles = msg['tiles']
+                        player = self.Players[self.ActiveWind]
+                        player.Actions = Action.CHOW
+                        player.LastChows = [Tile.Str2Tile(t) for t in tiles]
+                        player.Notify()
+                        player.Wait()
+
+                        # 通知所有玩家，當前玩家吃的牌
+                        hand = self.GetOutHandDict(self.ActiveWind, showhide=False)
+                        self.Notify(hand)
+
+                        hand = self.GetHandDict(self.ActiveWind)
+                        # 通知當前玩家手牌情況
+                        self.Notify(hand)
+
+                        # 通知玩家打一張牌
+                        self.StepAction = Step.PLAYER_DISCARD_NOTIFY
+                        self.StepEvent.set()
+
                     case _:
                         pass
             else:
@@ -399,7 +529,7 @@ class Controller:
                 hand = self.Players[w].Hand
                 CanHu, melds = Rule.CanHu(hand + [tile])
                 CanKong = Rule.CanKong(hand, tile)
-                CanAddKong = Rule.CanAddKong(self.Players[w].Melds, tile)
+                CanAddKong = False
                 CanPong = Rule.CanPong(hand, tile)
                 CanChow = False
                 CanDrawing = False
@@ -469,13 +599,45 @@ class Controller:
                 case 'dice':
                     self.StepAction = Step.ROLL_DICE
                     self.StepEvent.set()
+                    # 通知所有玩家換誰進行活動
+                    self.UpdatePlayerState('dice')
                 case 'drawing':
                     self.StepAction = Step.PLAYER_DRAW
                     self.StepEvent.set()
+                    # 通知所有玩家換誰進行活動
+                    self.UpdatePlayerState('drawing')
                 case 'discard':
                     self.StepAction = Step.PLAYER_DISCARD
                     self.Msg.append(msg)
                     self.StepEvent.set()
+                    # 通知所有玩家換誰進行活動
+                    self.UpdatePlayerState('discard')
+
+                case 'pass':
+                    self.StepAction = Step.PLAYER_PASS
+                    self.StepEvent.set()
+                    # 通知所有玩家換誰進行活動
+                    self.UpdatePlayerState('pass')
+                case 'hu':
+                    self.StepAction = Step.PLAYER_HU
+                    self.StepEvent.set()
+                    # 通知所有玩家換誰進行活動
+                    self.UpdatePlayerState('hu')
+                case 'kong':
+                    self.StepAction = Step.PLAYER_KONG
+                    self.StepEvent.set()
+                    # 通知所有玩家換誰進行活動
+                    self.UpdatePlayerState('kong')
+                case 'pong':
+                    self.StepAction = Step.PLAYER_PONG
+                    self.StepEvent.set()
+                    # 通知所有玩家換誰進行活動
+                    self.UpdatePlayerState('pong')
+                case 'chow':
+                    self.StepAction = Step.PLAYER_CHOW
+                    self.StepEvent.set()
+                    # 通知所有玩家換誰進行活動
+                    self.UpdatePlayerState('chow')
 
                 case 'get_hand':
                     # for client reconnect to get hand tiles
@@ -484,7 +646,6 @@ class Controller:
                             hand = self.GetHandDict(w)
                             self.Notify(hand)
                             break
-
 
 if __name__ == '__main__':
     hand1 = Tile.Alias2Tile(["東","東","東"])

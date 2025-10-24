@@ -1,5 +1,6 @@
 from Tile import *
 from Deck import *
+from Score import HandCondition
 # import Deck
 
 import time
@@ -60,6 +61,12 @@ class Player(Thread):
     # 給UI對應操作的狀態
     ActionState:dict = None
 
+    # 檢查過水
+    PassHu:bool = False
+
+    # 胡牌結算
+    Condition:HandCondition = None
+
     def __init__(self, name:str, wind:WIND, deck:Deck):
         super().__init__(name=wind.name)
         self.Name = name
@@ -73,7 +80,7 @@ class Player(Thread):
         self.ExitEvent = Event()
         self.ActionEvent = Event()
         self.FinishEvent = Event()
-
+        self.Condition = HandCondition()
         self.Reset()
 
     def Reset(self):
@@ -91,14 +98,16 @@ class Player(Thread):
         self.LastChows = []
         self.LastHu = None
 
-        # Game Deck 檢查後，通知玩家目前可操作的狀態
-        self.ActionState = {
-            # 摸牌, 出牌
-            Action.DRAWING:False, Action.DISCARD:False, 
-            # 胡/槓/碰/吃/過
-            Action.HU:False, Action.KONG:False, Action.PONG:False, Action.CHOW:False, Action.PASS:False
-        }
+        # # Game Deck 檢查後，通知玩家目前可操作的狀態
+        # self.ActionState = {
+        #     # 摸牌, 出牌
+        #     Action.DRAWING:False, Action.DISCARD:False, 
+        #     # 胡/槓/碰/吃/過
+        #     Action.HU:False, Action.KONG:False, Action.PONG:False, Action.CHOW:False, Action.PASS:False
+        # }
         self.Actions = None
+
+        self.Condition.Reset()
         self.EventClear()
 
     def run(self):
