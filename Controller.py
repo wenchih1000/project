@@ -134,6 +134,7 @@ class Controller:
         hand = {
             "notify":notify,
             "out_tiles":[{
+                "seat":player.Wind.name.lower(),
                 "meld":meld,
                 "hide":hide,
                 "flower":flower,
@@ -249,8 +250,8 @@ class Controller:
                         self.Notify(action)
 
                     case Step.PLAYER_DISCARD:
-                        # 通知所有玩家換誰進行活動
-                        self.UpdatePlayerState('discard')
+                        # # 通知所有玩家換誰進行活動
+                        # self.UpdatePlayerState('discard')
 
                         # {'player': 'east', 'action': 'discard', 'tiles': ['2S']}
                         msg = self.Msg.pop()

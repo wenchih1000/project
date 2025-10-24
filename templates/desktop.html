@@ -67,10 +67,39 @@
      return $('#'+seat+' td:eq(1)').text();
   }
 
+  function getWindNext(wind)
+  {
+    // var seat = $('#seat').text();
+    tmp = ['east', 'south', 'west', 'north']
+    for (const i in tmp)
+    {
+      if (tmp[i] == wind)
+      {
+        return tmp[(parseInt(i)+1)%4];
+      }
+    }
+    return "";
+  }
+
+  function List2String(list)
+  {
+      var tmp = "";
+      var remain = (list.length % 18) > 0 ? 1 : 0;
+      var row = Math.floor(list.length / 18)
+      row += remain
+      for (var j = 0; j < row; j++)
+      {
+        if(j>0)
+          tmp += "<br>"
+        tmp += list.slice(0,18).join(",")
+      }
+      return tmp;
+  }
+
   $(document).ready(function() {
     $("#pass").click(function() {
       $(this).prop('disabled', true);
-      data = {"player":$('#seat').text(), "action":"pass", "tiles":[]}
+      data = {"player":$('#seat').text(), "action":"pass"}
       socket.emit('message', data);
       console.log(data);
       return false;
@@ -112,7 +141,7 @@
 
     $("#drawing").click(function() {
       $(this).prop('disabled', true);
-      data = {"player":$('#seat').text(), "action":"drawing", "tiles":[]}
+      data = {"player":$('#seat').text(), "action":"drawing"}
       socket.emit('message', data);
       console.log(data);
       return false;
@@ -130,7 +159,7 @@
     $("#dice").click(function() {
       // $("#dice").prop('disabled', false);
       $(this).prop('disabled', true);
-      data = {"player":$('#seat').text(), "action":"dice", "tiles":[]}
+      data = {"player":$('#seat').text(), "action":"dice"}
       socket.emit('message', data);
       console.log(data);
       return false;
@@ -167,8 +196,9 @@
         switch(key)
         {
           case 'myself':
-            $('#name').text(msg.data["myself"]["name"]);
-            $('#seat').text(msg.data["myself"]["seat"]);
+            myself = msg.data["myself"]
+            $('#name').text(myself["name"]);
+            $('#seat').text(myself["seat"]);
             break;
           case 'info':
             // update player info into player table
@@ -181,6 +211,17 @@
               $('#'+seat+' td:eq(2)').text(info[i]['avatar']);
               // $('#'+seat+' td:eq(3)').text(info[i]['gold']);
             }
+
+            // rename the table id of <tr> from other_discard table
+            wind = getWindNext($('#seat').text());
+            $("#other_discard tr:eq(0) td:eq(0)").text(wind);
+            $('#other_discard tr:eq(0)').attr("id", wind + '_discard');
+            wind = getWindNext(wind);
+            $("#other_discard tr:eq(1) td:eq(0)").text(wind);
+            $('#other_discard tr:eq(1)').attr("id", wind + '_discard');
+            wind = getWindNext(wind);
+            $("#other_discard tr:eq(2) td:eq(0)").text(wind);
+            $('#other_discard tr:eq(2)').attr("id", wind + '_discard');
             break;
           case 'join_game':
             $('#wait').text(msg.data["join_game"]["wait_num"]);
@@ -238,6 +279,31 @@
             drawed = msg.data['hand_tiles'][0]['drawed']
             $("#Tiles tr:eq(1) td:eq(17)").text(drawed);
             break;
+          case 'out_tiles':
+            // update hand tiles to Tiles table
+            out = msg.data['out_tiles'];
+            for (const i in out)
+            {
+              if(out[i]['seat'] == $('#seat').text())
+              {
+                discard = out[i]['discard'];
+                tmp = List2String(discard);
+                $("#Tiles tr:eq(2) td:eq(0)").html(tmp);
+                // break;
+              }
+
+              $("#other_discard tr").each(function() {
+                // console.log($(this).attr('id'));
+                IdName = out[i]['seat'] + '_discard';
+                if($(this).attr('id') == IdName)
+                {
+                  discard = out[i]['discard'];
+                  tmp = List2String(discard);
+                  $(this).find("td:eq(1)").html(tmp);
+                }
+              });
+            }
+            break;
           default:
             break;
         }
@@ -273,11 +339,14 @@
   </table>
   <p></p>
   <table id="Tiles">
-      <tr>
+      <tr id="pick_up">
         <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
       </tr>
       <tr id="hand">
         <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+      </tr>
+      <tr id="self_discard">
+        <td colspan="18"></td>
       </tr>
   </table>
   <p></p>
@@ -290,7 +359,18 @@
   <button id="drawing" disabled="true">摸牌</button>
   <button id="discard" disabled="true">出牌</button>
   <button id="dice" disabled="true">擲骰子</button>
-  <p id="message"></p>
+  <p id="message"></p><br>
+  <table id="other_discard">
+      <tr id="1">
+        <td></td><td></td>
+      </tr>
+      <tr id="2">
+        <td></td><td></td>
+      </tr>
+      <tr id="3">
+        <td></td><td></td>
+      </tr>
+  </table>
 </body>
 
 </html>
