@@ -187,12 +187,14 @@ class Player(Thread):
                         # ex: 6 in LastDiscard
                         chow = self.DeckRef.LastDiscard
                         # ex: 5,7 in LastChows
-                        tiles = self.LastChows
+                        tiles = self.LastChows.copy()
+                        # 吃到的牌放中間
+                        tiles.insert(1,chow)
                         # 將手牌的碰搭複制進Meld list
-                        self.AddMeld(tiles+[chow])
-                        PrintLog(self.Name + ' 吃牌: ' + chow.toStr() + ", " + ", ".join(Tile.List2StrList(tiles)))
+                        self.AddMeld(tiles)
+                        PrintLog(self.Name + ' 吃牌: ' + chow.toStr() + ", " + ", ".join(Tile.List2StrList(self.LastChows)))
                         # 清除手牌的碰搭
-                        self.RemoveTiles(tiles)
+                        self.RemoveTiles(self.LastChows)
                         # 下一步通知玩家出牌
                         self.FinishEvent.set()
                     case Action.PASS:

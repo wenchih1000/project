@@ -161,6 +161,20 @@
                     "discard":["6s", "3W"]
                 } 
             ]
+        },
+        {   // 通知所有玩家胡牌情況
+            "notify":"all",
+            "hu_tiles":[
+                {
+                    "seat":"north",
+                    "hand":["3D", "4D", "5D", "6D", "7D", "8D", "1A"],
+                    "drawed_win":"3A",
+                    "discard_win":"",
+                    "meld":[["1C", "2C", "3C"]],
+                    "hide":[["9C","1X","1X","1X"], ["1W","1X","1X","1X"]],
+                    "flower":["1G", "3G"]
+                } 
+            ]
         }
     }
 ```
@@ -199,7 +213,7 @@
 
 | 欄位 | 型別 | 說明 | 備註 |
 |:--|:--|:--|:--|
-| notify | str | 通知對象 | all, east, south, west, north |
+| notify | str | 通知對象, all:所有玩家 | all, east, south, west, north |
 
 6. 手牌(hand_tiles)JSON參數說明
 
@@ -219,7 +233,19 @@
 | flower | list  [ str ] | 玩家花牌 |  |
 | discard | list [ str ] | 玩家棄牌 | 玩家丟棄在牌桌上的牌 |
 
-8. 牌的字串格式
+8. 胡牌(hu_tiles)JSON參數說明
+
+| 欄位 | 型別 | 說明 | 備註 |
+|:--|:--|:--|:--|
+| seat | str | 胡牌玩家座位 | east, south, west, north |
+| hand | list [ str ] | 玩家手牌 | 玩家手上的牌 |
+| drawed_win | str | 玩家自摸 | 玩家自已摸到的牌 |
+| discard_win | str | 閒家放槍 | 閒家丟棄在牌桌上的牌 |
+| meld | list [ list [ str ] ] | 玩家的搭子 | 玩家外露的搭(吃/碰/槓) |
+| hide | list [ list [ str ] ] | 玩家暗槓 | 玩家暗槓的搭組 |
+| flower | list  [ str ] | 玩家花牌 |  |
+
+9. 牌的字串格式
 
 | 字串 | 牌名 | 備註 |  
 |:--|:--|:--|  

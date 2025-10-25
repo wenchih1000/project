@@ -192,6 +192,7 @@ c. 天胡/地胡/人胡 成立時，通常 不再計算 門清、自摸等基礎
 ### 常用術語：
 棄牌區  (Discard River)  
 放槍    (Discard Win)  
+自摸    (Drawn Win)  
 台      (Tai)  
 三元牌  (Dragons)  
 萬      (Myriads:m) CHAR  

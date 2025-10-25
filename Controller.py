@@ -150,6 +150,28 @@ class Controller:
         }
         return hand
 
+    def GetHuTilesDict(self, wind:WIND) -> dict:
+        player = self.Players[wind]
+        tiles = Tile.List2StrList(player.Hand)
+        flower = Tile.List2StrList(player.Flowers)
+        meld, hide = Meld.List2StrList(player.Melds)
+
+        hand = {
+            "notify":"all",
+            "hu_tiles":[{
+                "seat":player.Wind.name.lower(),
+                "hand":tiles,
+                # 自摸
+                "drawed_win":"" if player.LastDraw == None else str(player.LastDraw),
+                # 放槍
+                "discard_win":"" if player.LastDraw != None else str(self.DeckRef.LastDiscard),
+                "meld":meld,
+                "hide":hide,
+                "flower":flower
+            }]
+        }
+        return hand
+
     def UpdatePlayerState(self, action:str = ''):
         # 通知所有玩家換誰進行活動
         data = {
@@ -350,6 +372,25 @@ class Controller:
                         self.StepEvent.set()
                     case Step.PLAYER_HU:
                         # 自摸/閒家放槍胡
+                        # {'player': 'east', 'action': 'hu'}
+                        player = self.Players[self.ActiveWind]
+                        player.Actions = Action.HU
+                        player.Notify()
+                        player.Wait()
+                        player.LastHu = None
+
+                        # 通知所有玩家，當前玩家胡的牌
+                        hand = self.GetHuTilesDict(self.ActiveWind)
+                        self.Notify(hand)
+
+                        # round/wind count
+
+                        # self.RoundNum += 1
+                        # self.DealerNum += 1
+                        # if self.DealerNum == 4:
+                        #     self.DealerNum = 0
+                        #     self.RoundWind = self.RoundWind.Other()
+
                         self.StepAction = Step.END_ROUND
                         self.StepEvent.set()
                         pass
@@ -639,7 +680,7 @@ class Controller:
                     self.UpdatePlayerState('pass')
                 case 'hu':
                     self.StepAction = Step.PLAYER_HU
-                    self.Msg.append(msg)
+                    # self.Msg.append(msg)
                     self.StepEvent.set()
                     # 通知所有玩家換誰進行活動
                     self.UpdatePlayerState('hu')

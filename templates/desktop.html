@@ -101,17 +101,18 @@
   {
       // format flower, meld and hide tiles to string as below:
       // 1G,2G,2P | 1S,2S,3S | 4S,5S,6S | 1W,1X,1X,1X
-      var tmp = '';
-      tmp += flower.join(",");
+      var tmp = [];
+      if(flower.length > 0)
+        tmp.push(flower.join(","));
       for (const j in meld)
       {
-        tmp += (" | " + meld[j].join(","));
+        tmp.push(meld[j].join(","));
       }
       for (const j in hide)
       {
-        tmp += (" | " + hide[j].join(","));
+        tmp.push(hide[j].join(","));
       }
-      return tmp;
+      return tmp.join(" | ");
   }
 
   function DisableActionButton()
@@ -168,8 +169,8 @@
     $("#hu").click(function() {
       DisableActionButton();
       // pick tiles to discard
-      var tiles = tableTiles();
-      data = {"player":$('#seat').text(), "action":"hu", "tiles":tiles}
+      // var tiles = tableTiles();
+      data = {"player":$('#seat').text(), "action":"hu"}
       socket.emit('message', data);
       console.log(data);
       return false;
