@@ -56,31 +56,35 @@
 1. Server 傳送的JSON格式  
 ```JSON
     {
-        "player_seat":{
-            "east":"阿土伯","south":"柯南","west":"黑傑克","north":"一枝花"
+        {   // 通知遊戲開始時，隨機決定玩家座位
+            "player_seat":{
+                "east":"阿土伯","south":"柯南","west":"黑傑克","north":"一枝花"
+            }
         },
-        "game_state":{
-            "round_wind":"east",
-            "dealer_wind":"east",
-            "current_player":"north",
-            "dealer_num":0,
-            "dice_score":[1,1,1]
+        {   // 通知遊戲狀態
+            "game_state":{
+                "round_wind":"east",
+                "dealer_wind":"east",
+                "current_player":"north",
+                "dealer_num":0,
+                "dice_score":[1,1,1]
+            }
         },
-        {
+        {   // 通知當前玩家進行什麼動作
             "notify":"east",
             "action_state":{
                 "dice":false, "drawing":false, "discard":false,
                 "hu":false, "kong":false, "pong":false, "chow":false, "pass":false
             }
         },
-        {
+        {   // 通知所有玩家, 當前玩家活動在做什麼動作
             "notify":"all",
             "player_state":{
                 "whoes_turn":"north",
                 "action":"drawing"
             }
         },
-        {
+        {   // 通知所有玩家手牌情況
             "notify":"all",
             "hand_tiles":[
                 {
@@ -105,49 +109,56 @@
                 }
             ]
         },
-        {
+        {   // 通知當前玩家手牌情況
+            "notify":"east",
+            "hand_tiles":[
+                {
+                    "hand":["1C", "2C", "3C", "3D", "4D", "5D", "6D", "7D", "8D", "1A"],
+                    "drawed":"3A"
+                }
+            ]
+        }
+        {   // 通知所有玩家外露牌情況, 在hide欄位1X代表蓋牌, 不讓其他玩家知道是蓋什麼牌
             "notify":"all",
             "out_tiles":[
                 {
                     "seat":"east",
                     "meld":[],
-                    "hide":[],
+                    "hide":[["1X","1X","1X","1X"],["1X","1X","1X","1X"]],
                     "flower":["1G", "3G"],
-                    "discard":["6s", "3W"],
+                    "discard":["6s", "3W"]
                 }, 
                 {
                     "seat":"south",
                     "meld":[["2W", "2W", "2W"]],
                     "hide":[],
                     "flower":[ "2G"],
-                    "discard":["3W"],
+                    "discard":["3W"]
                 }, 
                 {
                     "seat":"west",
                     "meld":[],
                     "hide":[],
                     "flower":["1P", "2P"],
-                    "discard":["1A", "2W"],
+                    "discard":["1A", "2W"]
                 }, 
                 {
                     "seat":"north",
                     "meld":[["6D", "7D", "8D"],["9D", "9D", "9D", "9D"]],
                     "hide":[],
                     "flower":[],
-                    "discard":[],
+                    "discard":[]
                 }
             ]
         },
-        {
+        {   // 通知當前玩家外露牌情況
             "notify":"east",
-            "hand_tiles":[
+            "out_tiles":[
                 {
-                    "hand":["1C", "2C", "3C", "3D", "4D", "5D", "6D", "7D", "8D", "1A"],
                     "meld":[],
-                    "hide":[["9C", "9C", "9C", "9C"], ["1W", "1W", "1W", "1W"]],
+                    "hide":[["9C","1X","1X","1X"], ["1W","1X","1X","1X"]],
                     "flower":["1G", "3G"],
-                    "discard":["6s", "3W"],
-                    "drawed":"3A"
+                    "discard":["6s", "3W"]
                 } 
             ]
         }

@@ -42,6 +42,11 @@ class Controller:
     DeckRef: Deck = None
     RoundWind: WIND = WIND.EAST # 局風位
     ActiveWind: WIND = WIND.EAST # 當前活動的玩家
+    
+    # 處理活動玩家出牌之後其他閒家過牌(碰/槓/胡)，
+    # 在Next決定輸誰活動時以先前出牌的人為主
+    OldWind: WIND = None
+
     DealerWind: WIND = WIND.EAST # 莊家風位
     RoundNum: int = 0 # 局數 (東南西北)
     DealerNum: int = 0 # 第幾莊
@@ -155,7 +160,6 @@ class Controller:
             }
         }
         self.Notify(data)
-
 
     def StepFlow(self):
         while not self.Exit:
@@ -277,6 +281,7 @@ class Controller:
                         player.LastDiscard = Tile.Str2Tile(tile)
                         player.Notify()
                         player.Wait()
+                        player.LastDiscard = None
 
                         # 解除過水
                         if player.PassHu:
@@ -379,9 +384,11 @@ class Controller:
                         tile = msg['tiles'].pop()
                         player = self.Players[self.ActiveWind]
                         player.Actions = Action.PONG
+                        # 碰閒家的牌放 player.LastPong
                         player.LastPong = Tile.Str2Tile(tile)
                         player.Notify()
                         player.Wait()
+                        player.LastPong = None
 
                         # 通知所有玩家，當前玩家碰的牌
                         hand = self.GetOutHandDict(self.ActiveWind, showhide=False)
@@ -400,9 +407,11 @@ class Controller:
                         tiles = msg['tiles']
                         player = self.Players[self.ActiveWind]
                         player.Actions = Action.CHOW
+                        # 吃上家的牌放 self.DeckRef.LastDiscard
                         player.LastChows = [Tile.Str2Tile(t) for t in tiles]
                         player.Notify()
                         player.Wait()
+                        player.LastChows.clear()
 
                         # 通知所有玩家，當前玩家吃的牌
                         hand = self.GetOutHandDict(self.ActiveWind, showhide=False)
@@ -484,9 +493,13 @@ class Controller:
 
         self.DeckRef.ReplaceFlowers(self.Players)
 
-        # 7. 通知玩家開局手牌
+        # 7. 通知玩家開局手牌/外露牌
         for player in self.Players.values():
             hand = self.GetHandDict(player.Wind)
+            self.Notify(hand)
+
+            # 外露牌
+            hand = self.GetOutHandDict(player.Wind, player.Wind.name.lower())
             self.Notify(hand)
 
     def EndRound(self):
@@ -518,7 +531,12 @@ class Controller:
     # 參數next:下家決定pass，換對家或上家，無需重新確認手牌動作
     def DecideWhoseTurn(self, next:bool = False) -> WIND:
         # 找出閒家
-        other = self.ActiveWind.Other()
+        if next:
+            other = self.OldWind.Other()
+        else:
+            other = self.ActiveWind.Other()
+            self.OldWind = self.ActiveWind
+
         # 下家
         right = other[0]
         # 判斷閒家對打出的牌具有哪些動作
@@ -567,6 +585,7 @@ class Controller:
         if self.ActionState[right]['drawing']:
             return right
 
+        self.ActionState[right]['drawing'] = True
         # 預設換下家摸牌
         return right
 
@@ -607,11 +626,11 @@ class Controller:
                     # 通知所有玩家換誰進行活動
                     self.UpdatePlayerState('drawing')
                 case 'discard':
+                    # 通知所有玩家換誰進行活動
+                    self.UpdatePlayerState('discard')
                     self.StepAction = Step.PLAYER_DISCARD
                     self.Msg.append(msg)
                     self.StepEvent.set()
-                    # 通知所有玩家換誰進行活動
-                    self.UpdatePlayerState('discard')
 
                 case 'pass':
                     self.StepAction = Step.PLAYER_PASS
@@ -620,21 +639,25 @@ class Controller:
                     self.UpdatePlayerState('pass')
                 case 'hu':
                     self.StepAction = Step.PLAYER_HU
+                    self.Msg.append(msg)
                     self.StepEvent.set()
                     # 通知所有玩家換誰進行活動
                     self.UpdatePlayerState('hu')
                 case 'kong':
                     self.StepAction = Step.PLAYER_KONG
+                    self.Msg.append(msg)
                     self.StepEvent.set()
                     # 通知所有玩家換誰進行活動
                     self.UpdatePlayerState('kong')
                 case 'pong':
                     self.StepAction = Step.PLAYER_PONG
+                    self.Msg.append(msg)
                     self.StepEvent.set()
                     # 通知所有玩家換誰進行活動
                     self.UpdatePlayerState('pong')
                 case 'chow':
                     self.StepAction = Step.PLAYER_CHOW
+                    self.Msg.append(msg)
                     self.StepEvent.set()
                     # 通知所有玩家換誰進行活動
                     self.UpdatePlayerState('chow')

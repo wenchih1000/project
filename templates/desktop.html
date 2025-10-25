@@ -54,10 +54,11 @@
     return tiles;
   }
   
-  function clearTiles()
+  function clearTiles(val)
   {
+    row = val == 'top' ? '0' : '1';
     // top row of tiles table
-    $("#Tiles tr:eq(0) td").each(function(i){
+    $("#Tiles tr:eq(" + row + ") td").each(function(i){
       $(this).text("");
     });
   }
@@ -96,51 +97,86 @@
       return tmp;
   }
 
+  function HideTile2String(flower, meld, hide)
+  {
+      // format flower, meld and hide tiles to string as below:
+      // 1G,2G,2P | 1S,2S,3S | 4S,5S,6S | 1W,1X,1X,1X
+      var tmp = '';
+      tmp += flower.join(",");
+      for (const j in meld)
+      {
+        tmp += (" | " + meld[j].join(","));
+      }
+      for (const j in hide)
+      {
+        tmp += (" | " + hide[j].join(","));
+      }
+      return tmp;
+  }
+
+  function DisableActionButton()
+  {
+      $("#dice").prop('disabled', true); 
+      $("#discard").prop('disabled', true);
+      $("#drawing").prop('disabled', true);
+      $("#hu").prop('disabled', true);
+      $("#kong").prop('disabled', true);
+      $("#pong").prop('disabled', true);
+      $("#chow").prop('disabled', true);
+      $("#pass").prop('disabled', true);
+  }
+
   $(document).ready(function() {
     $("#pass").click(function() {
-      $(this).prop('disabled', true);
+      // $(this).prop('disabled', true);
+      DisableActionButton();
       data = {"player":$('#seat').text(), "action":"pass"}
       socket.emit('message', data);
       console.log(data);
       return false;
     });
     $("#chow").click(function() {
-      $(this).prop('disabled', true);
-      data = {"player":$('#seat').text(), "action":"chow", "tiles":[]}
+      DisableActionButton();
+      // pick tiles to discard
+      var tiles = tableTiles();
+      data = {"player":$('#seat').text(), "action":"chow", "tiles":tiles}
       socket.emit('message', data);
       console.log(data);
+      clearTiles('top');
       return false;
     });
     $("#pong").click(function() {
-      $(this).prop('disabled', true);
+      DisableActionButton();
       // pick tiles to discard
       var tiles = tableTiles();
-      data = {"player":$('#seat').text(), "action":"pong", "tiles":[]}
+      data = {"player":$('#seat').text(), "action":"pong", "tiles":tiles}
       socket.emit('message', data);
       console.log(data);
-      clearTiles();
+      clearTiles('top');
       return false;
     });
     $("#kong").click(function() {
-      $(this).prop('disabled', true);
+      DisableActionButton();
       // pick tiles to discard
       var tiles = tableTiles();
-      data = {"player":$('#seat').text(), "action":"kong", "tiles":[]}
+      data = {"player":$('#seat').text(), "action":"kong", "tiles":tiles}
       socket.emit('message', data);
       console.log(data);
-      clearTiles();
+      clearTiles('top');
       return false;
     });
     $("#hu").click(function() {
-      $(this).prop('disabled', true);
-      data = {"player":$('#seat').text(), "action":"hu", "tiles":[]}
+      DisableActionButton();
+      // pick tiles to discard
+      var tiles = tableTiles();
+      data = {"player":$('#seat').text(), "action":"hu", "tiles":tiles}
       socket.emit('message', data);
       console.log(data);
       return false;
     });
 
     $("#drawing").click(function() {
-      $(this).prop('disabled', true);
+      DisableActionButton();
       data = {"player":$('#seat').text(), "action":"drawing"}
       socket.emit('message', data);
       console.log(data);
@@ -148,17 +184,16 @@
     });
     $("#discard").click(function() {
       // pick tiles to discard
-      $(this).prop('disabled', true);
+      DisableActionButton();
       var tiles = tableTiles();
       data = {"player":$('#seat').text(), "action":"discard", "tiles":tiles}
       socket.emit('message', data);
       console.log(data);
-      clearTiles();
+      clearTiles('top');
       return false;
     });
     $("#dice").click(function() {
-      // $("#dice").prop('disabled', false);
-      $(this).prop('disabled', true);
+      DisableActionButton();
       data = {"player":$('#seat').text(), "action":"dice"}
       socket.emit('message', data);
       console.log(data);
@@ -212,16 +247,21 @@
               // $('#'+seat+' td:eq(3)').text(info[i]['gold']);
             }
 
-            // rename the table id of <tr> from other_discard table
+            // rename the table id of <tr> to seat_out and seat_discard from other_discard table
             wind = getWindNext($('#seat').text());
             $("#other_discard tr:eq(0) td:eq(0)").text(wind);
-            $('#other_discard tr:eq(0)').attr("id", wind + '_discard');
-            wind = getWindNext(wind);
-            $("#other_discard tr:eq(1) td:eq(0)").text(wind);
+            $('#other_discard tr:eq(0)').attr("id", wind + '_out');
             $('#other_discard tr:eq(1)').attr("id", wind + '_discard');
+
             wind = getWindNext(wind);
             $("#other_discard tr:eq(2) td:eq(0)").text(wind);
-            $('#other_discard tr:eq(2)').attr("id", wind + '_discard');
+            $('#other_discard tr:eq(2)').attr("id", wind + '_out');
+            $('#other_discard tr:eq(3)').attr("id", wind + '_discard');
+
+            wind = getWindNext(wind);
+            $("#other_discard tr:eq(4) td:eq(0)").text(wind);
+            $('#other_discard tr:eq(4)').attr("id", wind + '_out');
+            $('#other_discard tr:eq(5)').attr("id", wind + '_discard');
             break;
           case 'join_game':
             $('#wait').text(msg.data["join_game"]["wait_num"]);
@@ -269,6 +309,8 @@
             }
             break;
           case 'hand_tiles':
+            clearTiles('top');
+            clearTiles('bottom');
             // update hand tiles to Tiles table
             hand = msg.data['hand_tiles'][0]['hand']
             for (const i in hand)
@@ -284,22 +326,41 @@
             out = msg.data['out_tiles'];
             for (const i in out)
             {
+              // self Tiles table
               if(out[i]['seat'] == $('#seat').text())
               {
+                // show flower, meld and hide tiles to out cell
+                flower = out[i]['flower'];
+                meld = out[i]['meld'];
+                hide = out[i]['hide'];
+                tmp = HideTile2String(flower, meld, hide);
+                $("#Tiles tr:eq(2) td:eq(0)").html(tmp);
+
+                // show discard tiles to discard cell
                 discard = out[i]['discard'];
                 tmp = List2String(discard);
-                $("#Tiles tr:eq(2) td:eq(0)").html(tmp);
-                // break;
+                $("#Tiles tr:eq(3) td:eq(0)").html(tmp);
               }
 
+              // other_discard table
               $("#other_discard tr").each(function() {
                 // console.log($(this).attr('id'));
+                IdName = out[i]['seat'] + '_out';
+                if($(this).attr('id') == IdName)
+                {
+                  // show flower, meld and hide tiles to out cell
+                  flower = out[i]['flower'];
+                  meld = out[i]['meld'];
+                  hide = out[i]['hide'];
+                  tmp = HideTile2String(flower, meld, hide);
+                  $(this).find("td:eq(1)").html(tmp);
+                }
                 IdName = out[i]['seat'] + '_discard';
                 if($(this).attr('id') == IdName)
                 {
                   discard = out[i]['discard'];
                   tmp = List2String(discard);
-                  $(this).find("td:eq(1)").html(tmp);
+                  $(this).find("td:eq(0)").html(tmp);
                 }
               });
             }
@@ -345,7 +406,13 @@
       <tr id="hand">
         <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
       </tr>
+      <tr id="out">
+        <!-- flower | meld and hide -->
+        <!-- 1G,2G,2P | 1S,2S,3S | 4S,5S,6S | 1W,1X,1X,1X -->
+        <td colspan="18"></td>
+      </tr>
       <tr id="self_discard">
+        <!-- 3S,9C,1C,... -->
         <td colspan="18"></td>
       </tr>
   </table>
@@ -361,14 +428,35 @@
   <button id="dice" disabled="true">擲骰子</button>
   <p id="message"></p><br>
   <table id="other_discard">
-      <tr id="1">
-        <td></td><td></td>
+      <!-- id out1 will rename to south_out -->
+      <tr id="out1">
+        <!-- flower | meld and hide -->
+        <!-- 1G,2G,2P | 1S,2S,3S | 4S,5S,6S | 1W,1X,1X,1X -->
+        <td rowspan="2"></td><td></td>
       </tr>
-      <tr id="2">
-        <td></td><td></td>
+      <!-- id discard1 will rename to south_discard -->
+      <tr id="discard1">
+        <td></td>
       </tr>
-      <tr id="3">
-        <td></td><td></td>
+      <!-- id out2 will rename to west_out -->
+      <tr id="out2">
+        <!-- flower | meld and hide -->
+        <!-- 1G,2G,2P | 1S,2S,3S | 4S,5S,6S | 1W,1X,1X,1X -->
+        <td rowspan="2"></td><td></td>
+      </tr>
+      <!-- id discard1 will rename to west_discard -->
+      <tr id="discard2">
+        <td></td>
+      </tr>
+      <!-- id out3 will rename to north_out -->
+      <tr id="out3">
+        <!-- flower | meld and hide -->
+        <!-- 1G,2G,2P | 1S,2S,3S | 4S,5S,6S | 1W,1X,1X,1X -->
+        <td rowspan="2"></td><td></td>
+      </tr>
+      <!-- id discard3 will rename to north_discard -->
+      <tr id="discard3">
+        <td></td>
       </tr>
   </table>
 </body>

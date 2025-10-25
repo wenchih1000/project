@@ -30,6 +30,23 @@ class WIND(Enum):
         v = (v,len(WIND))[v==0]
         return WIND(v)
 
+    def Prev(self) -> 'WIND':
+        v = (self.value - 1) % len(WIND)
+        v = (v,len(WIND))[v==0]
+        return WIND(v)
+
+    # 下家
+    def Right(self) -> 'WIND':
+        return self.Next()
+
+    # 上家
+    def Left(self) -> 'WIND':
+        return self.Prev()
+
+    # 對家
+    def Opposite(self) -> 'WIND':
+        return self.Next().Next()
+
     # get other winds in order
     def Other(self) -> list['WIND']:
         other = []
@@ -377,9 +394,16 @@ class Meld:
         meld, hide = [], []
         for m in melds:
             if m.Exposed:
-                meld.append(Tile.Tiles2StrList(m.Tiles))
+                meld.append(Tile.List2StrList(m.Tiles))
             else:
-                hide.append(Tile.Tiles2StrList(m.Tiles, show))
+                if show:
+                    tmp = Tile.List2StrList(m.Tiles, False)
+                    tmp[0] = str(m.Tiles[0])
+                    # 3S,1X,1X,1X
+                    meld.append(tmp)
+                else:
+                    # 1X,1X,1X,1X
+                    hide.append(Tile.List2StrList(m.Tiles, show))
 
         return (meld, hide)
 # ------------------------------------------------------------------------------------------------
