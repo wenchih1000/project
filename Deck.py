@@ -2,12 +2,9 @@ from Tile import *
 
 import random
 
-
 # 牌組
 # 管理麻將牌堆的洗牌、切牌和摸牌操作
 class Deck:
-    # import Player
-
     DICE_SCORE_MAX = 18
     DICE_SCORE_MIN = 3
     DICE_NUM = 3
@@ -28,6 +25,7 @@ class Deck:
     DeadWall:list[Tile] = []
     # 棄牌區 / 河區
     Discard:dict = {WIND.EAST:[], WIND.SOUTH:[], WIND.WEST:[], WIND.NORTH:[]}
+    LastWind:WIND = None
     LastDiscard:Tile = None
 
     def __init__(self):
@@ -134,6 +132,7 @@ class Deck:
     # 放置玩家的棄牌
     def DiscardTile(self, wind:WIND, tile:Tile):
         self.Discard[wind].append(tile)
+        self.LastWind = wind
         self.LastDiscard = tile
 
     def PickUPDiscardTile(self, wind:WIND) -> Tile:

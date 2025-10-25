@@ -7,26 +7,34 @@
 ### Client 傳送玩家加入遊戲的請求
 1. Client 傳送的JSON格式
 ```JSON
-    "join_game":{
-        "name":"阿土伯",
-        "avatar":"26.png"
+    {
+        "join_game":{
+            "name":"阿土伯",
+            "avatar":"26.png"
+        }
     },
-    "get_info":true
+    {
+        "get_info":true
+    }
 ```
 2. Server 回傳的JSON格式
 ```JSON
-    "join_game":{
-        "state":"waiting",
-        "wait_num":3
-    }
-    "info":[
-        {
-            "name":"阿土伯",
-            "avatar":"26.png",
-            "seat":"east",
-            "cid":"123456"
+    {
+        "join_game":{
+            "state":"waiting",
+            "wait_num":3
         }
-    ]
+    },
+    {
+        "info":[
+            {
+                "name":"阿土伯",
+                "avatar":"26.png",
+                "seat":"east",
+                "cid":"123456"
+            }
+        ]
+    }
 ```
 3. 加入遊戲(join_game)JSON參數說明
 
@@ -162,18 +170,34 @@
                 } 
             ]
         },
-        {   // 通知所有玩家胡牌情況
+        {   // 通知所有玩家自摸胡牌情況
             "notify":"all",
             "hu_tiles":[
                 {
                     "seat":"north",
-                    "hand":["3D", "4D", "5D", "6D", "7D", "8D", "1A"],
+                    "discard_seat":"",
+                    "hand":["3D", "4D", "5D", "6D", "7D", "8D", "3A"],
                     "drawed_win":"3A",
                     "discard_win":"",
                     "meld":[["1C", "2C", "3C"]],
                     "hide":[["9C","1X","1X","1X"], ["1W","1X","1X","1X"]],
                     "flower":["1G", "3G"]
-                } 
+                }
+            ]
+        },
+        {   // 通知所有玩家吃胡牌(放槍)情況
+            "notify":"all",
+            "hu_tiles":[
+                {
+                    "seat":"north",
+                    "discard_seat":"east",
+                    "hand":["3D", "4D", "5D", "6D", "7D", "8D", "1A"],
+                    "drawed_win":"",
+                    "discard_win":"1A",
+                    "meld":[["1C", "2C", "3C"]],
+                    "hide":[["9C","1X","1X","1X"], ["1W","1X","1X","1X"]],
+                    "flower":["1G", "3G"]
+                }
             ]
         }
     }
@@ -238,6 +262,7 @@
 | 欄位 | 型別 | 說明 | 備註 |
 |:--|:--|:--|:--|
 | seat | str | 胡牌玩家座位 | east, south, west, north |
+| discard_seat | str | 放槍玩家座位 | east, south, west, north |
 | hand | list [ str ] | 玩家手牌 | 玩家手上的牌 |
 | drawed_win | str | 玩家自摸 | 玩家自已摸到的牌 |
 | discard_win | str | 閒家放槍 | 閒家丟棄在牌桌上的牌 |
@@ -292,7 +317,6 @@
     {
         "player":"east",
         "action":"hu",
-        "tiles":["6S"]
     }
 
     // 擲骰子
@@ -332,29 +356,31 @@
 
 1. Server 傳送的JSON格式
 ```JSON
-    "result":{
-        "player":"south",
-        "hand":["3C", "4C", "5C", "3S", "4S", "5S", "6S", "7S", "8S", "4W", "4W", "4W", "2A", "2A", "2A", "1A", "1A"],
-        "round_wind":"east",
-        "dealer_wind":"east",
-        "win_type":"自摸",
-        "dealer_num":3,
-        "score_list":[
-            {"name":"三暗刻", "value":2},
-            {"name":"莊家", "value":1},
-            {"name":"連莊(連3拉3)", "value":6},
-            {"name":"門清自摸", "value":3},
-            {"name":"獨聽(中洞)", "value":1},
-            {"name":"圈風(南風)", "value":1},
-            {"name":"門風(東風)", "value":1},
-            {"name":"正花(蘭)", "value":1},
-            {"name":"花槓(梅蘭竹菊)", "value":1},
-            {"name":"正花(夏)", "value":1},
-            {"name":"花槓(春夏秋冬)", "value":1}
-        ],
-        "total_score":19,
-        "before_money":[8000, 6000, 9000, 5000],
-        "after_money":[1000, 6000, 9000, 12000]
+    {
+        "result":{
+            "player":"south",
+            "hand":["3C", "4C", "5C", "3S", "4S", "5S", "6S", "7S", "8S", "4W", "4W", "4W", "2A", "2A", "2A", "1A", "1A"],
+            "round_wind":"east",
+            "dealer_wind":"east",
+            "win_type":"自摸",
+            "dealer_num":3,
+            "score_list":[
+                {"name":"三暗刻", "value":2},
+                {"name":"莊家", "value":1},
+                {"name":"連莊(連3拉3)", "value":6},
+                {"name":"門清自摸", "value":3},
+                {"name":"獨聽(中洞)", "value":1},
+                {"name":"圈風(南風)", "value":1},
+                {"name":"門風(東風)", "value":1},
+                {"name":"正花(蘭)", "value":1},
+                {"name":"花槓(梅蘭竹菊)", "value":1},
+                {"name":"正花(夏)", "value":1},
+                {"name":"花槓(春夏秋冬)", "value":1}
+            ],
+            "total_score":19,
+            "before_money":[8000, 6000, 9000, 5000],
+            "after_money":[1000, 6000, 9000, 12000]
+        }
     }
 ```
 2. 結果(result)JSON參數說明

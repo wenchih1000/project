@@ -42,7 +42,7 @@ class Controller:
     DeckRef: Deck = None
     RoundWind: WIND = WIND.EAST # 局風位
     ActiveWind: WIND = WIND.EAST # 當前活動的玩家
-    
+
     # 處理活動玩家出牌之後其他閒家過牌(碰/槓/胡)，
     # 在Next決定輸誰活動時以先前出牌的人為主
     OldWind: WIND = None
@@ -156,15 +156,25 @@ class Controller:
         flower = Tile.List2StrList(player.Flowers)
         meld, hide = Meld.List2StrList(player.Melds)
 
+        DrawedWin, DiscardWin, DiscardSeat = '', '', ''
+        # 自摸
+        if player.LastDraw != None:
+            DrawedWin = str(player.LastDraw)
+        # 放槍
+        else:
+            DiscardWin = str(self.DeckRef.LastDiscard)
+            DiscardSeat = self.DeckRef.LastWind.name.lower()
+
         hand = {
             "notify":"all",
             "hu_tiles":[{
                 "seat":player.Wind.name.lower(),
+                "discard_seat":DiscardSeat,
                 "hand":tiles,
                 # 自摸
-                "drawed_win":"" if player.LastDraw == None else str(player.LastDraw),
+                "drawed_win":DrawedWin,
                 # 放槍
-                "discard_win":"" if player.LastDraw != None else str(self.DeckRef.LastDiscard),
+                "discard_win":DiscardWin,
                 "meld":meld,
                 "hide":hide,
                 "flower":flower
@@ -345,7 +355,6 @@ class Controller:
                         self.UpdatePlayerState()
 
                         # 通知玩家進行動作
-                        state = self.ActionState[self.ActiveWind]
                         player = self.Players[self.ActiveWind]
                         state = self.ActionState[self.ActiveWind]
                         # 玩家放棄胡牌，需等下一次打出牌後解除過水，才能再胡牌
@@ -402,11 +411,12 @@ class Controller:
                         player = self.Players[self.ActiveWind]
                         player.Actions = Action.KONG
                         player.LastKong = Tile.Str2Tile(tile)
-                        if player.LastDraw != None and player.LastDraw == player.LastKong:
-                            player.ConcealedKong = True
+                        # if player.LastDraw != None and player.LastDraw == player.LastKong:
+                        #     player.ConcealedKong = True
 
                         player.Notify()
                         player.Wait()
+                        player.LastKong = None
 
                         # 通知所有玩家，當前玩家暗槓/明槓的牌
                         hand = self.GetOutHandDict(self.ActiveWind, showhide=False)
