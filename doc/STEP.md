@@ -91,7 +91,7 @@
 ## Flowcharts (graph TD)
 1. Online FlowChart & Diagrams Editor, https://mermaid-drawing.com/
 
-### A. [遊戲準備與開局自動流程](flowchart\遊戲準備與開局自動流程.svg)
+### A. [遊戲準備與開局自動流程](flowchart/遊戲準備與開局自動流程.svg)
 ```graph TD
 graph TD
     A[遊戲開始/重新開始] --> A1{等待加入遊戲人數};
@@ -107,7 +107,7 @@ graph TD
     B7 -- 否 --> B8[通知玩家開局手牌 <滿17張/16張>];
     B8 --> C0[牌局循環開始];
 ```
-### B. [牌局循環](flowchart\牌局循環.svg) (C. 牌局循環)
+### B. [牌局循環](flowchart/牌局循環.svg) (C. 牌局循環)
 ```graph TD
 graph TD
     C0 --> C1[輪到當前風位 <莊家/閒家> 進行動作];
@@ -146,7 +146,7 @@ graph TD
 ```
 
 ### C. 動作執行與結算流程 (D. 動作流程)  
-#### C1. [胡牌流程](flowchart\胡牌流程.svg) (D1)
+#### C1. [胡牌流程](flowchart/胡牌流程.svg) (D1)
 ```graph TD
 graph TD
     D1[胡牌流程] --> D1a[顯示手牌/計算台數/結算金額];
@@ -157,7 +157,7 @@ graph TD
     D1d --> D1e;
     D1e --> B1[回到 B. 開局自動流程];
 ```
-#### C2. [槓牌流程](flowchart\槓牌流程.svg) (D2)
+#### C2. [槓牌流程](flowchart/槓牌流程.svg) (D2)
 ```graph TD
 graph TD
     D2[槓牌流程] --> D2a[選取槓牌/暗槓/明槓];
@@ -168,13 +168,13 @@ graph TD
     D2e -- 是 --> E[流局結算];
     D2e -- 否 --> D2f[回到 C. 牌局循環/摸牌 <自動補牌>];
 ```
-#### C3. [碰/吃流程](flowchart\碰吃流程.svg) (D4)
+#### C3. [碰/吃流程](flowchart/碰吃流程.svg) (D4)
 ```graph
 graph TD
     D4[碰/吃流程] --> D4a[選取牌張/搭組處理];
     D4a --> D4b[跳到 出牌流程 D3];
 ```
-#### C4. [PASS流程](flowchart\PASS流程.svg) (D5)
+#### C4. [PASS流程](flowchart/PASS流程.svg) (D5)
 ```graph
 graph TD
     D5[PASS流程] --> D5a{是否可胡牌但PASS?};
@@ -182,7 +182,7 @@ graph TD
     D5b --> C13[回到 C13 檢查下一優先權閒家];
     D5a -- 否 --> C13;
 ```
-### D. [終局與流局](flowchart\終局與流局.svg) (E. 流局結算 & F. 雀局結束)
+### D. [終局與流局](flowchart/終局與流局.svg) (E. 流局結算 & F. 雀局結束)
 ```graph
 graph TD
     E[流局結算] --> E1[確認4位玩家聽牌狀態/顯示手牌];
