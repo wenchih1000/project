@@ -405,18 +405,45 @@ class Controller:
                         pass
                     case Step.PLAYER_KONG:
                         # 暗槓/明槓
-                        # {'player': 'east', 'action': 'kong', 'tiles': ['2S','2S','2S']}
-                        msg = self.Msg.pop()
-                        tile = msg['tiles'].pop()
+                        # 暗槓/明槓:{'player': 'east', 'action': 'kong', 'tiles': ['2S','2S','2S']}
+                        # 暗槓:{'player': 'east', 'action': 'kong', 'tiles': ['2S','2S','2S','2S']}
                         player = self.Players[self.ActiveWind]
                         player.Actions = Action.KONG
-                        player.LastKong = Tile.Str2Tile(tile)
-                        # if player.LastDraw != None and player.LastDraw == player.LastKong:
-                        #     player.ConcealedKong = True
+                        # 兩種暗槓情況:
+                        # 1.一開局抓進來的手牌中就有4張一樣的牌
+                        # 2.手牌中有碰塔，加上後來摸進一張可組成暗槓
+
+                        tiles = msg['tiles']
+                        # 明槓/暗槓
+                        if len(tiles) > 0:
+                            # 暗槓, 手牌中是否有4張一樣的牌
+                            if len(tiles) == MELD.KONG_LEN.value and player.LastDraw == None:
+                                player.ConcealedKong = True
+                            # 明槓
+                            if len(tiles) == (MELD.KONG_LEN.value-1) and player.LastDraw != None:
+                                player.ConcealedKong = False
+                            # tile = msg['tiles'].pop()
+                            player.LastKong = Tile.Str2Tile(tiles[0])
+
+                        # 暗槓/加槓
+                        else: # len(tiles) == 0:
+                            # 摸進來的牌和 明碰/暗碰 可組成槓
+                            kong = player.LastDraw
+                            # 檢查是否加槓(外露塔有明碰)
+                            addkong = Rule.CanAddKong(player.Melds, kong)
+                            # 加槓
+                            if addkong:
+                                player.Actions = Action.ADD_KONG
+                                player.ConcealedKong = False
+                            # 暗槓
+                            else:
+                                player.ConcealedKong = True
+                            player.LastKong = kong
 
                         player.Notify()
                         player.Wait()
                         player.LastKong = None
+                        player.ConcealedKong = False
 
                         # 通知所有玩家，當前玩家暗槓/明槓的牌
                         hand = self.GetOutHandDict(self.ActiveWind, showhide=False)
@@ -553,6 +580,10 @@ class Controller:
             hand = self.GetOutHandDict(player.Wind, player.Wind.name.lower())
             self.Notify(hand)
 
+            # 外露牌
+            hand = self.GetOutHandDict(player.Wind, notify='all', showhide=False)
+            self.Notify(hand)
+
     def EndRound(self):
         pass
 
@@ -570,10 +601,12 @@ class Controller:
         tile = player.LastDraw
         CanHu, melds = Rule.CanHu(hand + [tile])
         CanKong = Rule.CanKong(hand, tile)
+        # 手牌中已有4張相同的牌
+        CanConcealKong = Rule.CanConcealKong(hand)
         CanAddKong = Rule.CanAddKong(player.Melds, tile)
 
         self.ActionState[wind]['hu'] = CanHu
-        self.ActionState[wind]['kong'] = (CanKong or CanAddKong)
+        self.ActionState[wind]['kong'] = (CanKong or CanAddKong or CanConcealKong)
         self.ActionState[wind]['discard'] = True
 
     # 打出牌後，叫用DecideWhoseTurn()決定閒家優先權
@@ -598,6 +631,8 @@ class Controller:
                 hand = self.Players[w].Hand
                 CanHu, melds = Rule.CanHu(hand + [tile])
                 CanKong = Rule.CanKong(hand, tile)
+                # 手牌中已有4張相同的牌
+                CanConcealKong = Rule.CanConcealKong(hand)
                 CanAddKong = False
                 CanPong = Rule.CanPong(hand, tile)
                 CanChow = False
@@ -609,11 +644,11 @@ class Controller:
                     CanChow = Rule.CanChow(hand, tile)
                     CanDrawing = True
                 # 只有下家沒有pass的動作
-                elif CanHu or CanKong or CanAddKong or CanPong:
+                elif CanHu or CanKong or CanAddKong or CanConcealKong or CanPong:
                     CanPass = True
 
                 self.ActionState[w]['hu'] = CanHu
-                self.ActionState[w]['kong'] = (CanKong or CanAddKong)
+                self.ActionState[w]['kong'] = (CanKong or CanAddKong or CanConcealKong)
                 self.ActionState[w]['pong'] = CanPong
                 self.ActionState[w]['chow'] = CanChow
                 self.ActionState[w]['drawing'] = CanDrawing

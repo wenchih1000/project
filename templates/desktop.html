@@ -137,9 +137,11 @@
       return false;
     });
     $("#chow").click(function() {
-      DisableActionButton();
       // pick tiles to discard
       var tiles = tableTiles();
+      if(tiles.length == 0)
+        return false;
+      DisableActionButton();
       data = {"player":$('#seat').text(), "action":"chow", "tiles":tiles}
       socket.emit('message', data);
       console.log(data);
@@ -147,9 +149,11 @@
       return false;
     });
     $("#pong").click(function() {
-      DisableActionButton();
       // pick tiles to discard
       var tiles = tableTiles();
+      if(tiles.length == 0)
+        return false;
+      DisableActionButton();
       data = {"player":$('#seat').text(), "action":"pong", "tiles":tiles}
       socket.emit('message', data);
       console.log(data);
@@ -157,9 +161,9 @@
       return false;
     });
     $("#kong").click(function() {
-      DisableActionButton();
       // pick tiles to discard
       var tiles = tableTiles();
+      DisableActionButton();
       data = {"player":$('#seat').text(), "action":"kong", "tiles":tiles}
       socket.emit('message', data);
       console.log(data);
@@ -168,8 +172,6 @@
     });
     $("#hu").click(function() {
       DisableActionButton();
-      // pick tiles to discard
-      // var tiles = tableTiles();
       data = {"player":$('#seat').text(), "action":"hu"}
       socket.emit('message', data);
       console.log(data);
@@ -185,8 +187,10 @@
     });
     $("#discard").click(function() {
       // pick tiles to discard
-      DisableActionButton();
       var tiles = tableTiles();
+      if(tiles.length == 0)
+        return false;
+      DisableActionButton();
       data = {"player":$('#seat').text(), "action":"discard", "tiles":tiles}
       socket.emit('message', data);
       console.log(data);

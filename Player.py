@@ -134,37 +134,33 @@ class Player(Thread):
                         self.FinishEvent.set()
                     case Action.KONG:
                         # 玩家進行槓牌
-                        # 暗槓
-                        if self.LastDraw != None:
-                            self.LastKong = self.LastDraw
-                            self.ConcealedKong = True
-                        # 明槓
-                        else:
-                            self.LastKong = self.DeckRef.LastDiscard
-                            self.ConcealedKong = False
-
                         kong = self.LastKong
-                        tiles = [kong]*(MELD.KONG_LEN.value-1)
-                        # 將手牌的槓搭複制進Meld list
-                        self.AddMeld(tiles+[kong], self.ConcealedKong)
+                        # 手牌中有4張一樣的牌
+                        if self.LastDraw == None:
+                            # 暗槓
+                            tiles = [kong]*(MELD.KONG_LEN.value)
+                            # 將手牌的槓搭複制進Meld list
+                            self.AddMeld(tiles, self.ConcealedKong)
+                        else:
+                            # 明槓/暗槓
+                            tiles = [kong]*(MELD.KONG_LEN.value-1)
+                            # 將手牌的槓搭複制進Meld list
+                            self.AddMeld(tiles+[kong], self.ConcealedKong)
+
                         PrintLog(self.Name + ' 槓牌: ' + kong.toStr() + ", " + ",".join(Tile.List2StrList(tiles)))
 
                         # 清除手牌的槓搭
-                        # self.ConcealedKong = False
                         self.LastDraw = None
                         self.RemoveTiles(tiles)
                         # 下一步通知玩家摸一打一
                         self.FinishEvent.set()
                     case Action.ADD_KONG:
-                        # 將明搭裡的碰搭變更成槓搭
-                        self.LastKong = self.LastDraw
+                        # 將摸進的牌與碰塔組成加槓，然後清掉摸進的牌
                         kong = self.LastDraw
-                        for meld in self.Melds:
-                            if meld.Type == MELD.PONG and kong in meld.Tiles:
-                                meld.Type = MELD.KONG
-                                meld.Tiles.append(kong)
-                                PrintLog(self.Name + ' 加槓牌: ' + kong.toStr())
-                                break
+                        # 將明搭裡的碰搭變更成槓搭
+                        self.Pong2Kong(kong)
+                        PrintLog(self.Name + ' 加槓牌: ' + kong.toStr())
+
                         self.LastDraw = None
                         # 下一步通知玩家摸一打一
                         self.FinishEvent.set()
@@ -324,6 +320,13 @@ class Player(Thread):
     # 新增明搭
     def AddMeld(self, tiles: list[Tile], concealed: bool = False):
         self.Melds.append(Meld(not concealed, tiles.copy()))
+
+    def Pong2Kong(self, kong:Tile):
+        for meld in self.Melds:
+            if meld.Type == MELD.PONG and kong in meld.Tiles:
+                meld.Type = MELD.KONG
+                meld.Tiles.append(kong)
+                break
 
     # def NumMelds(self) -> int:
     #     """計算玩家外露搭子（碰、吃、明槓）的總數。"""
