@@ -29,7 +29,7 @@ class Step(Enum):
     PLAYER_CHOW = 16
     PLAYER_PASS = 17
 
-
+    DRAW_GAME = 20
     END_ROUND = 36
     END_GAME = 37
 
