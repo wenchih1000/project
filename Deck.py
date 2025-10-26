@@ -202,6 +202,9 @@ class Deck:
             PrintLog(f"玩家 {player.Name} 需要補 1 張牌。")
             try:
                 NewTile = self.DrawDeadWallTile()
+                if NewTile == None:
+                    return False
+                player.SetHandTile([NewTile])
                 player.LastDraw = NewTile
 
                 # 檢查補到的牌是否又是花牌

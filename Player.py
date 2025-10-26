@@ -20,6 +20,13 @@ class Action(Enum):
     DRAWING = 11
     DISCARD = 12
 
+class Result(Enum):
+    NONE = 0
+    OK = 1
+    WALL_EMPTY = 3
+    DEAD_WALL_EMPTY = 4
+
+
 # Player 類別：管理手牌與公開牌
 class Player(Thread):
     # import Deck
@@ -60,6 +67,7 @@ class Player(Thread):
     DeckRef:Deck = None
     # 給UI對應操作的狀態
     ActionState:dict = None
+    ActionResult:Result = None
 
     # 檢查過水
     PassHu:bool = False
@@ -107,6 +115,8 @@ class Player(Thread):
         #     Action.HU:False, Action.KONG:False, Action.PONG:False, Action.CHOW:False, Action.PASS:False
         # }
         self.Actions = None
+        self.ActionResult = Result.NONE
+        self.PassHu = False
 
         self.Condition.Reset()
         self.EventClear()
@@ -115,6 +125,7 @@ class Player(Thread):
         while not self.ExitEvent.is_set():
             # 執行UI玩家所下的命令
             if self.ActionEvent.is_set():
+                self.ActionResult = Result.OK
                 # 胡/吃/碰/槓/Pass
                 match self.Actions:
                     case Action.HU:
@@ -226,9 +237,21 @@ class Player(Thread):
                             fromEnd = False
 
                         tile = self.DeckRef.DrawWallTile(fromEnd)
+                        if tile == None:
+                            self.ActionResult = Result.WALL_EMPTY
+                            PrintLog(self.Name + ' 牆區沒牌可以摸了！')
+                            self.FinishEvent.set()
+                            continue
+
                         self.LastDraw = tile
                         if tile.IsFlower():
-                            self.DeckRef.PatchFlower(self)
+                            ret = self.DeckRef.PatchFlower(self)
+                            if not ret:
+                                self.ActionResult = Result.DEAD_WALL_EMPTY
+                                PrintLog(self.Name + ' 死牆區沒牌可以摸了！')
+                                self.FinishEvent.set()
+                                continue
+
                         PrintLog(self.Name + ' 摸牌: ' + self.LastDraw.toStr())
                         self.FinishEvent.set()
                     case Action.DISCARD:
@@ -260,11 +283,12 @@ class Player(Thread):
                 time.sleep(0.2)
                 # PrintLog('sleep:'+self.Wind.name)
 
-    def Wait(self):
+    def Wait(self) -> Result:
         PrintLog('Action waiting\n')
         self.FinishEvent.wait()
         self.FinishEvent.clear()
         PrintLog('Action finish')
+        return self.ActionResult
 
     def Notify(self):
         self.ActionEvent.set()

@@ -76,6 +76,10 @@
                 "current_player":"north",
                 "dealer_num":0,
                 "dice_score":[1,1,1]
+            },
+            "game_result":{
+                "state":"running", // running, waiting, draw_game, win_game, end_game
+                "result":"wall_empty" // dead_wall_empty
             }
         },
         {   // 通知當前玩家進行什麼動作
@@ -122,7 +126,8 @@
             "hand_tiles":[
                 {
                     "hand":["1C", "2C", "3C", "3D", "4D", "5D", "6D", "7D", "8D", "1A"],
-                    "drawed":"3A"
+                    "drawed":"3A",
+                    "wait":["1A"] // 聽牌中，單聽1A
                 }
             ]
         }
@@ -213,6 +218,13 @@
 | dealer_num | int | 第幾莊 | 莊家連莊 |
 | dice_score | list [ int ] | 莊家擲骰子點數 | 共3顆骰子:3~18點 |
 
+3. 遊戲結果(game_result)JSON參數說明
+
+| 欄位 | 型別 | 說明 | 備註 |
+|:--|:--|:--|:--|
+| state | str | 遊戲狀態 | running, waiting, draw_game, win_game, end_game |
+| result | str | 遊戲結果 | wall_empty, dead_wall_empty, draw_win, discard_win |
+
 3. 活動狀態(action_state)JSON參數說明
 
 | 欄位 | 型別 | 說明 | 備註 |
@@ -246,6 +258,7 @@
 | seat | str | 玩家座位 | east, south, west, north |
 | hand | list [ str ]  | 玩家手牌 | 玩家自已看的牌 |
 | drawed | str | 玩家摸到的牌 | |
+| wait | list [ str ] | 聽牌清單 | 玩家聽哪些牌 |
 
 7. 外露牌(out_tiles)JSON參數說明
 

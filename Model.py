@@ -8,16 +8,21 @@ from collections import Counter
 class Rule16:
     HandLen = 17
     NumHiLimit = 7 # ex:7,8,9
-    AllTiles:list[Tile] = None
+
+    AllTiles = []
+    for i in range(TileRange.CharMin.value, TileRange.CharMax.value + 1):
+        AllTiles.extend([Tile({'suit':SUIT.CHAR, 'num':i})])
+        AllTiles.extend([Tile({'suit':SUIT.DOT, 'num':i})])
+        AllTiles.extend([Tile({'suit':SUIT.STICK, 'num':i})])
+    for i in range(TileRange.HonorMin.value, TileRange.HonorMax.value + 1):
+        AllTiles.extend([Tile({'suit':SUIT.HONOR, 'num':i})])
 
     def __init__(self):
-        self.AllTiles = []
-        for i in range(TileRange.CharMin.value, TileRange.CharMax.value + 1):
-            self.AllTiles.extend([Tile({'suit':SUIT.CHAR, 'num':i})])
-            self.AllTiles.extend([Tile({'suit':SUIT.DOT, 'num':i})])
-            self.AllTiles.extend([Tile({'suit':SUIT.STICK, 'num':i})])
-        for i in range(TileRange.HonorMin.value, TileRange.HonorMax.value + 1):
-            self.AllTiles.extend([Tile({'suit':SUIT.HONOR, 'num':i})])
+        pass
+
+    @staticmethod
+    def GetAllTiles() -> list[Tile]:
+        return Rule16.AllTiles
 
     # 確認手牌是否可槓牌
     @staticmethod
@@ -180,7 +185,8 @@ class Rule16:
     #     return Rule16.Melds
 
     # 遞歸核心：胡牌判斷 (Can Win) ---
-    def CanWin(self, hand: Counter, pairsNum: int = 0) -> bool:
+    @staticmethod
+    def CanWin(hand: Counter, pairsNum: int = 0) -> bool:
         """
         遞歸檢查一個牌組是否能分解成 N 組順子/刻子 (N=4, 14張牌時) 或 N-1 組 (13張牌時)。
         這個函數是麻將演算法的核心。
@@ -212,7 +218,7 @@ class Rule16:
             hand[FirstTile] -= 2
             if hand[FirstTile] == 0:
                 del hand[FirstTile]
-            if self.CanWin(hand, pairsNum + 1):
+            if Rule16.CanWin(hand, pairsNum + 1):
                 return True
             # 回溯
             hand[FirstTile] += 2 
@@ -223,13 +229,13 @@ class Rule16:
             hand[FirstTile] -= 3
             if hand[FirstTile] == 0:
                 del hand[FirstTile]
-            if self.CanWin(hand, pairsNum):
+            if Rule16.CanWin(hand, pairsNum):
                 return True
             # 回溯
             hand[FirstTile] += 3 
 
         # 3. 嘗試以這張牌組成「順子」 (只對數字牌有效)
-        if FirstTile.Suit != SUIT.HONOR and FirstTile.Suit != SUIT.FLOWER and FirstTile.Num <= self.NumHiLimit:
+        if FirstTile.Suit != SUIT.HONOR and FirstTile.Suit != SUIT.FLOWER and FirstTile.Num <= Rule16.NumHiLimit:
             t1, t2, t3 = FirstTile, FirstTile + 1, FirstTile + 2
 
             # 確保順子中的三張牌都存在
@@ -239,7 +245,7 @@ class Rule16:
 
                 # 清理計數為 0 的牌
                 hand = Counter({k: v for k, v in hand.items() if v > 0})
-                if self.CanWin(hand, pairsNum):
+                if Rule16.CanWin(hand, pairsNum):
                     return True
                 # 回溯
                 hand[t1] += 1;hand[t2] += 1;hand[t3] += 1
@@ -247,7 +253,8 @@ class Rule16:
         return False
 
     # --- 聽牌演算法主函數 (Find All Waits) ---
-    def FindAllWaits(self, concealedHand: list[Tile]) -> list[Tile]:
+    @staticmethod
+    def FindAllWaits(concealedHand: list[Tile]) -> list[Tile]:
         """
         找出所有能讓當前手牌胡牌的牌 (聽牌列表)。
         concealedHand: 玩家尚未公開的手牌 (通常是 16 張牌，但演算法只處理組成 4*3+2 的牌)
@@ -264,7 +271,7 @@ class Rule16:
         # 為符合 14 張牌的核心分解邏輯，我們假設傳入的手牌是 N=14 的牌型。
 
         # 步驟 1: 遍歷 34 種牌
-        for tile in self.AllTiles:
+        for tile in Rule16.GetAllTiles():
             # 步驟 2: 試著將這張牌加入手牌
             HandCounts = Counter(concealedHand)
 
@@ -277,7 +284,7 @@ class Rule16:
             # 步驟 3: 檢查加入試聽牌後，牌組總數是否滿足胡牌條件 (4組搭子+1眼 = 14張)
             if sum(HandCounts.values()) % 3 == 2:
                 # 步驟 4: 使用遞歸函數判斷是否胡牌
-                if self.CanWin(HandCounts):
+                if Rule16.CanWin(HandCounts):
                     waits.append(tile)
 
         return waits
@@ -286,7 +293,12 @@ if __name__ == '__main__':
 
     # 測試1-1
     # 假設從玩家取得牌組
-    hand = Tile.Alias2Tile(["1萬","2萬","3萬","3索","3索","3索","5筒","6筒","7筒","東","東","東","南","南","南","中","中"])
-    # Rule16 = Rule16()
-    ret, melds = Rule16.CanHu(hand)
-    PrintLog("胡:"+str(ret))
+    # hand = Tile.Alias2Tile(["1萬","2萬","3萬","3索","3索","3索","5筒","6筒","7筒","東","東","東","南","南","南","中","中"])
+    # ret, melds = Rule16.CanHu(hand)
+    # PrintLog("胡:"+str(ret))
+
+    # find all wait
+    # rule = Rule16()
+    hand = Tile.Alias2Tile(["1萬","2萬","3萬","3索","3索","3索","6筒","7筒","東","東","東","南","南","南","中","中"])
+    ret = Rule16.FindAllWaits(hand)
+    PrintLog("聽牌:"+str(Tile.List2StrList(ret)))
