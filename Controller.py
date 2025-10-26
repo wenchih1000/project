@@ -323,9 +323,10 @@ class Controller:
                         if player.PassHu:
                             player.PassHu = False
 
-                        # 通知所有玩家打出的牌
-                        hand = self.GetOutHandDict(self.ActiveWind, showhide=False)
-                        self.Notify(hand)
+                        # 通知所有玩家，當前玩家打出的牌
+                        for w in self.ActiveWind.Other():
+                            hand = self.GetOutHandDict(self.ActiveWind, notify=w, showhide=False)
+                            self.Notify(hand)
 
                         hand = self.GetHandDict(self.ActiveWind)
                         # 通知當前玩家手牌情況
@@ -530,7 +531,7 @@ class Controller:
                         hand = self.GetOutHandDict(self.ActiveWind, notify=self.ActiveWind)
                         self.Notify(hand)
 
-                        # 因前一個玩家所丟出的牌被當前玩家品走
+                        # 因前一個玩家所丟出的牌被當前玩家吃走
                         # 通知前一個玩家 外露牌 情況
                         hand = self.GetOutHandDict(self.DeckRef.LastWind, notify=self.DeckRef.LastWind)
                         self.Notify(hand)
@@ -668,6 +669,8 @@ class Controller:
                 CanHu, melds = Rule.CanHu(hand + [tile])
                 CanKong = Rule.CanKong(hand, tile)
                 # 手牌中已有4張相同的牌
+                # 需輪到自已才能執行暗槓
+                # 4張一樣的，不能直接放進優先權檢查
                 # CanConcealKong = Rule.CanConcealKong(hand)
                 CanAddKong = False
                 CanPong = Rule.CanPong(hand, tile)

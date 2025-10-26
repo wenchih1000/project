@@ -92,6 +92,7 @@ class Player(Thread):
         self.Melds = []
         # 上次出的牌
         self.LastDiscard = None
+        self.LastDraw = None
         self.LastKong = None
         self.ConcealedKong = False
         self.LastPong = None
