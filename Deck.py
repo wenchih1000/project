@@ -57,6 +57,7 @@ class Deck:
     #     return True
 
     def RollDice(self) -> list[int]:
+        # return [1,1,1]
         for i in range(self.DICE_NUM):
             self.Dice[i] = random.randint(1,6)
         return self.Dice
@@ -64,6 +65,18 @@ class Deck:
     def Shuffle(self):
         #  洗牌 (Shuffle)
         random.shuffle(self.Tiles)
+        # self.DebugTiles()
+
+    # for debug
+    def DebugTiles(self):
+        # tmp = ['1S','2S','3S','4S','5S','6S']
+        tiles = ['1C','1C','1C','1C']
+        for i,t in enumerate(tiles):
+            self.Tiles[6+i] = Tile.Str2Tile(t)
+
+        tiles = ['1S','1S','1S','1S']
+        for i,t in enumerate(tiles):
+            self.Tiles[10+i] = Tile.Str2Tile(t)
 
     # 切牌
     # wind: Dealer wind index, scoe: Total score of 3 dices
@@ -135,8 +148,8 @@ class Deck:
         self.LastWind = wind
         self.LastDiscard = tile
 
-    def PickUPDiscardTile(self, wind:WIND) -> Tile:
-        return self.Discard[wind].pop()
+    def PickUPDiscardTile(self) -> Tile:
+        return self.Discard[self.LastWind].pop()
 
     # 當局結束時，回收玩家手牌
     def FlushTiles(self, handTiles:dict) -> bool:

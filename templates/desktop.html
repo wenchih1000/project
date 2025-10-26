@@ -139,7 +139,7 @@
     $("#chow").click(function() {
       // pick tiles to discard
       var tiles = tableTiles();
-      if(tiles.length == 0)
+      if(tiles.length != 2)
         return false;
       DisableActionButton();
       data = {"player":$('#seat').text(), "action":"chow", "tiles":tiles}
@@ -151,7 +151,7 @@
     $("#pong").click(function() {
       // pick tiles to discard
       var tiles = tableTiles();
-      if(tiles.length == 0)
+      if(tiles.length != 2)
         return false;
       DisableActionButton();
       data = {"player":$('#seat').text(), "action":"pong", "tiles":tiles}
@@ -163,6 +163,8 @@
     $("#kong").click(function() {
       // pick tiles to discard
       var tiles = tableTiles();
+      if(tiles.length < 1 || tiles.length > 4)
+        return false;
       DisableActionButton();
       data = {"player":$('#seat').text(), "action":"kong", "tiles":tiles}
       socket.emit('message', data);
@@ -188,7 +190,7 @@
     $("#discard").click(function() {
       // pick tiles to discard
       var tiles = tableTiles();
-      if(tiles.length == 0)
+      if(tiles.length != 1)
         return false;
       DisableActionButton();
       data = {"player":$('#seat').text(), "action":"discard", "tiles":tiles}

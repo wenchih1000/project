@@ -128,6 +128,9 @@ class Player(Thread):
 
                         hu = self.LastHu
                         PrintLog(self.Name + ' 胡牌: ' + hu.toStr())
+                        if self.DeckRef.LastDiscard == hu:
+                            # 當丟出的牌被3家其中一家拿去，則從棄牌區取回
+                            self.DeckRef.PickUPDiscardTile()
                         # 確認玩家手牌所有情況
                         # HandCondition
                         # 下一步計算玩家台數
@@ -135,17 +138,23 @@ class Player(Thread):
                     case Action.KONG:
                         # 玩家進行槓牌
                         kong = self.LastKong
-                        # 手牌中有4張一樣的牌
-                        if self.LastDraw == None:
-                            # 暗槓
-                            tiles = [kong]*(MELD.KONG_LEN.value)
-                            # 將手牌的槓搭複制進Meld list
-                            self.AddMeld(tiles, self.ConcealedKong)
-                        else:
-                            # 明槓/暗槓
+                        # 明槓, 3 tiles in hand and 1 tile is DeckRef.LastDiscard
+                        if self.DeckRef.LastDiscard == kong:
                             tiles = [kong]*(MELD.KONG_LEN.value-1)
                             # 將手牌的槓搭複制進Meld list
                             self.AddMeld(tiles+[kong], self.ConcealedKong)
+                            # 閒家丟出的牌被當前玩家拿去，則從棄牌區取回
+                            self.DeckRef.PickUPDiscardTile()
+                        # 摸槓, 3 tiles in hand and 1 tile is LastDraw
+                        elif self.LastDraw == kong:
+                            tiles = [kong]*(MELD.KONG_LEN.value-1)
+                            # 將手牌的槓搭複制進Meld list
+                            self.AddMeld(tiles+[kong], self.ConcealedKong)
+                        # 暗槓, 4 tiles in hand
+                        elif self.LastDraw != kong:
+                            tiles = [kong]*MELD.KONG_LEN.value
+                            # 將手牌的槓搭複制進Meld list
+                            self.AddMeld(tiles, self.ConcealedKong)
 
                         PrintLog(self.Name + ' 槓牌: ' + kong.toStr() + ", " + ",".join(Tile.List2StrList(tiles)))
 
@@ -173,6 +182,8 @@ class Player(Thread):
                         # 將手牌的碰搭複制進Meld list
                         self.AddMeld(tiles+[pong])
                         PrintLog(self.Name + ' 碰牌: ' + pong.toStr() + ", " + ",".join(Tile.List2StrList(tiles)))
+                        # 當丟出的牌被3家其中一家拿去，則從棄牌區取回
+                        self.DeckRef.PickUPDiscardTile()
                         # 清除手牌的碰搭
                         self.RemoveTiles(tiles)
                         # 下一步通知玩家出牌
@@ -189,6 +200,8 @@ class Player(Thread):
                         # 將手牌的碰搭複制進Meld list
                         self.AddMeld(tiles)
                         PrintLog(self.Name + ' 吃牌: ' + chow.toStr() + ", " + ", ".join(Tile.List2StrList(self.LastChows)))
+                        # 當丟出的牌被3家其中一家拿去，則從棄牌區取回
+                        self.DeckRef.PickUPDiscardTile()
                         # 清除手牌的碰搭
                         self.RemoveTiles(self.LastChows)
                         # 下一步通知玩家出牌

@@ -107,6 +107,7 @@ graph TD
     B7 -- 否 --> B8[通知玩家開局手牌 <滿17張/16張>];
     B8 --> C0[牌局循環開始];
 ```
+![遊戲準備與開局自動流程](flowchart/遊戲準備與開局自動流程.svg)
 ### B. [牌局循環](flowchart/牌局循環.svg) (C. 牌局循環)
 ```graph TD
 graph TD
@@ -144,7 +145,7 @@ graph TD
     
     C13 -- 否 <無人宣告> --> C0[回到 C0 進行下一輪摸牌];
 ```
-
+![牌局循環](flowchart/牌局循環.svg)
 ### C. 動作執行與結算流程 (D. 動作流程)  
 #### C1. [胡牌流程](flowchart/胡牌流程.svg) (D1)
 ```graph TD
@@ -157,6 +158,7 @@ graph TD
     D1d --> D1e;
     D1e --> B1[回到 B. 開局自動流程];
 ```
+![胡牌流程](flowchart/胡牌流程.svg)
 #### C2. [槓牌流程](flowchart/槓牌流程.svg) (D2)
 ```graph TD
 graph TD
@@ -168,12 +170,14 @@ graph TD
     D2e -- 是 --> E[流局結算];
     D2e -- 否 --> D2f[回到 C. 牌局循環/摸牌 <自動補牌>];
 ```
+![槓牌流程](flowchart/槓牌流程.svg)
 #### C3. [碰/吃流程](flowchart/碰吃流程.svg) (D4)
 ```graph
 graph TD
     D4[碰/吃流程] --> D4a[選取牌張/搭組處理];
     D4a --> D4b[跳到 出牌流程 D3];
 ```
+![碰/吃流程](flowchart/碰吃流程.svg)
 #### C4. [PASS流程](flowchart/PASS流程.svg) (D5)
 ```graph
 graph TD
@@ -182,6 +186,7 @@ graph TD
     D5b --> C13[回到 C13 檢查下一優先權閒家];
     D5a -- 否 --> C13;
 ```
+![PASS流程](flowchart/PASS流程.svg)
 ### D. [終局與流局](flowchart/終局與流局.svg) (E. 流局結算 & F. 雀局結束)
 ```graph
 graph TD
@@ -196,3 +201,4 @@ graph TD
     F4 -- 是 --> B1[回到 B. 開局自動流程 <但需換風圈>];
     F4 -- 否 --> F5[結束遊戲];
 ```
+![終局與流局](flowchart/終局與流局.svg)

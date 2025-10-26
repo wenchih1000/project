@@ -132,14 +132,18 @@ class Controller:
         }
         return hand
 
-    def GetOutHandDict(self, wind:WIND, notify:str = 'all', showhide:bool = True) -> dict:
+    def GetOutHandDict(self, wind:WIND, notify:WIND = None, showhide:bool = True) -> dict:
+        #
+        # if notify=None, denote notify for 'all'
+        #
         player = self.Players[wind]
         flower = Tile.List2StrList(player.Flowers)
         discard = Tile.List2StrList(self.DeckRef.Discard[player.Wind])
         meld, hide = Meld.List2StrList(player.Melds, showhide)
+        target = 'all' if notify == None else notify.name.lower()
 
         hand = {
-            "notify":notify,
+            "notify":target,
             "out_tiles":[{
                 "seat":player.Wind.name.lower(),
                 "meld":meld,
@@ -405,52 +409,68 @@ class Controller:
                         pass
                     case Step.PLAYER_KONG:
                         # 暗槓/明槓
-                        # 暗槓/明槓:{'player': 'east', 'action': 'kong', 'tiles': ['2S','2S','2S']}
+                        # 明槓:{'player': 'east', 'action': 'kong', 'tiles': ['2S','2S','2S']}
                         # 暗槓:{'player': 'east', 'action': 'kong', 'tiles': ['2S','2S','2S','2S']}
+                        # 摸槓:{'player': 'east', 'action': 'kong', 'tiles': ['2S','2S','2S','2S']]}
+                        # 加槓:{'player': 'east', 'action': 'kong', 'tiles': ['2S']}
                         player = self.Players[self.ActiveWind]
                         player.Actions = Action.KONG
+                        # 兩種明槓情況:
+                        # 1.明槓:手牌中有碰塔，加上閒家打出一張可組成碰槓
+                        #   self.DeckRef.LastDraw is same as tiles and pick up 3 tiles
+                        # 2.加槓:外露牌的碰塔，加上後來摸進一張可組成加槓
+                        #   player.LastDraw is same as meld and pick up 1 tile
                         # 兩種暗槓情況:
-                        # 1.一開局抓進來的手牌中就有4張一樣的牌
-                        # 2.手牌中有碰塔，加上後來摸進一張可組成暗槓
+                        # 1.暗槓:一開局抓進來的手牌中就有4張一樣的牌
+                        #   player.LastDraw is different and pick up 4 tiles
+                        # 2.摸槓:手牌中有碰塔，加上後來摸進一張可組成暗槓
+                        #   player.LastDraw is same as tiles and pick up 4 tiles
 
+                        msg = self.Msg.pop()
                         tiles = msg['tiles']
-                        # 明槓/暗槓
-                        if len(tiles) > 0:
-                            # 暗槓, 手牌中是否有4張一樣的牌
-                            if len(tiles) == MELD.KONG_LEN.value and player.LastDraw == None:
-                                player.ConcealedKong = True
-                            # 明槓
-                            if len(tiles) == (MELD.KONG_LEN.value-1) and player.LastDraw != None:
-                                player.ConcealedKong = False
-                            # tile = msg['tiles'].pop()
-                            player.LastKong = Tile.Str2Tile(tiles[0])
+                        # 明槓
+                        if len(tiles) == (MELD.KONG_LEN.value - 1) and str(self.DeckRef.LastDiscard) == tiles[0]:
+                            # player.LastDraw == None 
+                            player.ConcealedKong = False
 
-                        # 暗槓/加槓
-                        else: # len(tiles) == 0:
-                            # 摸進來的牌和 明碰/暗碰 可組成槓
-                            kong = player.LastDraw
+                        # 摸槓
+                        elif len(tiles) == MELD.KONG_LEN.value and str(player.LastDraw) == tiles[0]:
+                            player.ConcealedKong = True
+
+                        # 暗槓
+                        elif len(tiles) == MELD.KONG_LEN.value and str(player.LastDraw) != tiles[0]:
+                            player.ConcealedKong = True
+
+                        #加槓
+                        elif len(tiles) == 1 and str(player.LastDraw) == tiles[0]:
                             # 檢查是否加槓(外露塔有明碰)
-                            addkong = Rule.CanAddKong(player.Melds, kong)
-                            # 加槓
-                            if addkong:
+                            if Rule.CanAddKong(player.Melds, player.LastDraw):
                                 player.Actions = Action.ADD_KONG
                                 player.ConcealedKong = False
-                            # 暗槓
-                            else:
-                                player.ConcealedKong = True
-                            player.LastKong = kong
 
+                        player.LastKong = Tile.Str2Tile(tiles[0])
                         player.Notify()
                         player.Wait()
-                        player.LastKong = None
+
                         player.ConcealedKong = False
 
-                        # 通知所有玩家，當前玩家暗槓/明槓的牌
-                        hand = self.GetOutHandDict(self.ActiveWind, showhide=False)
+                        # 不可清掉LastKong，是用來決定從死牆摸一張牌
+                        # player.LastKong = None
+
+                        # 通知閒家，當前玩家暗槓/明槓的牌
+                        for w in self.ActiveWind.Other():
+                            hand = self.GetOutHandDict(self.ActiveWind, notify=w, showhide=False)
+                            self.Notify(hand)
+
+                        # 通知當前玩家 手牌 和 外露牌 情況
+                        hand = self.GetHandDict(self.ActiveWind)
+                        self.Notify(hand)
+                        hand = self.GetOutHandDict(self.ActiveWind, notify=self.ActiveWind)
                         self.Notify(hand)
 
-                        hand = self.GetHandDict(self.ActiveWind)
-                        # 通知當前玩家手牌情況
+                        # 因前一個玩家所丟出的牌被當前玩家槓走
+                        # 通知前一個玩家 外露牌 情況
+                        hand = self.GetOutHandDict(self.DeckRef.LastWind, notify=self.DeckRef.LastWind)
                         self.Notify(hand)
 
                         # 通知玩家從死牆摸一張牌(然後通知玩家打一張)
@@ -469,11 +489,19 @@ class Controller:
                         player.LastPong = None
 
                         # 通知所有玩家，當前玩家碰的牌
-                        hand = self.GetOutHandDict(self.ActiveWind, showhide=False)
+                        for w in self.ActiveWind.Other():
+                            hand = self.GetOutHandDict(self.ActiveWind, notify=w, showhide=False)
+                            self.Notify(hand)
+
+                        # 通知當前玩家 手牌 和 外露牌 情況
+                        hand = self.GetHandDict(self.ActiveWind)
+                        self.Notify(hand)
+                        hand = self.GetOutHandDict(self.ActiveWind, notify=self.ActiveWind)
                         self.Notify(hand)
 
-                        hand = self.GetHandDict(self.ActiveWind)
-                        # 通知當前玩家手牌情況
+                        # 因前一個玩家所丟出的牌被當前玩家碰走
+                        # 通知前一個玩家 外露牌 情況
+                        hand = self.GetOutHandDict(self.DeckRef.LastWind, notify=self.DeckRef.LastWind)
                         self.Notify(hand)
 
                         # 通知玩家打一張牌
@@ -492,11 +520,19 @@ class Controller:
                         player.LastChows.clear()
 
                         # 通知所有玩家，當前玩家吃的牌
-                        hand = self.GetOutHandDict(self.ActiveWind, showhide=False)
+                        for w in self.ActiveWind.Other():
+                            hand = self.GetOutHandDict(self.ActiveWind, notify=w, showhide=False)
+                            self.Notify(hand)
+
+                        # 通知當前玩家 手牌 和 外露牌 情況
+                        hand = self.GetHandDict(self.ActiveWind)
+                        self.Notify(hand)
+                        hand = self.GetOutHandDict(self.ActiveWind, notify=self.ActiveWind)
                         self.Notify(hand)
 
-                        hand = self.GetHandDict(self.ActiveWind)
-                        # 通知當前玩家手牌情況
+                        # 因前一個玩家所丟出的牌被當前玩家品走
+                        # 通知前一個玩家 外露牌 情況
+                        hand = self.GetOutHandDict(self.DeckRef.LastWind, notify=self.DeckRef.LastWind)
                         self.Notify(hand)
 
                         # 通知玩家打一張牌
@@ -577,11 +613,11 @@ class Controller:
             self.Notify(hand)
 
             # 外露牌
-            hand = self.GetOutHandDict(player.Wind, player.Wind.name.lower())
+            hand = self.GetOutHandDict(player.Wind, player.Wind)
             self.Notify(hand)
 
-            # 外露牌
-            hand = self.GetOutHandDict(player.Wind, notify='all', showhide=False)
+            # 通知所有玩家外露牌
+            hand = self.GetOutHandDict(player.Wind, showhide=False)
             self.Notify(hand)
 
     def EndRound(self):
@@ -632,7 +668,7 @@ class Controller:
                 CanHu, melds = Rule.CanHu(hand + [tile])
                 CanKong = Rule.CanKong(hand, tile)
                 # 手牌中已有4張相同的牌
-                CanConcealKong = Rule.CanConcealKong(hand)
+                # CanConcealKong = Rule.CanConcealKong(hand)
                 CanAddKong = False
                 CanPong = Rule.CanPong(hand, tile)
                 CanChow = False
@@ -644,11 +680,11 @@ class Controller:
                     CanChow = Rule.CanChow(hand, tile)
                     CanDrawing = True
                 # 只有下家沒有pass的動作
-                elif CanHu or CanKong or CanAddKong or CanConcealKong or CanPong:
+                elif CanHu or CanKong or CanAddKong or CanPong:
                     CanPass = True
 
                 self.ActionState[w]['hu'] = CanHu
-                self.ActionState[w]['kong'] = (CanKong or CanAddKong or CanConcealKong)
+                self.ActionState[w]['kong'] = (CanKong or CanAddKong)
                 self.ActionState[w]['pong'] = CanPong
                 self.ActionState[w]['chow'] = CanChow
                 self.ActionState[w]['drawing'] = CanDrawing

@@ -6,6 +6,7 @@ from collections import Counter
 from enum import Enum
 import random
 
+TILE_DEBUG = False
 HIDE_LOG = False
 def PrintLog(msg:str = ""):
     if not HIDE_LOG:
@@ -118,8 +119,8 @@ class TileAlias:
     DigiList:tuple = ('1', '2', '3', '4', '5', '6', '7', '8', '9')
     NumList:tuple = ('一', '二', '三', '四', '五', '六', '七', '八', '九')
     CharList:tuple = ('萬', '筒', '索')
-    HonorList2:tuple = ('東', '南', '西', '北', '中', '發', '白')
-    HonorList:tuple = ('東風', '南風', '西風', '北風', '紅中', '青發', '白板')
+    HonorList:tuple = ('東', '南', '西', '北', '中', '發', '白')
+    HonorList2:tuple = ('東風', '南風', '西風', '北風', '紅中', '青發', '白板')
     FlowerList:tuple = ('梅', '蘭', '竹', '菊', '春', '夏', '秋', '冬')
     InvisibleList:tuple = ('蓋',)
 
@@ -199,6 +200,8 @@ class Tile(object):
         return self.Num
 
     def __str__(self) -> str:
+        if TILE_DEBUG:
+            return self.Alias
         if self.Suit == SUIT.HONOR or self.Suit == SUIT.FLOWER:
             return self.SubName
         else:
@@ -329,6 +332,8 @@ class Tile(object):
 
     @staticmethod
     def Str2Tile(name:str) -> 'Tile':
+        if TILE_DEBUG:
+            return Tile({'alias':name})
         # ex: 3S -> Tile
         num = int(name[0])
         sign = name[1]
