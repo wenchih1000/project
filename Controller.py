@@ -200,6 +200,26 @@ class Controller:
         }
         self.Notify(data)
 
+    def UpdatePlayerHandState(self):
+        # 通知閒家，當前玩家 暗槓/明槓,碰/吃 的牌
+        for w in self.ActiveWind.Other():
+            hand = self.GetOutHandDict(self.ActiveWind, notify=w, showhide=False)
+            self.Notify(hand)
+
+        # 通知當前玩家 手牌 和 外露牌 情況
+        hand = self.GetHandAndOutHandDict(self.ActiveWind)
+        self.Notify(hand)
+
+        # 因前一個玩家所丟出的牌被當前玩家 槓/碰/吃 走
+        # 通知前一個玩家 外露牌 情況
+        hand = self.GetOutHandDict(self.DeckRef.LastWind, notify=self.DeckRef.LastWind)
+        self.Notify(hand)
+
+        # 通知所有玩家，前一個玩家的牌被 槓/碰/吃 掉了
+        for w in self.DeckRef.LastWind.Other():
+            hand = self.GetOutHandDict(self.DeckRef.LastWind, notify=w, showhide=False)
+            self.Notify(hand)
+
     def StepFlow(self):
         while not self.Exit:
             if self.StepEvent.is_set():
@@ -334,10 +354,6 @@ class Controller:
                         # 通知當前玩家 手牌 和 外露牌 情況
                         hand = self.GetHandAndOutHandDict(self.ActiveWind)
                         self.Notify(hand)
-                        # hand = self.GetHandDict(self.ActiveWind)
-                        # self.Notify(hand)
-                        # hand = self.GetOutHandDict(self.ActiveWind, notify=self.ActiveWind)
-                        # self.Notify(hand)
 
                         self.StepAction = Step.DECIDE_WHOSE_TURN
                         self.StepEvent.set()
@@ -470,19 +486,8 @@ class Controller:
                             hand = self.GetOutHandDict(self.ActiveWind, notify=w, showhide=False)
                             self.Notify(hand)
 
-                        # 通知當前玩家 手牌 和 外露牌 情況
-                        hand = self.GetHandAndOutHandDict(self.ActiveWind)
-                        self.Notify(hand)
-
-                        # 因前一個玩家所丟出的牌被當前玩家槓走
-                        # 通知前一個玩家 外露牌 情況
-                        hand = self.GetOutHandDict(self.DeckRef.LastWind, notify=self.DeckRef.LastWind)
-                        self.Notify(hand)
-
-                        # 通知所有玩家，前一個玩家的牌被吃掉了
-                        for w in self.DeckRef.LastWind.Other():
-                            hand = self.GetOutHandDict(self.DeckRef.LastWind, notify=w, showhide=False)
-                            self.Notify(hand)
+                        # 通知所有玩家更新 手牌 和 外露牌 情況
+                        self.UpdatePlayerHandState()
 
                         # 通知玩家從死牆摸一張牌(然後通知玩家打一張)
                         self.StepAction = Step.PLAYER_DRAW_NOTIFY
@@ -504,19 +509,8 @@ class Controller:
                             hand = self.GetOutHandDict(self.ActiveWind, notify=w, showhide=False)
                             self.Notify(hand)
 
-                        # 通知當前玩家 手牌 和 外露牌 情況
-                        hand = self.GetHandAndOutHandDict(self.ActiveWind)
-                        self.Notify(hand)
-
-                        # 因前一個玩家所丟出的牌被當前玩家碰走
-                        # 通知前一個玩家 外露牌 情況
-                        hand = self.GetOutHandDict(self.DeckRef.LastWind, notify=self.DeckRef.LastWind)
-                        self.Notify(hand)
-
-                        # 通知所有玩家，前一個玩家的牌被碰掉了
-                        for w in self.DeckRef.LastWind.Other():
-                            hand = self.GetOutHandDict(self.DeckRef.LastWind, notify=w, showhide=False)
-                            self.Notify(hand)
+                        # 通知所有玩家更新 手牌 和 外露牌 情況
+                        self.UpdatePlayerHandState()
 
                         # 通知玩家打一張牌
                         self.StepAction = Step.PLAYER_DISCARD_NOTIFY
@@ -538,19 +532,8 @@ class Controller:
                             hand = self.GetOutHandDict(self.ActiveWind, notify=w, showhide=False)
                             self.Notify(hand)
 
-                        # 通知當前玩家 手牌 和 外露牌 情況
-                        hand = self.GetHandAndOutHandDict(self.ActiveWind)
-                        self.Notify(hand)
-
-                        # 因前一個玩家所丟出的牌被當前玩家吃走
-                        # 通知前一個玩家 外露牌 情況
-                        hand = self.GetOutHandDict(self.DeckRef.LastWind, notify=self.DeckRef.LastWind)
-                        self.Notify(hand)
-
-                        # 通知所有玩家，前一個玩家的牌被吃掉了
-                        for w in self.DeckRef.LastWind.Other():
-                            hand = self.GetOutHandDict(self.DeckRef.LastWind, notify=w, showhide=False)
-                            self.Notify(hand)
+                        # 通知所有玩家更新 手牌 和 外露牌 情況
+                        self.UpdatePlayerHandState()
 
                         # 通知玩家打一張牌
                         self.StepAction = Step.PLAYER_DISCARD_NOTIFY
