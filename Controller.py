@@ -22,6 +22,7 @@ class Step(Enum):
 
     DECIDE_WHOSE_TURN = 10
     WHOSE_NEXT_TURN = 11
+    CHECK_ROBBING_GONG = 12
 
     PLAYER_HU = 13
     PLAYER_KONG = 14
@@ -424,6 +425,24 @@ class Controller:
                         }
                         self.Notify(action)
 
+                    case Step.CHECK_ROBBING_GONG:
+                        self.ActiveWind = self.CheckRobbingGong()
+
+                        # 通知所有玩家換誰進行活動
+                        self.UpdatePlayerState()
+
+                        # 通知玩家進行動作
+                        player = self.Players[self.ActiveWind]
+                        state = self.ActionState[self.ActiveWind]
+                        # 玩家放棄胡牌，需等下一次打出牌後解除過水，才能再胡牌
+                        # if state['hu'] and player.PassHu:
+                        #     state['hu'] = False
+                        action = {
+                            "notify":self.ActiveWind.name.lower(),
+                            "action_state":state
+                        }
+                        self.Notify(action)
+
                     #
                     # 玩家決定進行 pass/hu/kong/pong/chow 動作
                     #
@@ -521,13 +540,11 @@ class Controller:
                         elif Rule.CanAddKong(player.Melds, player.LastDraw):
                             player.KongMode = KongType.ADD_KONG
                             kong = player.LastDraw
+                            self.DeckRef.LastAddKong = kong
 
                         player.LastKong = kong
                         player.Notify()
                         player.Wait()
-
-                        player.LastKong = None
-                        player.KongMode = None
 
                         # 通知閒家，當前玩家暗槓/明槓的牌
                         for w in self.ActiveWind.Other():
@@ -536,6 +553,17 @@ class Controller:
 
                         # 通知所有玩家更新 手牌 和 外露牌 情況
                         self.UpdatePlayerHandState()
+                        player.LastKong = None
+
+                        if player.KongMode == KongType.ADD_KONG:
+                            # self.StepAction = Step.PLAYER_CHECK_HU
+                            self.StepAction = Step.PLAYER_DRAW_NOTIFY
+                            player.KongMode = None
+                            # self.CheckRobbingGong()
+                            self.StepEvent.set()
+                            continue
+
+                        player.KongMode = None
 
                         # 通知玩家從死牆摸一張牌(然後通知玩家打一張)
                         self.StepAction = Step.PLAYER_DRAW_NOTIFY
@@ -628,6 +656,7 @@ class Controller:
             hands[wind] = player.ReturnAllTile()
             player.Reset()
         self.DeckRef.FlushTiles(hands) # 清空所有牌堆
+        self.DeckRef.Reset()
 
         self.ActiveWind = self.DealerWind # 回合從莊家開始
 
@@ -780,6 +809,35 @@ class Controller:
         self.ActionState[right]['drawing'] = True
         # 預設換下家摸牌
         return right
+
+    def CheckRobbingGong(self, next:bool = False) -> WIND:
+        # 找出閒家
+        if next:
+            other = self.OldWind.Other()
+        else:
+            other = self.ActiveWind.Other()
+            self.OldWind = self.ActiveWind
+
+        # 判斷閒家對打出的牌具有哪些動作
+        tile = self.DeckRef.LastAddKong
+        if not next:
+            self.ClearActionState()
+            for w in other:
+                hand = self.Players[w].Hand
+                CanHu, melds = Rule.CanHu(hand + [tile])
+                if CanHu:
+                    self.ActionState[w]['hu'] = CanHu
+                    self.ActionState[w]['pass'] = True
+
+        # check priority
+        for w in other:
+            if not self.Pass[w] and self.ActionState[w]['hu']:
+                return w
+
+        # 加槓後，摸一打一
+        self.ActionState[self.OldWind]['drawing'] = True
+        self.DeckRef.LastAddKong = None
+        return self.OldWind
 
     def ClearActionState(self, wind:WIND = None):
         if wind != None:

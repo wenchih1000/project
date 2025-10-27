@@ -21,12 +21,15 @@ class Deck:
     Tiles:list[Tile] = []
     # 牌牆（未被摸走的牌）
     Wall:list[Tile] = []
-    # 牌尾（死牌區，用於補牌）
+    # 牌尾（死牌區，用於補牌)
     DeadWall:list[Tile] = []
     # 棄牌區 / 河區
     Discard:dict = {WIND.EAST:[], WIND.SOUTH:[], WIND.WEST:[], WIND.NORTH:[]}
+
     LastWind:WIND = None
     LastDiscard:Tile = None
+    # 確認閒家搶槓胡
+    LastAddKong:Tile = None
 
     #放槍牌
     DiscardWin:Tile = None
@@ -44,6 +47,14 @@ class Deck:
             self.Tiles.extend([Tile({'suit':SUIT.HONOR, 'num':i})]*times)
         for i in range(TileRange.FlowerMin.value, TileRange.FlowerMax.value + 1):
             self.Tiles.append(Tile({'suit':SUIT.FLOWER, 'num':i}))
+
+    def Reset(self):
+        self.LastWind = None
+        self.LastDiscard = None
+        # 確認閒家搶槓胡
+        self.LastAddKong = None
+        #放槍牌
+        self.DiscardWin = None
 
     def RollDice(self) -> list[int]:
         for i in range(self.DICE_NUM):
