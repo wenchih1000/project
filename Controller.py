@@ -109,7 +109,7 @@ class Controller:
         discard = Tile.List2StrList(self.DeckRef.Discard[player.Wind])
         meld, hide = Meld.List2StrList(player.Melds)
         target = 'all' if notify == None else notify.name.lower()
-        wait = [] #Tile.List2StrList(Rule.FindAllWaits(player.Hand))
+        wait = Tile.List2StrList(Rule.FindAllWaits(player.Hand))
 
         hand = {
             "notify":target,
@@ -239,13 +239,14 @@ class Controller:
 
         # 因前一個玩家所丟出的牌被當前玩家 槓/碰/吃 走
         # 通知前一個玩家 外露牌 情況
-        hand = self.GetOutHandDict(self.DeckRef.LastWind, notify=self.DeckRef.LastWind)
-        self.Notify(hand)
-
-        # 通知所有玩家，前一個玩家的牌被 槓/碰/吃 掉了
-        for w in self.DeckRef.LastWind.Other():
-            hand = self.GetOutHandDict(self.DeckRef.LastWind, notify=w, showhide=False)
+        if self.DeckRef.LastWind != None:
+            hand = self.GetOutHandDict(self.DeckRef.LastWind, notify=self.DeckRef.LastWind)
             self.Notify(hand)
+
+            # 通知所有玩家，前一個玩家的牌被 槓/碰/吃 掉了
+            for w in self.DeckRef.LastWind.Other():
+                hand = self.GetOutHandDict(self.DeckRef.LastWind, notify=w, showhide=False)
+                self.Notify(hand)
 
     def StepFlow(self):
         while not self.Exit:
@@ -263,8 +264,7 @@ class Controller:
                         for w, p in self.Players.items():
                             seat["player_seat"][w.name.lower()] = p.Name
                         self.Notify(seat)
-                        time.sleep(2)
-                        # self.Notify(json.dumps(seat))
+
                         self.StepAction = Step.ROLL_DICE_NOTIFY
                         self.StepEvent.set()
                     case Step.ROLL_DICE_NOTIFY:
@@ -468,6 +468,9 @@ class Controller:
                                     self.Players[w].IsDealer = False
                                 # 換莊
                                 self.Players[self.DealerWind].IsDealer = True
+
+                        # delay to show message
+                        time.sleep(3)
 
                         self.StepAction = Step.END_HAND
                         self.StepEvent.set()

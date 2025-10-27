@@ -45,22 +45,7 @@ class Deck:
         for i in range(TileRange.FlowerMin.value, TileRange.FlowerMax.value + 1):
             self.Tiles.append(Tile({'suit':SUIT.FLOWER, 'num':i}))
 
-        # #  洗牌 (Shuffle)
-        # random.shuffle(self.Tiles)
-        # self.BuildWall()
-
-    # def BuildWall(self) -> bool:
-    #     if len(self.Tiles) != self.TILES_SIZE:
-    #         PrintLog(f"牌數錯誤：應為 {self.TILES_SIZE} 張，實際為 {len(self.Tiles)}")
-    #         return False
-
-    #     """將所有牌洗亂並建立牌牆。"""
-    #     # 1. 洗牌 (Shuffle)
-    #     random.shuffle(self.Tiles)
-    #     return True
-
     def RollDice(self) -> list[int]:
-        # return [1,1,1]
         for i in range(self.DICE_NUM):
             self.Dice[i] = random.randint(1,6)
         return self.Dice
@@ -68,18 +53,30 @@ class Deck:
     def Shuffle(self):
         #  洗牌 (Shuffle)
         random.shuffle(self.Tiles)
-        # self.DebugTiles()
 
     # for debug
     def DebugTiles(self):
-        # tmp = ['1S','2S','3S','4S','5S','6S']
-        tiles = ['1C','1C','1C','1C']
-        for i,t in enumerate(tiles):
-            self.Tiles[6+i] = Tile.Str2Tile(t)
 
-        tiles = ['1S','1S','1S','1S']
-        for i,t in enumerate(tiles):
-            self.Tiles[10+i] = Tile.Str2Tile(t)
+        alls = {
+            WIND.EAST:['1C','1C','1C','1S','2S','3S','1D','1D','1D','1W','1W','1W','1A','1A','1A', '5S'], 
+            WIND.SOUTH:['2C','2C','2C','4S','5S','6S','2D','2D','2D','2W','2W','2W','2A','2A','2A', '6S'], 
+            WIND.WEST:['3C','3C','3C','7S','8S','9S','3D','3D','3D','3W','3W','3W','3A','3A','3A', '7S'], 
+            WIND.NORTH:['4C','4C','4C','1S','2S','3S','4D','4D','4D','4W','4W','4W','9C','9C','9C', '8S']
+        }
+
+        offset = 16 # 4人
+        con = 0
+        for i in range(4):
+            for j in range(4):
+                # EAST
+                self.Wall[i*offset+j] = Tile.Str2Tile(alls[WIND.EAST][con])
+                # SOUTH
+                # self.Wall[i*offset+4+j] = Tile.Str2Tile(alls[WIND.SOUTH][con])
+                # WEST
+                # self.Wall[i*offset+8+j] = Tile.Str2Tile(alls[WIND.WEST][con])
+                # NORTH
+                # self.Wall[i*offset+12+j] = Tile.Str2Tile(alls[WIND.NORTH][con])
+                con += 1
 
     # 切牌
     # wind: Dealer wind index, scoe: Total score of 3 dices
@@ -120,6 +117,7 @@ class Deck:
         for i in range(Deck.DEAD_WALL_SIZE):    
             self.DeadWall.append(self.Tiles.pop(0))
 
+        # self.DebugTiles()
         PrintLog(f"牌牆初始化完成。牌牆張數: {len(self.Wall)}, 死牌區張數: {len(self.DeadWall)}")
 
     def DrawWallTile(self, fromEnd: bool = False) -> Tile:
@@ -314,15 +312,13 @@ class Deck:
 
     # 開局發牌叫用
     def DealTiles(self, handTiles:dict):
+        # PrintLog('SetHandTile:'+", ".join(Tile.List2StrList(self.Wall)))
         # 發牌
         # 每人抓4次，1次4張
         times,pcs = 4,4
         for _ in range(times):
             for key,val in handTiles.items():
                 val.extend([self.Wall.pop(0) for _ in range(pcs)])
-
-        # # 莊家開門
-        # handTiles[WIND.EAST].append(self.Wall.pop(0))
 
 if __name__ == '__main__':
     deck = Deck()

@@ -5,6 +5,9 @@
   <meta charset="utf-8">
   <title>Working with Flask and SocketIO</title>
   <style>
+    #gap {
+      background-color: #807b7b;
+    }
     table, th, td {
       border: 1px solid black;
       border-collapse: collapse;
@@ -389,7 +392,8 @@
   座位:<label id="seat"></label><br>
   骰子:<label id="dice_score"></label><br>
 
-  <table id="player" hidden="false">
+  <table id="player" hidden>
+  <!-- <table id="player"> -->
     <tr>
       <th>座位</th><th>名稱</th><th>頭像</th><th>金幣</th>
     </tr>
@@ -409,10 +413,10 @@
   <p></p>
   <table id="Tiles">
       <tr id="pick_up">
-        <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+        <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td id="gap"></td><td></td>
       </tr>
       <tr id="hand">
-        <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+        <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td id="gap"></td><td></td>
       </tr>
       <tr id="out">
         <!-- flower | meld and hide -->
