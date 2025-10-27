@@ -141,8 +141,10 @@ class Player(Thread):
                         hu = self.LastHu
                         PrintLog(self.Name + ' 胡牌: ' + hu.toStr())
                         if self.DeckRef.LastDiscard == hu:
+                            self.DeckRef.DiscardWin = hu
                             # 當丟出的牌被3家其中一家拿去，則從棄牌區取回
                             self.DeckRef.PickUPDiscardTile()
+
                         # 確認玩家手牌所有情況
                         # HandCondition
                         # 下一步計算玩家台數
@@ -321,6 +323,9 @@ class Player(Thread):
         for meld in self.Melds:
             for _ in range(len(meld.Tiles)):
                 hand.append(meld.Tiles.pop(0))
+        if self.LastDraw != None:
+            hand.append(self.LastDraw)
+
         return hand
 
     # 該玩家當莊

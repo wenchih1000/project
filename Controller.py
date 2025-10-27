@@ -29,10 +29,10 @@ class Step(Enum):
     PLAYER_CHOW = 16
     PLAYER_PASS = 17
 
-    DRAW_GAME = 20
-    END_ROUND = 36
-    END_GAME = 37
-
+    DRAW_GAME = 20 # 流局
+    END_HAND = 25 # 一局
+    END_ROUND = 26 # 一圈
+    END_GAME = 27 # 一雀
 
 # 負責串聯所有邏輯：管理回合、處理動作優先級 (吃/碰/槓/胡)
 # Game controller
@@ -209,7 +209,7 @@ class Controller:
 
     def UpdateGameResult(self, state:str, result:str):
         state = {
-            "game_state":{
+            "game_result":{
                 "state":state,
                 "result":result
             }
@@ -469,7 +469,7 @@ class Controller:
                                 # 換莊
                                 self.Players[self.DealerWind].IsDealer = True
 
-                        self.StepAction = Step.END_ROUND
+                        self.StepAction = Step.END_HAND
                         self.StepEvent.set()
                     case Step.PLAYER_KONG:
                         # 暗槓/明槓
@@ -591,12 +591,22 @@ class Controller:
                             self.Notify(hand)
 
                         self.DealerNum += 1
-                        self.StepAction = Step.END_ROUND
+                        self.StepAction = Step.END_HAND
                         self.StepEvent.set()
 
-                    case Step.END_ROUND:
-                        self.EndRound()
+                    # 一局結束 (One Hand)
+                    case Step.END_HAND:
+                        self.EndHand()
                         self.StepAction = Step.ROLL_DICE_NOTIFY
+                        self.StepEvent.set()
+                    # 一圈結束 (One Round)
+                    case Step.END_ROUND:
+                        self.StepAction = Step.START_GAME
+                        self.StepEvent.set()
+                    # 一雀結束 (One Game)
+                    case Step.END_GAME:
+                        self.Exit = True
+                        self.StepAction = Step.INIT
                         self.StepEvent.set()
                     case _:
                         pass
@@ -605,22 +615,12 @@ class Controller:
 
     def ResetGame(self):
         # 回收所有牌
-        all_tiles = []
-        for player in self.Players.values():
-            all_tiles.extend(player.ReturnAllTile())
-        all_tiles.extend(self.DeckRef.Wall)
-        all_tiles.extend(self.DeckRef.DeadWall)
-        for discard_pile in self.DeckRef.Discard.values():
-            all_tiles.extend(discard_pile)
-        self.DeckRef.Tiles = all_tiles
-        self.DeckRef.FlushTiles({}) # 清空所有牌堆
-
-        # 重置玩家狀態
-        for player in self.Players.values():
+        hands = {}
+        for wind, player in self.Players.items():
+            hands[wind] = player.ReturnAllTile()
             player.Reset()
+        self.DeckRef.FlushTiles(hands) # 清空所有牌堆
 
-        # 重置牌堆
-        self.DeckRef = Deck()
         self.ActiveWind = self.DealerWind # 回合從莊家開始
 
     # WebApp 通知 Controller
@@ -679,7 +679,7 @@ class Controller:
             hand = self.GetOutHandDict(player.Wind, showhide=False)
             self.Notify(hand)
 
-    def EndRound(self):
+    def EndHand(self):
         self.ResetGame()
 
 

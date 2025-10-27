@@ -320,6 +320,7 @@
             clearTiles('bottom');
             // update hand tiles to Tiles table
             hand = msg.data['hand_tiles'][0]['hand']
+            console.log("hand size:" + hand.length);
             for (const i in hand)
             {
               $("#Tiles tr:eq(1) td:eq("+i+")").text(hand[i]);
@@ -387,8 +388,8 @@
   玩家名稱:<label id="name"></label>
   座位:<label id="seat"></label><br>
   骰子:<label id="dice_score"></label><br>
-  
-  <table id="player">
+
+  <table id="player" hidden="false">
     <tr>
       <th>座位</th><th>名稱</th><th>頭像</th><th>金幣</th>
     </tr>

@@ -28,6 +28,9 @@ class Deck:
     LastWind:WIND = None
     LastDiscard:Tile = None
 
+    #放槍牌
+    DiscardWin:Tile = None
+
     def __init__(self):
         # initial all tiles
         times = 4
@@ -153,9 +156,13 @@ class Deck:
 
     # 當局結束時，回收玩家手牌
     def FlushTiles(self, handTiles:dict) -> bool:
-        for key,val in handTiles.items():
-            for i in val:
-                self.Tiles.append(i.pop(0))
+        # handTiles: {
+        #     WIND.EAST:[],WIND.SOUTH:[],WIND.WEST:[],WIND.NORTH:[]
+        # }
+
+        for _,val in handTiles.items():
+            for _ in range(len(val)):
+                self.Tiles.append(val.pop(0))
         # 回收牆區
         for _ in range(len(self.Wall)):
             self.Tiles.append(self.Wall.pop(0))
@@ -163,16 +170,28 @@ class Deck:
         for _ in range(len(self.DeadWall)):
             self.Tiles.append(self.DeadWall.pop(0))
         # 回收棄牌區
-        for key,val in self.Discard.items():
+        for _,val in self.Discard.items():
             for i in range(len(val)):
                 self.Tiles.append(val.pop(0))
+
+        # 回收放槍牌
+        if self.DiscardWin != None:
+            self.Tiles.append(self.DiscardWin)
+            self.DiscardWin = None
+
+        # debug all tiles
+        # self.Tiles.sort()
+        # tmp = []
+        # for t in self.Tiles:
+        #     tmp.append(str(t))
+        # PrintLog(','.join(tmp))
 
         # 檢查總牌數
         if len(self.Tiles) != self.TILES_SIZE:
             PrintLog(f"牌數錯誤：應為 {self.TILES_SIZE} 張，實際為 {len(self.Tiles)}")
             return False
 
-        random.shuffle(self.Tiles)
+        PrintLog(f"牌數回收完成：共 {len(self.Tiles)} 張牌")
         return True
 
     def PatchFlower(self, player:any) -> bool:
@@ -204,7 +223,6 @@ class Deck:
                 NewTile = self.DrawDeadWallTile()
                 if NewTile == None:
                     return False
-                player.SetHandTile([NewTile])
                 player.LastDraw = NewTile
 
                 # 檢查補到的牌是否又是花牌
