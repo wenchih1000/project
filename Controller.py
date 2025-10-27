@@ -495,34 +495,39 @@ class Controller:
 
                         msg = self.Msg.pop()
                         tiles = msg['tiles']
-                        # 明槓
-                        if len(tiles) == (MELD.KONG_LEN.value - 1) and str(self.DeckRef.LastDiscard) == tiles[0]:
-                            # player.LastDraw == None 
-                            player.ConcealedKong = False
-
-                        # 摸槓
-                        elif len(tiles) == MELD.KONG_LEN.value and str(player.LastDraw) == tiles[0]:
-                            player.ConcealedKong = True
+                        kong = None
 
                         # 暗槓
-                        elif len(tiles) == MELD.KONG_LEN.value and str(player.LastDraw) != tiles[0]:
-                            player.ConcealedKong = True
+                        # 檢查手牌是否有4張一樣的牌
+                        HideTiles = Rule.GetKongTile(player.Hand)
+                        if len(HideTiles) > 0:
+                            tile = Tile.Str2Tile(tiles[0])
+                            if tile in HideTiles:
+                                player.KongMode = KongType.HIDE_KONG
+                                kong = tile
 
-                        #加槓
-                        elif len(tiles) == 1 and str(player.LastDraw) == tiles[0]:
-                            # 檢查是否加槓(外露塔有明碰)
-                            if Rule.CanAddKong(player.Melds, player.LastDraw):
-                                player.Actions = Action.ADD_KONG
-                                player.ConcealedKong = False
+                        # 明槓
+                        if Rule.CanKong(player.Hand, self.DeckRef.LastDiscard):
+                            player.KongMode = KongType.EXPOSED_KONG
+                            kong = self.DeckRef.LastDiscard
 
-                        player.LastKong = Tile.Str2Tile(tiles[0])
+                        # 摸槓
+                        elif Rule.CanKong(player.Hand, player.LastDraw):
+                            player.KongMode = KongType.DRAW_KONG
+                            kong = player.LastDraw
+
+                        # 加槓
+                        # 檢查是否加槓(外露塔有明碰)
+                        elif Rule.CanAddKong(player.Melds, player.LastDraw):
+                            player.KongMode = KongType.ADD_KONG
+                            kong = player.LastDraw
+
+                        player.LastKong = kong
                         player.Notify()
                         player.Wait()
 
-                        player.ConcealedKong = False
-
-                        # 不可清掉LastKong，是用來決定從死牆摸一張牌
-                        # player.LastKong = None
+                        player.LastKong = None
+                        player.KongMode = None
 
                         # 通知閒家，當前玩家暗槓/明槓的牌
                         for w in self.ActiveWind.Other():

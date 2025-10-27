@@ -9,9 +9,9 @@ from collections import Counter
 from threading import Thread, Event
 
 class Action(Enum):
-    HU = 5
-    KONG = 4
-    ADD_KONG = 3
+    HU = 4
+    KONG = 3
+    # ADD_KONG = 3
     PONG = 2
     CHOW = 1
     PASS = 0
@@ -19,6 +19,12 @@ class Action(Enum):
     DICE    = 10 # roll dice
     DRAWING = 11
     DISCARD = 12
+
+class KongType(Enum):
+    EXPOSED_KONG = 1 # 明槓
+    DRAW_KONG = 2    # 摸槓
+    HIDE_KONG = 3    # 暗槓
+    ADD_KONG = 4     # 加槓
 
 class Result(Enum):
     NONE = 0
@@ -57,7 +63,8 @@ class Player(Thread):
     LastDraw:Tile = None
     LastDiscard:Tile = None
     LastKong:Tile = None
-    ConcealedKong:bool = False
+    DrawFromEnd:bool = False
+    KongMode:KongType = None
 
     LastPong:Tile = None
     # 存放手牌預被吃成搭的2張牌
@@ -102,7 +109,8 @@ class Player(Thread):
         self.LastDiscard = None
         self.LastDraw = None
         self.LastKong = None
-        self.ConcealedKong = False
+        self.DrawFromEnd = False
+        self.KongMode = None
         self.LastPong = None
         self.LastChows = []
         self.LastHu = None
@@ -152,39 +160,41 @@ class Player(Thread):
                     case Action.KONG:
                         # 玩家進行槓牌
                         kong = self.LastKong
-                        # 明槓, 3 tiles in hand and 1 tile is DeckRef.LastDiscard
-                        if self.DeckRef.LastDiscard == kong:
-                            tiles = [kong]*(MELD.KONG_LEN.value-1)
-                            # 將手牌的槓搭複制進Meld list
-                            self.AddMeld(tiles+[kong], self.ConcealedKong)
-                            # 閒家丟出的牌被當前玩家拿去，則從棄牌區取回
-                            self.DeckRef.PickUPDiscardTile()
-                        # 摸槓, 3 tiles in hand and 1 tile is LastDraw
-                        elif self.LastDraw == kong:
-                            tiles = [kong]*(MELD.KONG_LEN.value-1)
-                            # 將手牌的槓搭複制進Meld list
-                            self.AddMeld(tiles+[kong], self.ConcealedKong)
-                        # 暗槓, 4 tiles in hand
-                        elif self.LastDraw != kong:
-                            tiles = [kong]*MELD.KONG_LEN.value
-                            # 將手牌的槓搭複制進Meld list
-                            self.AddMeld(tiles, self.ConcealedKong)
+                        tiles = []
 
-                        PrintLog(self.Name + ' 槓牌: ' + kong.toStr() + ", " + ",".join(Tile.List2StrList(tiles)))
+                        match self.KongMode:
+                            # 明槓, 3 tiles in hand and 1 tile is DeckRef.LastDiscard
+                            case KongType.EXPOSED_KONG:
+                                tiles.extend([kong]*(MELD.KONG_LEN.value-1))
+                                # 將手牌的槓搭複制進Meld list
+                                self.AddMeld(tiles+[kong], False)
+                                # 閒家丟出的牌被當前玩家拿去，則從棄牌區取回
+                                self.DeckRef.PickUPDiscardTile()
+                            # 摸槓, 3 tiles in hand and 1 tile is LastDraw
+                            case KongType.DRAW_KONG:
+                                tiles.extend([kong]*(MELD.KONG_LEN.value-1))
+                                # 將手牌的槓搭複制進Meld list
+                                self.AddMeld(tiles+[kong], True)
+                            # 暗槓, 4 tiles in hand
+                            case KongType.HIDE_KONG:
+                                tiles.extend([kong]*MELD.KONG_LEN.value)
+                                # 將手牌的槓搭複制進Meld list
+                                self.AddMeld(tiles, True)
+                            case KongType.ADD_KONG:
+                                # 將摸進的牌與碰塔組成加槓，然後清掉摸進的牌
+                                # 將明搭裡的碰搭變更成槓搭
+                                self.Pong2Kong(kong)
+                            case _:
+                                pass
+
+                        PrintLog(self.Name + f' 槓牌({self.KongMode.name}): ' + kong.toStr() + ", " + ",".join(Tile.List2StrList(tiles)))
 
                         # 清除手牌的槓搭
                         self.LastDraw = None
-                        self.RemoveTiles(tiles)
-                        # 下一步通知玩家摸一打一
-                        self.FinishEvent.set()
-                    case Action.ADD_KONG:
-                        # 將摸進的牌與碰塔組成加槓，然後清掉摸進的牌
-                        kong = self.LastDraw
-                        # 將明搭裡的碰搭變更成槓搭
-                        self.Pong2Kong(kong)
-                        PrintLog(self.Name + ' 加槓牌: ' + kong.toStr())
+                        if len(tiles):
+                            self.RemoveTiles(tiles)
 
-                        self.LastDraw = None
+                        self.DrawFromEnd = True
                         # 下一步通知玩家摸一打一
                         self.FinishEvent.set()
                     case Action.PONG:
@@ -232,11 +242,9 @@ class Player(Thread):
                         self.FinishEvent.set()
                     case Action.DRAWING:
                         # 玩家進行摸牌
-                        if self.LastKong != None:
-                            fromEnd = True
-                            self.LastKong = None
-                        else:
-                            fromEnd = False
+                        fromEnd = self.DrawFromEnd
+                        if self.DrawFromEnd:
+                            self.DrawFromEnd = False
 
                         tile = self.DeckRef.DrawWallTile(fromEnd)
                         if tile == None:

@@ -26,30 +26,41 @@ class Rule16:
 
     # 確認手牌是否可槓牌
     @staticmethod
-    def CanConcealKong(hand: list[Tile]) -> bool:
+    def CanConcealKong(hand: list[Tile], expect: Tile = None) -> bool:
         HandCounts = Counter(hand)
         for tile in HandCounts:
-            if HandCounts[tile] >= MELD.KONG_LEN.value:
+            if expect == None:
+                if HandCounts[tile] >= MELD.KONG_LEN.value:
+                    return True
+            else:
+                if HandCounts[tile] >= MELD.KONG_LEN.value and tile == expect:
+                    return True
+
+        return False
+
+    @staticmethod
+    def CanKong(hand: list[Tile], expect: Tile) -> bool:
+        if expect == None:
+            return False
+        HandCounts = Counter(hand)
+        for tile in HandCounts:
+            if HandCounts[tile] >= MELD.KONG_LEN.value-1 and tile == expect:
                 return True
         return False
 
     @staticmethod
-    def CanKong(hand: list[Tile], discard: Tile) -> bool:
-        HandCounts = Counter(hand)
-        for tile in HandCounts:
-            if HandCounts[tile] >= MELD.KONG_LEN.value-1 and tile == discard:
-                return True
-        return False
-
-    @staticmethod
-    def CanAddKong(melds: list[Meld], discard: Tile) -> bool:
+    def CanAddKong(melds: list[Meld], draw: Tile) -> bool:
+        if draw == None:
+            return False
         for meld in melds:
-            if meld.Type == MELD.PONG and discard in meld.Tiles:
+            if meld.Type == MELD.PONG and draw in meld.Tiles:
                 return True
         return False
 
     @staticmethod
     def CanPong(hand: list[Tile], discard: Tile) -> bool:
+        if discard == None:
+            return False
         HandCounts = Counter(hand)
         for tile in HandCounts:
             if HandCounts[tile] >= MELD.PONG_LEN.value-1 and tile == discard:
@@ -58,6 +69,8 @@ class Rule16:
 
     @staticmethod
     def CanChow(hand: list[Tile], discard: Tile) -> bool:
+        if discard == None:
+            return False
         if discard.IsHonor() or discard.IsFlower():
             return False
 
