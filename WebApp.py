@@ -32,7 +32,7 @@ class Web:
         self.app.route('/')(self.index)
         self.app.route('/desktop', methods=['POST'])(self.desktop)
 
-        self.socketio = SocketIO(self.app, async_mode='threading')
+        self.socketio = SocketIO(self.app, async_mode='threading', cors_allowed_origins='*')
         self.socketio.on_event('connect', self.OnConnect, namespace='/update')
         self.socketio.on_event('disconnect', self.OnDisconnect, namespace='/update')
         self.socketio.on_event('message', self.OnMessage, namespace='/update')
@@ -55,7 +55,7 @@ class Web:
 
     def RunWebApp(self):
         # use_reloader=False, avoid app run twice
-        self.socketio.run(self.app, port=80, debug=True, use_reloader=False)
+        self.socketio.run(self.app, host='0.0.0.0', port=80, debug=True, use_reloader=False)
 
     def WorkerTask(self):
         while not self.Exit:

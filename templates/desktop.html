@@ -24,7 +24,7 @@
 <script src="{{url_for('static', filename='jquery.js')}}"></script>
 <script>
   // var socket = io()
-  var socket = io('http://127.0.0.1/update');
+  var socket = io('http://' + window.location.hostname + '/update');
 
   // client-side
   socket.on("connect", () => {
