@@ -47,6 +47,7 @@ class Controller:
     # 處理活動玩家出牌之後其他閒家過牌(碰/槓/胡)，
     # 在Next決定輸誰活動時以先前出牌的人為主
     OldWind: WIND = None
+    CheckNext: bool = False
 
     DealerWind: WIND = WIND.EAST # 莊家風位
     RoundNum: int = 0 # 局數 (東南西北)
@@ -385,12 +386,14 @@ class Controller:
                         hand = self.GetHandAndOutHandDict(self.ActiveWind, self.ActiveWind)
                         self.Notify(hand)
 
+                        self.OldWind = None
                         self.StepAction = Step.DECIDE_WHOSE_TURN
                         self.StepEvent.set()
 
                     # C.2. 玩家出牌後，確認閒家(三人)手牌
                     case Step.DECIDE_WHOSE_TURN:
-                        self.ActiveWind = self.DecideWhoseTurn()
+                        self.ActiveWind = self.DecideWhoseTurn(self.CheckNext)
+                        self.CheckNext = False
 
                         # 通知所有玩家換誰進行活動
                         self.UpdatePlayerState()
@@ -407,26 +410,10 @@ class Controller:
                         }
                         self.Notify(action)
 
-                    case Step.WHOSE_NEXT_TURN:
-                        self.ActiveWind = self.DecideWhoseTurn(True)
-
-                        # 通知所有玩家換誰進行活動
-                        self.UpdatePlayerState()
-
-                        # 通知玩家進行動作
-                        player = self.Players[self.ActiveWind]
-                        state = self.ActionState[self.ActiveWind]
-                        # 玩家放棄胡牌，需等下一次打出牌後解除過水，才能再胡牌
-                        if state['hu'] and player.PassHu:
-                            state['hu'] = False
-                        action = {
-                            "notify":self.ActiveWind.name.lower(),
-                            "action_state":state
-                        }
-                        self.Notify(action)
 
                     case Step.CHECK_ROBBING_GONG:
-                        self.ActiveWind = self.CheckRobbingGong()
+                        self.ActiveWind = self.CheckRobbingGong(self.CheckNext)
+                        self.CheckNext = False
 
                         # 通知所有玩家換誰進行活動
                         self.UpdatePlayerState()
@@ -454,7 +441,13 @@ class Controller:
                             player.PassHu = True
 
                         self.Pass[self.ActiveWind] = True
-                        self.StepAction = Step.WHOSE_NEXT_TURN
+                        self.CheckNext = True
+
+                        # in add kong state
+                        if self.DeckRef.LastAddKong != None:
+                            self.StepAction = Step.CHECK_ROBBING_GONG
+                        else:
+                            self.StepAction = Step.DECIDE_WHOSE_TURN
                         self.StepEvent.set()
                     case Step.PLAYER_HU:
                         # 自摸/閒家放槍胡
@@ -553,20 +546,15 @@ class Controller:
 
                         # 通知所有玩家更新 手牌 和 外露牌 情況
                         self.UpdatePlayerHandState()
-                        player.LastKong = None
 
                         if player.KongMode == KongType.ADD_KONG:
-                            # self.StepAction = Step.PLAYER_CHECK_HU
+                            self.OldWind = None
+                            self.StepAction = Step.CHECK_ROBBING_GONG
+                        else:
+                            # 通知玩家從死牆摸一張牌(然後通知玩家打一張)
                             self.StepAction = Step.PLAYER_DRAW_NOTIFY
-                            player.KongMode = None
-                            # self.CheckRobbingGong()
-                            self.StepEvent.set()
-                            continue
-
                         player.KongMode = None
-
-                        # 通知玩家從死牆摸一張牌(然後通知玩家打一張)
-                        self.StepAction = Step.PLAYER_DRAW_NOTIFY
+                        player.LastKong = None
                         self.StepEvent.set()
                     case Step.PLAYER_PONG:
                         # {'player': 'east', 'action': 'pong', 'tiles': ['2S','2S']}
@@ -834,6 +822,7 @@ class Controller:
             if not self.Pass[w] and self.ActionState[w]['hu']:
                 return w
 
+        # 解除加槓後被搶槓胡
         # 加槓後，摸一打一
         self.ActionState[self.OldWind]['drawing'] = True
         self.DeckRef.LastAddKong = None
