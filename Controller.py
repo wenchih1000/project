@@ -30,6 +30,7 @@ class Step(Enum):
     PLAYER_CHOW = 16
     PLAYER_PASS = 17
 
+    TIMEOUT = 19 # 超時
     DRAW_GAME = 20 # 流局
     END_HAND = 25 # 一局
     END_ROUND = 26 # 一圈
@@ -64,8 +65,11 @@ class Controller:
     StepEvent = None
     StepWorker:Thread = None
     StepAction:Step = 0
+    DelayAction:Step = 0
 
     Msg:list = None
+    StartTime:float = 0
+    DelayTime:float = 0
 
     def __init__(self):
 
@@ -497,10 +501,8 @@ class Controller:
                                 self.Players[self.DealerWind].IsDealer = True
 
                         # delay to show message
-                        time.sleep(3)
+                        self.DelayRunAction(3, Step.END_HAND)
 
-                        self.StepAction = Step.END_HAND
-                        self.StepEvent.set()
                     case Step.PLAYER_KONG:
                         # 暗槓/明槓
                         # 明槓:{'player': 'east', 'action': 'kong', 'tiles': ['2S','2S','2S']}
@@ -585,11 +587,13 @@ class Controller:
                     case Step.PLAYER_PONG:
                         # {'player': 'east', 'action': 'pong', 'tiles': ['2S','2S']}
                         msg = self.Msg.pop()
-                        tile = msg['tiles'].pop()
+                        tiles = msg['tiles']
                         player = self.Players[self.ActiveWind]
                         player.Actions = Action.PONG
-                        # 碰閒家的牌放 player.LastPong
-                        player.LastPong = Tile.Str2Tile(tile)
+
+                        if Rule.CanPong(player.Hand, self.DeckRef.LastDiscard):
+                            player.LastPong = self.DeckRef.LastDiscard
+
                         player.Notify()
                         player.Wait()
                         player.LastPong = None
@@ -612,10 +616,10 @@ class Controller:
                         player = self.Players[self.ActiveWind]
                         player.Actions = Action.CHOW
                         # 吃上家的牌放 self.DeckRef.LastDiscard
-                        desir = Pair(Tile.Str2Tile(tiles[0]), Tile.Str2Tile(tiles[1]))
+                        desired = Pair(Tile.Str2Tile(tiles[0]), Tile.Str2Tile(tiles[1]))
                         pairs = Rule.GetChowTile(self.DeckRef.LastDiscard)
                         for pair in pairs:
-                            if pair == desir:
+                            if pair == desired:
                                 player.LastChows.extend(pair.ToList())
                                 break
 
@@ -633,6 +637,12 @@ class Controller:
 
                         # 通知玩家打一張牌
                         self.StepAction = Step.PLAYER_DISCARD_NOTIFY
+                        self.StepEvent.set()
+
+                    case Step.TIMEOUT:
+                        # 超時結算
+                        self.StepAction = self.DelayAction
+                        self.DelayAction  = 0
                         self.StepEvent.set()
 
                     # E. 流局結算
@@ -668,6 +678,15 @@ class Controller:
                         pass
             else:
                 time.sleep(0.1)
+                if self.StepAction == Step.TIMEOUT and time.time() - self.StartTime > self.DelayTime:
+                    self.StepEvent.set()
+                    print('timeout')
+
+    def DelayRunAction(self, delay:int, action:Step):
+        self.StepAction = Step.TIMEOUT
+        self.DelayTime = delay
+        self.DelayAction  = action
+        self.StartTime = time.time()
 
     def ResetGame(self):
         # 回收所有牌
