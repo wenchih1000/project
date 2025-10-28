@@ -473,6 +473,13 @@ class Controller:
                         else:
                             result = ('discard_win','draw_win')[player.LastDraw != None]
                         self.UpdateGameResult('win_game', result)
+
+                        #
+                        # * 計算胡牌台數
+                        # * 結算金額
+                        # * 通知玩家結果
+                        #
+
                         # round/wind count
 
                         if player.IsDealer:
@@ -605,6 +612,9 @@ class Controller:
                         player = self.Players[self.ActiveWind]
                         player.Actions = Action.CHOW
                         # 吃上家的牌放 self.DeckRef.LastDiscard
+                        # if Rule.CanChow(hand, self.DeckRef.LastDiscard):
+                        #     Rule.GetChowTile(self.DeckRef.LastDiscard)
+
                         player.LastChows = [Tile.Str2Tile(t) for t in tiles]
                         player.Notify()
                         player.Wait()

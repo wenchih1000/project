@@ -208,9 +208,6 @@ class Tile(object):
             return self.Name
 
     def __add__(self, num:int) -> 'Tile':
-        if num < self.NumMin:
-            num = self.NumMin
-
         val = self.Num + num
         if val > self.NumMax:
             val = self.NumMax
@@ -218,9 +215,6 @@ class Tile(object):
         return Tile({'suit':self.Suit, 'num':val})
 
     def __sub__(self, num:int) -> 'Tile':
-        if num < self.NumMin:
-            num = self.NumMin
-
         val = self.Num - num
         if val < self.NumMin:
             val = self.NumMin
@@ -411,6 +405,21 @@ class Meld:
                     hide.append(Tile.List2StrList(m.Tiles, show))
 
         return (meld, hide)
+
+class Pair:
+    Tile1: Tile = None
+    Tile2: Tile = None
+
+    def __init__(self, tile1: Tile, tile2: Tile):
+        self.Tile1 = tile1
+        self.Tile2 = tile2
+
+    def __eq__(self, other:'Pair') -> bool:
+        if isinstance(other, Pair):
+            return (self.Tile1 == other.Tile1 and self.Tile2 == other.Tile2) or (self.Tile1 == other.Tile2 and self.Tile2 == other.Tile1)
+        else:
+            return False
+
 # ------------------------------------------------------------------------------------------------
 # debug testing
 # ------------------------------------------------------------------------------------------------

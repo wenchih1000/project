@@ -86,22 +86,10 @@ class Rule16:
         if discard.IsHonor() or discard.IsFlower():
             return False
 
-        t1, t2 = None, None
-        # 邊張 1
-        if discard.Num == Tile.NumMin:
-            # 2 and 3, lack 1
-            t1, t2 = discard + 1, discard + 2
-        # 邊張 9
-        elif discard.Num == Tile.NumMax:
-            # 8 and 9, lack 9
-            t1, t2 = discard - 1, discard - 2
-        # 中洞
-        else:
-            # ex: 3 and 5, lack 4
-            t1, t2 = discard - 1, discard + 1
-
-        if t1 in hand and t2 in hand:
-            return True
+        pairs = Rule16.GetChowTile(discard)
+        for pair in pairs:
+            if pair.Tile1 in hand and pair.Tile2 in hand:
+                return True
         return False
 
     @staticmethod
@@ -120,6 +108,40 @@ class Rule16:
             if meld.Type == MELD.PONG:
                 tmp.append(meld.Tiles[0])
         return tmp
+
+    @staticmethod
+    def GetChowTile(discard: Tile) -> list[Pair]:
+        if discard == None:
+            return []
+        if discard.IsHonor() or discard.IsFlower():
+            return []
+
+        possible = []
+        # num 1 and num 9
+        if discard.Num == Tile.NumMin or discard.Num == Tile.NumMax:
+            if discard.Num == Tile.NumMin:
+                n1, n2 = 1, 2
+            else:
+                n1, n2 = -2, -1
+            t1, t2 = discard + n1, discard + n2
+            possible.append(Pair(t1, t2))
+        # num 2 and num 8
+        elif discard.Num == (Tile.NumMin + 1) or discard.Num == (Tile.NumMax - 1):
+            if discard.Num == (Tile.NumMin + 1):
+                n1, n2 = (-1, 1), (1, 2)
+            else:
+                n1, n2 = (-2, -1), (-1, 1)
+            for i in range(len(n1)):
+                t1, t2 = discard + n1[i], discard + n2[i]
+                possible.append(Pair(t1, t2))
+        # num 3 ~ num 7
+        else:
+            n1, n2 = (-2, -1, 1), (-1, 1, 2)
+            for i in range(len(n1)):
+                t1, t2 = discard + n1[i], discard + n2[i]
+                possible.append(Pair(t1, t2))
+
+        return possible
 
     # 確認手牌是否可胡牌
     @staticmethod
@@ -332,6 +354,14 @@ if __name__ == '__main__':
 
     # find all wait
     # rule = Rule16()
-    hand = Tile.Alias2Tile(["1萬","2萬","3萬","3索","3索","3索","6筒","7筒","東","東","東","南","南","南","中","中"])
-    ret = Rule16.FindAllWaits(hand)
-    PrintLog("聽牌:"+str(Tile.List2StrList(ret)))
+    # hand = Tile.Alias2Tile(["1萬","2萬","3萬","3索","3索","3索","6筒","7筒","東","東","東","南","南","南","中","中"])
+    # ret = Rule16.FindAllWaits(hand)
+    # PrintLog("聽牌:"+str(Tile.List2StrList(ret)))
+
+    tmp = ['1C', '2C', '3C', '4C', '5C', '6C', '7C', '8C', '9C']
+    for i in tmp:
+        t = Tile.Name2Tile(i)
+        tiles = Rule16.GetChowTile(t)
+        for j in tiles:
+            print(j.Tile1, j.Tile2)
+        print()

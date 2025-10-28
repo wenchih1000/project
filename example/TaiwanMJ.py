@@ -11,6 +11,56 @@ from Model import Rule16 as Rule
 # debug testing
 # ------------------------------------------------------------------------------------------------
 
+def GetChowTile2(discard: Tile) -> list[Pair]:
+    if discard == None:
+        return []
+    if discard.IsHonor() or discard.IsFlower():
+        return []
+
+    possible = []
+
+    t1, t2 = None, None
+    # num 1
+    if discard.Num == Tile.NumMin:
+        # 2 and 3, lack 1
+        t1, t2 = discard + 1, discard + 2
+        possible.append(Pair(t1, t2))
+    # num 9
+    elif discard.Num == Tile.NumMax:
+        # 8 and 9, lack 9
+        t1, t2 = discard - 1, discard - 2
+        possible.append(Pair(t1, t2))
+    # num 2
+    elif discard.Num == Tile.NumMin + 1:
+        # 1 and 3, lack 2
+        t1, t2 = discard - 1, discard + 1
+        possible.append(Pair(t1, t2))
+        # 3 and 4, lack 2
+        t1, t2 = discard + 1, discard + 2
+        possible.append(Pair(t1, t2))
+    # num 8
+    elif discard.Num == Tile.NumMax - 1:
+        # 7 and 9, lack 8
+        t1, t2 = discard - 1, discard + 1
+        possible.append(Pair(t1, t2))
+        # 6 and 7, lack 8
+        t1, t2 = discard - 2, discard - 1
+        possible.append(Pair(t1, t2))
+    # num 3 ~ num 7
+    else:
+        # ex: 3
+        # 2 and 4, lack 3
+        t1, t2 = discard - 1, discard + 1
+        possible.append(Pair(t1, t2))
+        # 1 and 2, lack 3
+        t1, t2 = discard - 2, discard - 1
+        possible.append(Pair(t1, t2))
+        # 4 and 5, lack 3
+        t1, t2 = discard + 1, discard + 2
+        possible.append(Pair(t1, t2))
+
+    return possible
+
 def DemoTiles():
     tiles = []
     times = 4
