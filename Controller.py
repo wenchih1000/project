@@ -612,10 +612,13 @@ class Controller:
                         player = self.Players[self.ActiveWind]
                         player.Actions = Action.CHOW
                         # 吃上家的牌放 self.DeckRef.LastDiscard
-                        # if Rule.CanChow(hand, self.DeckRef.LastDiscard):
-                        #     Rule.GetChowTile(self.DeckRef.LastDiscard)
+                        desir = Pair(Tile.Str2Tile(tiles[0]), Tile.Str2Tile(tiles[1]))
+                        pairs = Rule.GetChowTile(self.DeckRef.LastDiscard)
+                        for pair in pairs:
+                            if pair == desir:
+                                player.LastChows.extend(pair.ToList())
+                                break
 
-                        player.LastChows = [Tile.Str2Tile(t) for t in tiles]
                         player.Notify()
                         player.Wait()
                         player.LastChows.clear()

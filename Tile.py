@@ -414,6 +414,9 @@ class Pair:
         self.Tile1 = tile1
         self.Tile2 = tile2
 
+    def ToList(self) -> list[Tile]:
+        return [self.Tile1, self.Tile2]
+
     def __eq__(self, other:'Pair') -> bool:
         if isinstance(other, Pair):
             return (self.Tile1 == other.Tile1 and self.Tile2 == other.Tile2) or (self.Tile1 == other.Tile2 and self.Tile2 == other.Tile1)
