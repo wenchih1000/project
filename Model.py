@@ -57,6 +57,18 @@ class Rule16:
                 return True
         return False
 
+    # 使用時機，在抓牌後才檢查手牌是否可加槓
+    @staticmethod
+    def CanAddKongByHand(melds: list[Meld], hand: list[Tile]) -> bool:
+        # 取出可被加槓的pong牌
+        PongTile = Rule16.GetPongTile(melds)
+        # 檢查手牌中是否有與pong牌相同的牌
+        HandCounts = Counter(hand)
+        for tile in HandCounts:
+            if tile in PongTile:
+                return True
+        return False
+
     @staticmethod
     def CanPong(hand: list[Tile], discard: Tile) -> bool:
         if discard == None:
@@ -99,6 +111,14 @@ class Rule16:
         for tile in HandCounts:
             if HandCounts[tile] >= MELD.KONG_LEN.value:
                 tmp.append(tile)
+        return tmp
+
+    @staticmethod
+    def GetPongTile(melds: list[Meld]) -> list[Tile]:
+        tmp = []
+        for meld in melds:
+            if meld.Type == MELD.PONG:
+                tmp.append(meld.Tiles[0])
         return tmp
 
     # 確認手牌是否可胡牌

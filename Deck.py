@@ -89,11 +89,10 @@ class Deck:
                 # self.Wall[i*offset+12+j] = Tile.Str2Tile(alls[WIND.NORTH][con])
                 con += 1
 
-        # offset *= 4 
-        # con = 0
-        # for i in range(16):
-        #     self.Wall[offset+i] = Tile.Str2Tile(alls[WIND.SOUTH][con])
-        #     con += 1
+        tmp = ['5C','5C','5C','5C']
+        offset *= 4
+        for i in range(4):
+            self.Wall[offset+i] = Tile.Str2Tile(tmp[i])
 
     # 切牌
     # wind: Dealer wind index, scoe: Total score of 3 dices

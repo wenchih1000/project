@@ -25,6 +25,7 @@ class KongType(Enum):
     DRAW_KONG = 2    # 摸槓
     HIDE_KONG = 3    # 暗槓
     ADD_KONG = 4     # 加槓
+    ADD_EXPOSED_KONG = 5 # 加明槓
 
 class Result(Enum):
     NONE = 0
@@ -139,8 +140,12 @@ class Player(Thread):
                     case Action.HU:
                         # 暗胡(自摸) or 明胡(其他家放槍)
                         # 玩家進行胡牌
+
+                        # 搶槓胡
+                        if self.DeckRef.LastAddKong != None:
+                            self.LastHu = self.DeckRef.LastAddKong
                         # 自摸
-                        if self.LastDraw != None:
+                        elif self.LastDraw != None:
                             self.LastHu = self.LastDraw
                         # 其他家放槍
                         else:
@@ -182,8 +187,16 @@ class Player(Thread):
                                 tiles.extend([kong]*MELD.KONG_LEN.value)
                                 # 將手牌的槓搭複制進Meld list
                                 self.AddMeld(tiles, True)
+                            # 加槓, 3 tiles in melds and 1 tile is LastDraw
                             case KongType.ADD_KONG:
                                 # 將摸進的牌與碰塔組成加槓，然後清掉摸進的牌
+                                # 將明搭裡的碰搭變更成槓搭
+                                self.Pong2Kong(kong)
+                            case KongType.ADD_EXPOSED_KONG:
+                                #摸進牌先放進手牌裡
+                                self.SetHandTile([self.LastDraw])
+                                tiles.extend([kong])
+                                # 將手牌裡的牌與碰塔組成加槓，然後清掉手牌進的牌
                                 # 將明搭裡的碰搭變更成槓搭
                                 self.Pong2Kong(kong)
                             case _:

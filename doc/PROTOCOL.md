@@ -184,6 +184,7 @@
                     "hand":["3D", "4D", "5D", "6D", "7D", "8D", "3A"],
                     "drawed_win":"3A",
                     "discard_win":"",
+                    "rob_win":"",
                     "meld":[["1C", "2C", "3C"]],
                     "hide":[["9C","1X","1X","1X"], ["1W","1X","1X","1X"]],
                     "flower":["1G", "3G"]
@@ -199,6 +200,23 @@
                     "hand":["3D", "4D", "5D", "6D", "7D", "8D", "1A"],
                     "drawed_win":"",
                     "discard_win":"1A",
+                    "rob_win":"",
+                    "meld":[["1C", "2C", "3C"]],
+                    "hide":[["9C","1X","1X","1X"], ["1W","1X","1X","1X"]],
+                    "flower":["1G", "3G"]
+                }
+            ]
+        },
+        {   // 通知所有玩家搶槓胡牌情況
+            "notify":"all",
+            "hu_tiles":[
+                {
+                    "seat":"north",
+                    "discard_seat":"east",
+                    "hand":["3D", "4D", "5D", "6D", "7D", "8D", "1A"],
+                    "drawed_win":"",
+                    "discard_win":"",
+                    "rob_win":"1A",
                     "meld":[["1C", "2C", "3C"]],
                     "hide":[["9C","1X","1X","1X"], ["1W","1X","1X","1X"]],
                     "flower":["1G", "3G"]

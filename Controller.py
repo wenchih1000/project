@@ -171,10 +171,14 @@ class Controller:
         flower = Tile.List2StrList(player.Flowers)
         meld, hide = Meld.List2StrList(player.Melds)
 
-        DrawedWin, DiscardWin, DiscardSeat = '', '', ''
+        DrawedWin, DiscardWin, RobWin, DiscardSeat = '', '', '', ''
         # 自摸
         if player.LastDraw != None:
             DrawedWin = str(player.LastDraw)
+        # 搶槓胡
+        elif self.DeckRef.LastAddKong != None:
+            RobWin = str(self.DeckRef.LastAddKong)
+            DiscardSeat = self.DeckRef.LastWind.name.lower()
         # 放槍
         else:
             DiscardWin = str(self.DeckRef.LastDiscard)
@@ -190,6 +194,8 @@ class Controller:
                 "drawed_win":DrawedWin,
                 # 放槍
                 "discard_win":DiscardWin,
+                # 搶槓胡
+                "rob_win":RobWin,
                 "meld":meld,
                 "hide":hide,
                 "flower":flower
@@ -410,7 +416,6 @@ class Controller:
                         }
                         self.Notify(action)
 
-
                     case Step.CHECK_ROBBING_GONG:
                         self.ActiveWind = self.CheckRobbingGong(self.CheckNext)
                         self.CheckNext = False
@@ -422,8 +427,8 @@ class Controller:
                         player = self.Players[self.ActiveWind]
                         state = self.ActionState[self.ActiveWind]
                         # 玩家放棄胡牌，需等下一次打出牌後解除過水，才能再胡牌
-                        # if state['hu'] and player.PassHu:
-                        #     state['hu'] = False
+                        if state['hu'] and player.PassHu:
+                            state['hu'] = False
                         action = {
                             "notify":self.ActiveWind.name.lower(),
                             "action_state":state
@@ -463,7 +468,10 @@ class Controller:
                         self.Notify(hand)
 
                         # 通知所有玩家，此局結果
-                        result = ('discard_win','draw_win')[player.LastDraw != None]
+                        if self.DeckRef.LastAddKong != None:
+                            result = 'rob_win'
+                        else:
+                            result = ('discard_win','draw_win')[player.LastDraw != None]
                         self.UpdateGameResult('win_game', result)
                         # round/wind count
 
@@ -534,6 +542,17 @@ class Controller:
                             player.KongMode = KongType.ADD_KONG
                             kong = player.LastDraw
                             self.DeckRef.LastAddKong = kong
+                            self.DeckRef.LastWind = self.ActiveWind
+
+                        # 加明槓
+                        elif Rule.CanAddKongByHand(player.Melds, player.Hand):
+                            tile = Tile.Str2Tile(tiles[0])
+                            PongTile = Rule.GetPongTile(player.Melds)
+                            if tile in PongTile:
+                                player.KongMode = KongType.ADD_EXPOSED_KONG
+                                kong = tile
+                                self.DeckRef.LastAddKong = tile
+                                self.DeckRef.LastWind = self.ActiveWind
 
                         player.LastKong = kong
                         player.Notify()
@@ -547,7 +566,7 @@ class Controller:
                         # 通知所有玩家更新 手牌 和 外露牌 情況
                         self.UpdatePlayerHandState()
 
-                        if player.KongMode == KongType.ADD_KONG:
+                        if player.KongMode == KongType.ADD_KONG or player.KongMode == KongType.ADD_EXPOSED_KONG:
                             self.OldWind = None
                             self.StepAction = Step.CHECK_ROBBING_GONG
                         else:
@@ -725,9 +744,10 @@ class Controller:
         # 手牌中已有4張相同的牌
         CanConcealKong = Rule.CanConcealKong(hand)
         CanAddKong = Rule.CanAddKong(player.Melds, tile)
+        CanAddKongByHand = Rule.CanAddKongByHand(player.Melds, hand)
 
         self.ActionState[wind]['hu'] = CanHu
-        self.ActionState[wind]['kong'] = (CanKong or CanAddKong or CanConcealKong)
+        self.ActionState[wind]['kong'] = (CanKong or CanAddKong or CanAddKongByHand or CanConcealKong)
         self.ActionState[wind]['discard'] = True
 
     # 打出牌後，叫用DecideWhoseTurn()決定閒家優先權
