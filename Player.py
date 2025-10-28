@@ -80,9 +80,6 @@ class Player(Thread):
     # 檢查過水
     PassHu:bool = False
 
-    # 胡牌結算
-    Condition:HandCondition = None
-
     def __init__(self, name:str, wind:WIND, deck:Deck):
         super().__init__(name=wind.name)
         self.Name = name
@@ -96,7 +93,6 @@ class Player(Thread):
         self.ExitEvent = Event()
         self.ActionEvent = Event()
         self.FinishEvent = Event()
-        self.Condition = HandCondition()
         self.Reset()
 
     def Reset(self):
@@ -127,7 +123,6 @@ class Player(Thread):
         self.ActionResult = Result.NONE
         self.PassHu = False
 
-        self.Condition.Reset()
         self.EventClear()
 
     def run(self):

@@ -15,7 +15,7 @@ class HandCondition:
     IsLastTileDiscard: bool = False # 河底撈魚
     IsHeavenlyHand: bool = False    # 天胡
     IsWinningHand: bool = False     # 地胡
-    IsHumanlyHand: bool = False     # 人胡W
+    IsHumanlyHand: bool = False     # 人胡
     IsPlainHand: bool = False       # 平胡
 
     IsSingleWait: bool = False      # 獨聽/單吊 (1台)

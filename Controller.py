@@ -30,6 +30,8 @@ class Step(Enum):
     PLAYER_CHOW = 16
     PLAYER_PASS = 17
 
+    CALCULATE_SCORE = 18
+
     TIMEOUT = 19 # 超時
     DRAW_GAME = 20 # 流局
     END_HAND = 25 # 一局
@@ -39,6 +41,7 @@ class Step(Enum):
 # 負責串聯所有邏輯：管理回合、處理動作優先級 (吃/碰/槓/胡)
 # Game controller
 class Controller:
+    Condition = HandCondition()
     IsStart: bool = False
     Players: dict[WIND, Player] = {}
     DeckRef: Deck = None
@@ -323,6 +326,7 @@ class Controller:
                         }
                         self.Notify(action)
 
+                    # D.5. 摸牌流程
                     # 玩家決定進行摸牌動作
                     case Step.PLAYER_DRAW:
                         player = self.Players[self.ActiveWind]
@@ -371,6 +375,7 @@ class Controller:
                         }
                         self.Notify(action)
 
+                    # D.6. 出牌流程
                     # 玩家決定進行出牌動作
                     case Step.PLAYER_DISCARD:
                         # {'player': 'east', 'action': 'discard', 'tiles': ['2S']}
@@ -442,6 +447,8 @@ class Controller:
                     #
                     # 玩家決定進行 pass/hu/kong/pong/chow 動作
                     #
+
+                    # D.7. PASS流程
                     case Step.PLAYER_PASS:
                         state = self.ActionState[self.ActiveWind]
                         # 玩家放棄胡牌，需等下一次打出牌後解除過水，才能再胡牌
@@ -458,6 +465,8 @@ class Controller:
                         else:
                             self.StepAction = Step.DECIDE_WHOSE_TURN
                         self.StepEvent.set()
+
+                    # D 1.胡牌流程
                     case Step.PLAYER_HU:
                         # 自摸/閒家放槍胡
                         # {'player': 'east', 'action': 'hu'}
@@ -478,31 +487,10 @@ class Controller:
                             result = ('discard_win','draw_win')[player.LastDraw != None]
                         self.UpdateGameResult('win_game', result)
 
-                        #
-                        # * 計算胡牌台數
-                        # * 結算金額
-                        # * 通知玩家結果
-                        #
-
-                        # round/wind count
-
-                        if player.IsDealer:
-                            self.DealerNum += 1
-                        else:
-                            self.DealerNum = 0
-                            if self.DealerWind == WIND.NORTH:
-                                self.RoundWind = self.RoundWind.Next()
-                                self.DealerWind = WIND.EAST
-                            else:
-                                self.DealerWind = self.DealerWind.Next()
-                                for w in WIND:
-                                    self.Players[w].IsDealer = False
-                                # 換莊
-                                self.Players[self.DealerWind].IsDealer = True
-
                         # delay to show message
-                        self.DelayRunAction(3, Step.END_HAND)
+                        self.DelayRunAction(3, Step.CALCULATE_SCORE)
 
+                    # D.2 槓牌流程
                     case Step.PLAYER_KONG:
                         # 暗槓/明槓
                         # 明槓:{'player': 'east', 'action': 'kong', 'tiles': ['2S','2S','2S']}
@@ -584,6 +572,8 @@ class Controller:
                         player.KongMode = None
                         player.LastKong = None
                         self.StepEvent.set()
+
+                    # D.3 碰牌流程
                     case Step.PLAYER_PONG:
                         # {'player': 'east', 'action': 'pong', 'tiles': ['2S','2S']}
                         msg = self.Msg.pop()
@@ -609,6 +599,8 @@ class Controller:
                         # 通知玩家打一張牌
                         self.StepAction = Step.PLAYER_DISCARD_NOTIFY
                         self.StepEvent.set()
+
+                    # D.4 吃牌流程
                     case Step.PLAYER_CHOW:
                         # {'player': 'east', 'action': 'chow', 'tiles': ['1S','3S']}
                         msg = self.Msg.pop()
@@ -660,6 +652,46 @@ class Controller:
                         self.StepAction = Step.END_HAND
                         self.StepEvent.set()
 
+                    # D 1.* 計算胡牌台數
+                    case Step.CALCULATE_SCORE:
+
+                        # * 結算金額
+                        # * 通知玩家結果
+                        player = self.Players[self.ActiveWind]
+                        # 取出未明牌的Melds
+                        _, melds = Rule.CanHu(player.Hand)
+                        melds.extend(player.Melds)
+
+                        self.Condition.IsSingleWait=False
+                        self.Condition.IsEdgeWait=False
+                        self.Condition.IsCenterWait=True
+                        self.Condition.IsPairWait=False
+                        self.Condition.IsDealer = player.IsDealer
+                        self.Condition.IsSelfDraw = player.LastDraw != None
+                        self.Condition.DealerStreak = self.DealerNum
+                        self.Condition.SeatWind = player.Wind
+                        self.Condition.RoundWind = self.RoundWind
+                        self.Condition.SeatFlower = player.Wind
+
+                        # round/wind count
+
+                        if player.IsDealer:
+                            self.DealerNum += 1
+                        else:
+                            self.DealerNum = 0
+                            if self.DealerWind == WIND.NORTH:
+                                self.RoundWind = self.RoundWind.Next()
+                                self.DealerWind = WIND.EAST
+                            else:
+                                self.DealerWind = self.DealerWind.Next()
+                                for w in WIND:
+                                    self.Players[w].IsDealer = False
+                                # 換莊
+                                self.Players[self.DealerWind].IsDealer = True
+
+                        self.StepAction = Step.END_HAND
+                        self.StepEvent.set()
+
                     # 一局結束 (One Hand)
                     case Step.END_HAND:
                         self.EndHand()
@@ -698,6 +730,8 @@ class Controller:
         self.DeckRef.Reset()
 
         self.ActiveWind = self.DealerWind # 回合從莊家開始
+
+        self.self.Condition.Reset()
 
     # WebApp 通知 Controller
     # 4位client到齊，開桌
