@@ -175,8 +175,10 @@ class Player(Thread):
                                 tiles.extend([kong]*(MELD.KONG_LEN.value-1))
                                 # 將手牌的槓搭複制進Meld list
                                 self.AddMeld(tiles+[kong], True)
-                            # 暗槓, 4 tiles in hand
+                            # 暗槓, 4 tiles in hand and 1 tile is LastDraw
                             case KongType.HIDE_KONG:
+                                #摸進牌先放進手牌裡
+                                self.SetHandTile([self.LastDraw])
                                 tiles.extend([kong]*MELD.KONG_LEN.value)
                                 # 將手牌的槓搭複制進Meld list
                                 self.AddMeld(tiles, True)
@@ -270,7 +272,6 @@ class Player(Thread):
                         # 摸牌
                         if self.LastDraw != None:
                             #摸進牌先放進手牌裡
-                            draw = self.LastDraw
                             self.SetHandTile([self.LastDraw])
                             # 玩家決定出牌，最後放進 self.LastDiscard
                             self.LastDraw = None
