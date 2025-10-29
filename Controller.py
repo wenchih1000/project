@@ -718,7 +718,7 @@ class Controller:
                                 self.DealerWind = self.DealerWind.Next()
                                 action = Step.END_GAME
                             # END_ROUND
-                            if self.DealerWind == WIND.NORTH:
+                            elif self.DealerWind == WIND.NORTH:
                                 self.RoundWind = self.RoundWind.Next()
                                 self.DealerWind = self.DealerWind.Next()
                                 action = Step.END_ROUND
