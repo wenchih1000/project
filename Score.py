@@ -1,9 +1,6 @@
 from Tile import *
 from Model import *
 
-from dataclasses import dataclass
-# from collections import Counter
-
 # @dataclass
 class HandCondition:
     IsExposed: bool = False         # 標誌是否吃碰過
@@ -54,8 +51,9 @@ class HandCondition:
         self.IsSingleWait = False
         self.IsEdgeWait = False
         self.IsCenterWait = False
-
         self.IsPairWait = False
+        self.IsMultiWait = False
+
         self.SeatWind = None
         self.RoundWind = None
         self.DealerStreak = 0
@@ -444,6 +442,11 @@ class TaiScore:
             ScoreNameList.append(Name); Score += Name.Score
         if self.condition.IsRobbingGong:
             Name = TaiID.RobbingKong
+            ScoreNameList.append(Name); Score += Name.Score
+
+        # 屁胡
+        if Score == 0:
+            Name = TaiID.BaseHand
             ScoreNameList.append(Name); Score += Name.Score
 
         return Score, ScoreNameList
