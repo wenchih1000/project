@@ -388,12 +388,15 @@
 1. Server 傳送的JSON格式
 ```JSON
     {
-        "result":{
+        "score_result":{
             "player":"south",
             "hand":["3C", "4C", "5C", "3S", "4S", "5S", "6S", "7S", "8S", "4W", "4W", "4W", "2A", "2A", "2A", "1A", "1A"],
+            "meld":[["1C", "2C", "3C"]],
+            "hide":[["9C","1X","1X","1X"], ["1W","1X","1X","1X"]],
+            "flower":["1G", "3G"],
             "round_wind":"east",
             "dealer_wind":"east",
-            "win_type":"自摸",
+            "win_type":"draw_win",
             "dealer_num":3,
             "score_list":[
                 {"name":"三暗刻", "value":2},
@@ -414,15 +417,18 @@
         }
     }
 ```
-2. 結果(result)JSON參數說明
+2. 台數結果(score_result)JSON參數說明
 
 | 欄位 | 型別 | 說明 | 備註 |
 |:--|:--|:--|:--|
 | player | str | 胡牌玩家 | east, south, west, north |
 | hand | list [ str ] | 手牌 | 玩家胡的牌型 |
+| meld | list [ list [ str ] ] | 玩家的搭子 | 玩家外露的搭(吃/碰/槓) |
+| hide | list [ list [ str ] ] | 玩家暗槓 | 玩家暗槓的搭組 |
+| flower | list  [ str ] | 玩家花牌 |  |
 | round_wind | str | 局風位 | east, south, west, north |
 | dealer_wind | str | 莊家風位 | east, south, west, north |
-| win_type | str | 胡牌牌型 | self-drawn(自摸), discard-win(放槍) |
+| win_type | str | 胡牌牌型 | draw_win(自摸), discard_win(放槍), rob_win(搶槓胡) |
 | dealer_num | int | 第幾莊 | 莊家連莊 |
 | score_list | dict | 玩家胡牌台型 | name獲得的台型，value獲得的台數 |
 | total_score | int | 玩家獲得的總台數 | |

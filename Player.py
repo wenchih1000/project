@@ -1,6 +1,6 @@
 from Tile import *
 from Deck import *
-from Score import HandCondition
+
 # import Deck
 
 import time
@@ -135,16 +135,7 @@ class Player(Thread):
                     case Action.HU:
                         # 暗胡(自摸) or 明胡(其他家放槍)
                         # 玩家進行胡牌
-
-                        # 搶槓胡
-                        if self.DeckRef.LastAddKong != None:
-                            self.LastHu = self.DeckRef.LastAddKong
-                        # 自摸
-                        elif self.LastDraw != None:
-                            self.LastHu = self.LastDraw
-                        # 其他家放槍
-                        else:
-                            self.LastHu = self.DeckRef.LastDiscard
+                        self.LastHu = self.DeckRef.HuTile(self.LastDraw)
 
                         hu = self.LastHu
                         PrintLog(self.Name + ' 胡牌: ' + hu.toStr())

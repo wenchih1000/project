@@ -2,6 +2,7 @@ from Tile import *
 from Deck import Deck
 from Player import *
 from Model import Rule16 as Rule
+from Score import *
 
 from pubsub import pub as Publisher
 import json
@@ -210,6 +211,19 @@ class Controller:
         }
         return hand
 
+    def GetHuName(self) -> str:
+        player = self.Players[self.ActiveWind]
+
+        # 放槍
+        result = 'discard_win'
+        # 搶槓胡
+        if self.DeckRef.LastAddKong != None:
+            result = 'rob_win'
+        # 自摸
+        elif player.LastDraw != None:
+            result = 'draw_win'
+        return result
+
     def UpdateGameState(self):
         state = {
             "game_state":{
@@ -241,6 +255,36 @@ class Controller:
             }
         }
         self.Notify(data)
+
+    def UpdateScoreResult(self, result:list[ScoreName], score:int):
+        player = self.Players[self.ActiveWind]
+        hand = Tile.List2StrList(player.Hand)
+        flower = Tile.List2StrList(player.Flowers)
+        meld, hide = Meld.List2StrList(player.Melds)
+        win = self.GetHuName()
+
+        info = []
+        for tai in result:
+            info.append({"name":tai.Name, "value":tai.Score})
+
+        state = {
+            "score_result":{
+                "player":self.ActiveWind.name.lower(),
+                "hand":hand,
+                "meld":meld,
+                "hide":hide,
+                "flower":flower,
+                "round_wind":self.RoundWind.name.lower(),
+                "dealer_wind":self.DealerWind.name.lower(),
+                "win_type":win,
+                "dealer_num":self.DealerNum,
+                "score_list":info,
+                "total_score":score,
+                "before_money":[8000, 6000, 9000, 5000],
+                "after_money":[1000, 6000, 9000, 12000]
+            }
+        }
+        self.Notify(state)
 
     def UpdatePlayerHandState(self):
         # 通知閒家，當前玩家 暗槓/明槓,碰/吃 的牌
@@ -649,29 +693,17 @@ class Controller:
                             self.Notify(hand)
 
                         self.DealerNum += 1
-                        self.StepAction = Step.END_HAND
-                        self.StepEvent.set()
+
+                        # delay to show message
+                        self.DelayRunAction(5, Step.END_HAND)
 
                     # D 1.* 計算胡牌台數
                     case Step.CALCULATE_SCORE:
-
                         # * 結算金額
                         # * 通知玩家結果
-                        player = self.Players[self.ActiveWind]
-                        # 取出未明牌的Melds
-                        _, melds = Rule.CanHu(player.Hand)
-                        melds.extend(player.Melds)
+                        self.CalculateScore()
 
-                        self.Condition.IsSingleWait=False
-                        self.Condition.IsEdgeWait=False
-                        self.Condition.IsCenterWait=True
-                        self.Condition.IsPairWait=False
-                        self.Condition.IsDealer = player.IsDealer
-                        self.Condition.IsSelfDraw = player.LastDraw != None
-                        self.Condition.DealerStreak = self.DealerNum
-                        self.Condition.SeatWind = player.Wind
-                        self.Condition.RoundWind = self.RoundWind
-                        self.Condition.SeatFlower = player.Wind
+                        player = self.Players[self.ActiveWind]
 
                         # round/wind count
 
@@ -689,8 +721,8 @@ class Controller:
                                 # 換莊
                                 self.Players[self.DealerWind].IsDealer = True
 
-                        self.StepAction = Step.END_HAND
-                        self.StepEvent.set()
+                        # delay to show message
+                        self.DelayRunAction(5, Step.END_HAND)
 
                     # 一局結束 (One Hand)
                     case Step.END_HAND:
@@ -714,6 +746,81 @@ class Controller:
                     self.StepEvent.set()
                     print('timeout')
 
+    def CalculateScore(self):
+        player = self.Players[self.ActiveWind]
+        # 取出玩家胡的牌張
+        HuTile = self.DeckRef.HuTile(player.LastDraw)
+        # 搶槓胡
+        if self.DeckRef.LastAddKong != None:
+            self.Condition.IsRobbingGong = True
+        # 自模
+        elif player.LastDraw != None:
+            self.Condition.IsSelfDraw = True
+
+        # 取出玩家未明牌的Melds
+        _, melds = Rule.CanHu(player.Hand+[HuTile])
+
+        # 玩家胡牌所有的塔，包含眼塔 共5塔+1眼塔
+        AllMelds = []
+        AllMelds.extend(melds)
+        AllMelds.extend(player.Melds)
+
+        # 標誌是否吃碰明槓過
+        for m in player.Melds:
+            if m.Exposed:
+                self.Condition.IsExposed = True
+                break
+
+        # 檢查是否獨聽
+        WaitTiles = Rule.FindAllWaits(player.Hand)
+        if len(WaitTiles) == 1:
+            # 單吊
+            self.Condition.IsSingleWait = True
+
+            # 聽眼塔, ex:1 聽 1
+            for m in melds:
+                if m.Type == MELD.PAIR and m.Tiles[0] == HuTile:
+                    self.Condition.IsPairWait = True
+                    break
+
+            # 聽邊張 or 聽中洞(崁張)
+            if not self.Condition.IsPairWait and not HuTile.IsHonor():
+                for m in melds:
+                    # 數字牌, 且皆是順塔
+                    if m.Type == MELD.CHOW and HuTile in m.Tiles:
+                        # 聽邊張, ex: 1, 2 聽 3 or 8, 9 聽 7
+                        if HuTile.Num == 3 or HuTile.Num == 7:
+                            self.Condition.IsEdgeWait = True
+                            break
+                        # 聽中洞, ex:1, 3 聽 2
+                        if m.Tiles[1] == HuTile:
+                            self.Condition.IsCenterWait = True
+                            break
+        # 聽多洞
+        else:
+            # 聽兩面/對倒/複合聽
+            # ex:4, 5 聽 3 或 6 or 眼對 22, 55, 聽 2 或 5
+            self.Condition.IsMultiWait = True
+
+        self.Condition.IsDealer = player.IsDealer
+        self.Condition.DealerStreak = self.DealerNum
+        self.Condition.SeatWind = player.Wind
+        self.Condition.RoundWind = self.RoundWind
+        self.Condition.SeatFlower = player.Wind
+
+        classify = HandClassify(AllMelds, player.Flowers)
+        score = Score(classify, self.Condition)
+        total, breakdown = score.Calculate()
+        self.UpdateScoreResult(breakdown, total)
+
+        PrintLog("胡牌牌型:")
+        tmp = ""
+        for tai in breakdown:
+            tab = '\t\t' if len(tai.Name) <= 3 else '\t'
+            tmp += f"\t{tai.Name}{tab}{tai.Score}台\n"
+        PrintLog(tmp)
+        PrintLog(f"總台數: {total} 台")
+
     def DelayRunAction(self, delay:int, action:Step):
         self.StepAction = Step.TIMEOUT
         self.DelayTime = delay
@@ -731,7 +838,7 @@ class Controller:
 
         self.ActiveWind = self.DealerWind # 回合從莊家開始
 
-        self.self.Condition.Reset()
+        self.Condition.Reset()
 
     # WebApp 通知 Controller
     # 4位client到齊，開桌

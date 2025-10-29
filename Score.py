@@ -21,8 +21,10 @@ class HandCondition:
     IsSingleWait: bool = False      # 獨聽/單吊 (1台)
     IsEdgeWait: bool = False        # 邊張 (1台)
     IsCenterWait: bool = False      # 中洞/崁張 (1台)
+    IsPairWait: bool = False        # 眼張
 
-    IsPairWait: bool = False        # 兩面聽/對倒/複合聽 (通常不計台，是平胡的必要條件)
+    IsMultiWait: bool = False       # 多聽 兩面聽/對倒/複合聽 (通常不計台，是平胡的必要條件)
+
     # 風台
     SeatWind: WIND = None           # 玩家門風台 (1:東 2:南 3:西 4:北)
     RoundWind: WIND = None          # 圈風台     (1:東 2:南 3:西 4:北)

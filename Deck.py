@@ -168,6 +168,19 @@ class Deck:
     def PickUPDiscardTile(self) -> Tile:
         return self.Discard[self.LastWind].pop()
 
+    def HuTile(self, lastdraw:Tile) -> Tile:
+        LastHu = None
+        # 搶槓胡
+        if self.LastAddKong != None:
+            LastHu = self.LastAddKong
+        # 自摸
+        elif lastdraw != None:
+            LastHu = lastdraw
+        # 其他家放槍
+        else:
+            LastHu = self.LastDiscard
+        return LastHu
+
     # 當局結束時，回收玩家手牌
     def FlushTiles(self, handTiles:dict) -> bool:
         # handTiles: {
