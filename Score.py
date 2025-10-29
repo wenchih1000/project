@@ -71,15 +71,21 @@ class HandCondition:
 # 胡牌至少5組(順/刻/槓搭)+1組(對搭) = 6 Meld
 class HandClassify:
     Pair: Meld = None           #   1組對子/眼
-    Pongs: list[Meld]   = []    # 0~n組碰子/刻
-    Kongs: list[Meld]   = []    # 0~n組槓子/槓
-    Chows: list[Meld]   = []    # 0~n組吃子/順
-    Flowers: list[Tile] = []    # 0~n張花牌
+    Pongs: list[Meld]   = None    # 0~n組碰子/刻
+    Kongs: list[Meld]   = None    # 0~n組槓子/槓
+    Chows: list[Meld]   = None    # 0~n組吃子/順
+    Flowers: list[Tile] = None    # 0~n張花牌
 
     IsValid:bool = True
     MeldLen = 5
 
     def __init__(self, melds:tuple[Meld], flowers:tuple[Tile]):
+        self.Pair = None
+        self.Pongs = []
+        self.Kongs = []
+        self.Chows = []
+        self.Flowers = []
+
         for meld in melds:
             if meld.Type == MELD.PAIR:
                 self.Pair = meld
@@ -96,7 +102,6 @@ class HandClassify:
             self.IsValid = False
         if len(self.Pongs) + len(self.Kongs) + len(self.Chows) < self.MeldLen:
             self.IsValid = False
-
 
 #
 # 定義台數
@@ -195,7 +200,7 @@ class TaiID:
     def GetScoreName(name:ScoreName, tileName:str) -> ScoreName:
         return ScoreName(name.Name, name.Score, tileName)
 
-class Score:
+class TaiScore:
     classify:HandClassify = None 
     condition:HandCondition = None
 
@@ -506,7 +511,7 @@ if __name__ == '__main__':
     condition.RoundWind=WIND.SOUTH  # 南 圈風
     condition.SeatFlower=WIND.SOUTH # 蘭 正花
 
-    score = Score(classify, condition)
+    score = TaiScore(classify, condition)
     total, breakdown = score.Calculate()
     PrintLog("胡牌牌型:")
     tmp = ""

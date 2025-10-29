@@ -809,7 +809,7 @@ class Controller:
         self.Condition.SeatFlower = player.Wind
 
         classify = HandClassify(AllMelds, player.Flowers)
-        score = Score(classify, self.Condition)
+        score = TaiScore(classify, self.Condition)
         total, breakdown = score.Calculate()
         self.UpdateScoreResult(breakdown, total)
 
