@@ -1,4 +1,5 @@
 import binascii
+import threading
 from flask import Flask, render_template, request, jsonify
 from flask_socketio import SocketIO, disconnect
 from flask_cors import CORS
@@ -21,6 +22,7 @@ class Web:
     Exit = False
 
     ctrl:Controller = None
+    lock = threading.Lock()
     ClientFullEvent = Event()
     ClientMaxNum = 4
 
@@ -152,6 +154,8 @@ class Web:
 
     # @app.route('/desktop', methods=['POST'])
     def desktop(self):
+        self.lock.acquire()
+
         if 'name' not in request.values or 'avatar' not in request.values:
             return render_template('index.html')
 
@@ -237,6 +241,9 @@ class Web:
 
         if len(self.clients) >= self.ClientMaxNum and not self.ctrl.IsStart:
             self.ClientFullEvent.set()
+        self.lock.release()
+
+    # client disconnect
 
     # @socketio.on('disconnect', namespace='/update')
     def OnDisconnect(self):
