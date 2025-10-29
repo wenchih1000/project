@@ -525,10 +525,8 @@ class Controller:
                         self.Notify(hand)
 
                         # 通知所有玩家，此局結果
-                        if self.DeckRef.LastAddKong != None:
-                            result = 'rob_win'
-                        else:
-                            result = ('discard_win','draw_win')[player.LastDraw != None]
+                        result = self.GetHuName()
+
                         self.UpdateGameResult('win_game', result)
 
                         # delay to show message
@@ -756,6 +754,21 @@ class Controller:
         # 自模
         elif player.LastDraw != None:
             self.Condition.IsSelfDraw = True
+
+        ActionLen, MLen = 0, 0
+        for p in self.Players.values():
+            MLen +=len(p.Melds)
+        ActionLen += MLen
+        for t in self.DeckRef.Discard.values():
+            ActionLen += len(t)
+
+        # 莊家起手 17 張牌已胡牌
+        if player.IsDealer and self.Condition.IsSelfDraw and ActionLen == 0 and self.DeckRef.LastDiscard == None:
+            self.Condition.IsHeavenlyHand = True
+        elif not player.IsDealer and not self.Condition.IsSelfDraw and ActionLen == 0 and self.DeckRef.LastDiscard != None:
+            self.Condition.IsHumanlyHand = True
+        elif not player.IsDealer and self.Condition.IsSelfDraw and MLen == 0:
+            self.Condition.IsEarthlyHand = True
 
         # 取出玩家未明牌的Melds
         _, melds = Rule.CanHu(player.Hand+[HuTile])

@@ -11,7 +11,8 @@ class HandCondition:
     IsLastTileDraw: bool = False    # 海底自摸
     IsLastTileDiscard: bool = False # 河底撈魚
     IsHeavenlyHand: bool = False    # 天胡
-    IsWinningHand: bool = False     # 地胡
+    IsEarthlyHand: bool = False     # 地胡
+    # IsWinningHand: bool = False     # 地胡
     IsHumanlyHand: bool = False     # 人胡
     IsPlainHand: bool = False       # 平胡
 
@@ -43,7 +44,7 @@ class HandCondition:
         self.IsLastTileDraw = False
         self.IsLastTileDiscard = False
         self.IsHeavenlyHand = False
-        self.IsWinningHand = False
+        self.IsEarthlyHand = False
         self.IsHumanlyHand = False
         self.CanHumanlyHand = False
         self.IsPlainHand = False
@@ -237,14 +238,14 @@ class TaiScore:
         # --- A. 極致牌型 (最高層級，可能需互斥或包含) ---
 
         # 天胡/地胡/人胡 (24台/16台，最高優先)
-        if self.condition.IsHeavenlyHand:
+        if self.condition.IsHeavenlyHand and self.condition.IsDealer:
             # 天胡
-            if self.condition.IsDealer:
-                Name = TaiID.HeavenlyHand
-            # 地胡
-            else:
-                Name = TaiID.EarthlyHand
-
+            Name = TaiID.HeavenlyHand
+            ScoreNameList.append(Name); Score = Name.Score
+            return Score, ScoreNameList
+        # 地胡 16台
+        elif self.condition.IsEarthlyHand and not self.condition.IsDealer:
+            Name = TaiID.EarthlyHand
             ScoreNameList.append(Name); Score = Name.Score
             return Score, ScoreNameList
         # 人胡 16台
