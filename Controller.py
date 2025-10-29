@@ -704,23 +704,38 @@ class Controller:
                         player = self.Players[self.ActiveWind]
 
                         # round/wind count
-
+                        # D.1.* 若是莊家胡牌則連莊次數+1，否則連莊次數歸零
+                        action = Step.END_HAND
+                        # 玩家繼續當莊
                         if player.IsDealer:
                             self.DealerNum += 1
+                        # 莊家換人
                         else:
                             self.DealerNum = 0
+                            # END_GAME
+                            if self.RoundWind == WIND.NORTH and self.DealerWind == WIND.NORTH:
+                                self.RoundWind = self.RoundWind.Next()
+                                self.DealerWind = self.DealerWind.Next()
+                                action = Step.END_GAME
+                            # END_ROUND
                             if self.DealerWind == WIND.NORTH:
                                 self.RoundWind = self.RoundWind.Next()
-                                self.DealerWind = WIND.EAST
+                                self.DealerWind = self.DealerWind.Next()
+                                action = Step.END_ROUND
+                            # END_HAND
                             else:
                                 self.DealerWind = self.DealerWind.Next()
-                                for w in WIND:
+                                action = Step.END_HAND
+
+                            # 換莊
+                            for w in WIND:
+                                if w == self.DealerWind:
+                                    self.Players[w].IsDealer = True
+                                else:
                                     self.Players[w].IsDealer = False
-                                # 換莊
-                                self.Players[self.DealerWind].IsDealer = True
 
                         # delay to show message
-                        self.DelayRunAction(5, Step.END_HAND)
+                        self.DelayRunAction(5, action)
 
                     # 一局結束 (One Hand)
                     case Step.END_HAND:
@@ -729,7 +744,8 @@ class Controller:
                         self.StepEvent.set()
                     # 一圈結束 (One Round)
                     case Step.END_ROUND:
-                        self.StepAction = Step.START_GAME
+                        self.EndHand()
+                        self.StepAction = Step.ROLL_DICE_NOTIFY
                         self.StepEvent.set()
                     # 一雀結束 (One Game)
                     case Step.END_GAME:
@@ -755,20 +771,23 @@ class Controller:
         elif player.LastDraw != None:
             self.Condition.IsSelfDraw = True
 
-        ActionLen, MLen = 0, 0
+        ActionLen, DiscardLen, MLen = 0, 0, 0
         for p in self.Players.values():
             MLen +=len(p.Melds)
-        ActionLen += MLen
         for t in self.DeckRef.Discard.values():
-            ActionLen += len(t)
+            DiscardLen += len(t)
+        ActionLen = MLen + DiscardLen
 
-        # 莊家起手 17 張牌已胡牌
+        # 莊家起手第 17 張牌已胡牌
         if player.IsDealer and self.Condition.IsSelfDraw and ActionLen == 0 and self.DeckRef.LastDiscard == None:
             self.Condition.IsHeavenlyHand = True
+        # 閒家起手第 17 張牌已胡牌且首輪內無任何人吃/碰/槓
+        elif not player.IsDealer and self.Condition.IsSelfDraw and MLen == 0 and DiscardLen < len(WIND):
+            self.Condition.IsEarthlyHand = True
+        # 閒家胡莊家打出的第 1 張牌
         elif not player.IsDealer and not self.Condition.IsSelfDraw and ActionLen == 0 and self.DeckRef.LastDiscard != None:
             self.Condition.IsHumanlyHand = True
-        elif not player.IsDealer and self.Condition.IsSelfDraw and MLen == 0:
-            self.Condition.IsEarthlyHand = True
+
 
         # 取出玩家未明牌的Melds
         _, melds = Rule.CanHu(player.Hand+[HuTile])
