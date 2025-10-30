@@ -74,6 +74,7 @@ class Controller:
     Msg:list = None
     StartTime:float = 0
     DelayTime:float = 0
+    IsDrawGame:bool = False
 
     def __init__(self):
 
@@ -379,11 +380,11 @@ class Controller:
 
                         # C.3. 牌牆區已空 或 死牆區16張已空
                         if ret == Result.WALL_EMPTY or ret == Result.DEAD_WALL_EMPTY:
-                            self.StepAction = Step.DRAW_GAME
                             # 通知所有玩家牌牆已空，流局結算
                             result = ('dead_wall_empty','wall_empty')[ret == Result.WALL_EMPTY]
                             self.UpdateGameResult('draw_game', result)
-                            self.StepEvent.set()
+                            # self.StepAction = Step.DRAW_GAME
+                            self.DelayRunAction(5, Step.DRAW_GAME)
                             continue
 
                         hand = self.GetHandDict(self.ActiveWind)
@@ -689,8 +690,7 @@ class Controller:
                             hand = self.GetHandAndOutHandDict(w)
                             self.Notify(hand)
 
-                        self.DealerNum += 1
-
+                        self.IsDrawGame = True
                         # delay to show message
                         self.DelayRunAction(5, Step.END_HAND)
 
@@ -700,50 +700,20 @@ class Controller:
                         # * 通知玩家結果
                         self.CalculateScore()
 
-                        player = self.Players[self.ActiveWind]
-
-                        # round/wind count
-                        # D.1.* 若是莊家胡牌則連莊次數+1，否則連莊次數歸零
-                        action = Step.END_HAND
-                        # 玩家繼續當莊
-                        if player.IsDealer:
-                            self.DealerNum += 1
-                        # 莊家換人
-                        else:
-                            self.DealerNum = 0
-                            # END_GAME
-                            if self.RoundWind == WIND.NORTH and self.DealerWind == WIND.NORTH:
-                                self.RoundWind = self.RoundWind.Next()
-                                self.DealerWind = self.DealerWind.Next()
-                                action = Step.END_GAME
-                            # END_ROUND
-                            elif self.DealerWind == WIND.NORTH:
-                                self.RoundWind = self.RoundWind.Next()
-                                self.DealerWind = self.DealerWind.Next()
-                                action = Step.END_ROUND
-                            # END_HAND
-                            else:
-                                self.DealerWind = self.DealerWind.Next()
-                                action = Step.END_HAND
-
-                            # 換莊
-                            for w in WIND:
-                                if w == self.DealerWind:
-                                    self.Players[w].IsDealer = True
-                                else:
-                                    self.Players[w].IsDealer = False
-
                         # delay to show message
-                        self.DelayRunAction(5, action)
+                        self.DelayRunAction(5, Step.END_HAND)
 
                     # 一局結束 (One Hand)
                     case Step.END_HAND:
                         self.EndHand()
-                        self.StepAction = Step.ROLL_DICE_NOTIFY
+                        action = self.NextHand()
+                        if action == Step.END_ROUND or action == Step.END_GAME:
+                            self.StepAction = action
+                        else:
+                            self.StepAction = Step.ROLL_DICE_NOTIFY
                         self.StepEvent.set()
                     # 一圈結束 (One Round)
                     case Step.END_ROUND:
-                        self.EndHand()
                         self.StepAction = Step.ROLL_DICE_NOTIFY
                         self.StepEvent.set()
                     # 一雀結束 (One Game)
@@ -867,8 +837,6 @@ class Controller:
         self.DeckRef.FlushTiles(hands) # 清空所有牌堆
         self.DeckRef.Reset()
 
-        self.ActiveWind = self.DealerWind # 回合從莊家開始
-
         self.Condition.Reset()
 
     # WebApp 通知 Controller
@@ -927,9 +895,52 @@ class Controller:
             hand = self.GetOutHandDict(player.Wind, showhide=False)
             self.Notify(hand)
 
+    def NextHand(self) -> Step:
+        player = self.Players[self.ActiveWind]
+
+        # 臭莊
+        if self.IsDrawGame:
+            self.DealerNum += 1
+            self.IsDrawGame = False
+            return Step.END_HAND
+
+        # count next the round wind and wind seat
+        # D.1.* 若是莊家胡牌則連莊次數+1，否則連莊次數歸零
+        action = Step.END_HAND
+        # 玩家繼續當莊
+        if player.IsDealer:
+            self.DealerNum += 1
+        # 莊家換人
+        else:
+            self.DealerNum = 0
+            # END_GAME
+            if self.RoundWind == WIND.NORTH and self.DealerWind == WIND.NORTH:
+                self.RoundWind = self.RoundWind.Next()
+                self.DealerWind = self.DealerWind.Next()
+                action = Step.END_GAME
+            # END_ROUND
+            elif self.DealerWind == WIND.NORTH:
+                self.RoundWind = self.RoundWind.Next()
+                self.DealerWind = self.DealerWind.Next()
+                action = Step.END_ROUND
+            # END_HAND
+            else:
+                self.DealerWind = self.DealerWind.Next()
+                action = Step.END_HAND
+
+            # 換莊
+            for w in WIND:
+                if w == self.DealerWind:
+                    self.Players[w].IsDealer = True
+                else:
+                    self.Players[w].IsDealer = False
+
+        # 下局從莊家開始
+        self.ActiveWind = self.DealerWind
+        return action
+
     def EndHand(self):
         self.ResetGame()
-
 
     # CheckHandState()決定當前玩家下一步的動作
     # 處理動作優先級 (胡牌/槓牌/出牌)
