@@ -245,7 +245,10 @@ class Player(Thread):
                         # 玩家進行摸牌
                         fromEnd = self.DrawFromEnd
                         if self.DrawFromEnd:
+                            self.DeckRef.DrawByKong = True
                             self.DrawFromEnd = False
+                        else:
+                            self.DeckRef.DrawByKong = False
 
                         tile = self.DeckRef.DrawWallTile(fromEnd)
                         if tile == None:
@@ -257,11 +260,14 @@ class Player(Thread):
                         self.LastDraw = tile
                         if tile.IsFlower():
                             ret = self.DeckRef.PatchFlower(self)
+                            self.DeckRef.DrawByFlower = True
                             if not ret:
                                 self.ActionResult = Result.DEAD_WALL_EMPTY
                                 PrintLog(self.Name + ' 死牆區沒牌可以摸了！')
                                 self.FinishEvent.set()
                                 continue
+                        else:
+                            self.DeckRef.DrawByFlower = False
 
                         PrintLog(self.Name + ' 摸牌: ' + self.LastDraw.toStr())
                         self.FinishEvent.set()

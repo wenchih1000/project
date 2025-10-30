@@ -34,6 +34,10 @@ class Deck:
     #放槍牌
     DiscardWin:Tile = None
 
+    DrawByKong:bool = False
+    DrawByFlower:bool = False
+
+
     def __init__(self):
         # initial all tiles
         times = 4
@@ -55,6 +59,8 @@ class Deck:
         self.LastAddKong = None
         #放槍牌
         self.DiscardWin = None
+        self.DrawByFlower = False
+        self.DrawByKong = False
 
     def RollDice(self) -> list[int]:
         for i in range(self.DICE_NUM):

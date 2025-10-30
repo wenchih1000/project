@@ -738,10 +738,13 @@ class Controller:
         HuTile = self.DeckRef.HuTile(player.LastDraw)
         # 搶槓胡
         if self.DeckRef.LastAddKong != None:
-            self.Condition.IsRobbingGong = True
+            self.Condition.IsRobbingKong = True
         # 自模
         elif player.LastDraw != None:
             self.Condition.IsSelfDraw = True
+            # 因槓牌或摸花補牌後自摸胡牌
+            if self.DeckRef.DrawByFlower or self.DeckRef.DrawByKong:
+                self.Condition.IsKongOnFlower = True
 
         ActionLen, DiscardLen, MLen = 0, 0, 0
         for p in self.Players.values():

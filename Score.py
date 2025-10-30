@@ -6,8 +6,8 @@ class HandCondition:
     IsExposed: bool = False         # 標誌是否吃碰過
     IsDealer: bool = False          # 莊家
     IsSelfDraw: bool = False        # 自摸
-    IsRobbingGong: bool = False     # 搶槓胡牌
-    IsGongOnFlower: bool = False    # 槓上開花
+    IsRobbingKong: bool = False     # 搶槓胡牌
+    IsKongOnFlower: bool = False    # 槓上開花
     IsLastTileDraw: bool = False    # 海底自摸
     IsLastTileDiscard: bool = False # 河底撈魚
     IsHeavenlyHand: bool = False    # 天胡
@@ -39,8 +39,8 @@ class HandCondition:
         self.IsExposed = False
         self.IsDealer = False
         self.IsSelfDraw = False
-        self.IsRobbingGong = False
-        self.IsGongOnFlower = False
+        self.IsRobbingKong = False
+        self.IsKongOnFlower = False
         self.IsLastTileDraw = False
         self.IsLastTileDiscard = False
         self.IsHeavenlyHand = False
@@ -435,13 +435,13 @@ class TaiScore:
                     ScoreNameList.append(Name); Score += Name.Score
 
         # 額外事件台 (已在前面計算，這裡是為了保持邏輯完整性)
-        if self.condition.IsGongOnFlower:
+        if self.condition.IsKongOnFlower:
             Name = TaiID.KongOnFlower
             ScoreNameList.append(Name); Score += Name.Score
         if self.condition.IsLastTileDraw:
             Name = TaiID.LastTileDraw
             ScoreNameList.append(Name); Score += Name.Score
-        if self.condition.IsRobbingGong:
+        if self.condition.IsRobbingKong:
             Name = TaiID.RobbingKong
             ScoreNameList.append(Name); Score += Name.Score
 
