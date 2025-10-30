@@ -153,6 +153,10 @@ class Deck:
                 return None
             return self.Wall.pop(0) # 從牌頭摸牌
 
+    def IsWallEmpty(self) -> bool:
+        """檢查牌牆是否為空。"""
+        return len(self.Wall) == 0
+
     def CheckDeadWallCanGang(self) -> bool:
         """檢查是否還有嶺上牌可補。"""
         return len(self.DeadWall) > 0

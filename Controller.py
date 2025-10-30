@@ -730,7 +730,7 @@ class Controller:
                 time.sleep(0.1)
                 if self.StepAction == Step.TIMEOUT and time.time() - self.StartTime > self.DelayTime:
                     self.StepEvent.set()
-                    print('timeout')
+                    PrintLog('timeout')
 
     def CalculateScore(self):
         player = self.Players[self.ActiveWind]
@@ -745,6 +745,14 @@ class Controller:
             # 因槓牌或摸花補牌後自摸胡牌
             if self.DeckRef.DrawByFlower or self.DeckRef.DrawByKong:
                 self.Condition.IsKongOnFlower = True
+            # 摸牌牆最後一張牌自摸胡牌
+            if self.DeckRef.IsWallEmpty():
+                self.Condition.IsLastTileDraw = True
+        # 放槍
+        else:
+            # 胡別人打出的最後一張牌
+            if self.DeckRef.IsWallEmpty():
+                self.Condition.IsLastTileDiscard = True
 
         ActionLen, DiscardLen, MLen = 0, 0, 0
         for p in self.Players.values():
@@ -762,7 +770,6 @@ class Controller:
         # 閒家胡莊家打出的第 1 張牌
         elif not player.IsDealer and not self.Condition.IsSelfDraw and ActionLen == 0 and self.DeckRef.LastDiscard != None:
             self.Condition.IsHumanlyHand = True
-
 
         # 取出玩家未明牌的Melds
         _, melds = Rule.CanHu(player.Hand+[HuTile])
