@@ -163,11 +163,19 @@ class Deck:
 
     def DrawDeadWallTile(self) -> Tile:
         """從牌尾（死牌區）補一張牌 (Draw from the dead wall)。"""
-        if len(self.DeadWall) <= 0:
-            PrintLog("死牌區已空，無法補牌。")
+        if self.IsWallEmpty():
+            PrintLog("牆牌區已空，無法補牌。")
             return None
+        # if len(self.DeadWall) <= 0:
+        #     PrintLog("死牌區已空，無法補牌。")
+        #     return None
+
         # 槓牌補牌通常是從牌尾取牌，所以我們從 dead_wall 的最右邊 pop()
-        return self.DeadWall.pop()
+        tile = self.DeadWall.pop()
+        # 從牆牌尾取牌補到死牌首張
+        # 死牌區保持16張牌
+        self.DeadWall.insert(0, self.Wall.pop())
+        return tile
 
     # 放置玩家的棄牌
     def DiscardTile(self, wind:WIND, tile:Tile):
