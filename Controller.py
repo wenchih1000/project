@@ -14,7 +14,7 @@ class Step(Enum):
     PLAYER_SEAT = 2
     ROLL_DICE_NOTIFY = 3
     ROLL_DICE = 4
-    START_ROUND = 5
+    START_HAND = 5
 
     PLAYER_DRAW_NOTIFY = 6
     PLAYER_DRAW = 7
@@ -346,11 +346,10 @@ class Controller:
 
                         self.UpdateGameState()
                         PrintLog("state:" + str(state))
-                        self.StepAction = Step.START_ROUND
-                        self.StepEvent.set()
+                        self.DelayRunAction(5, Step.START_HAND)
 
-                    case Step.START_ROUND:
-                        self.StartRound()
+                    case Step.START_HAND:
+                        self.StartHand()
                         self.StepAction = Step.PLAYER_DRAW_NOTIFY
                         self.StepEvent.set()
 
@@ -897,7 +896,7 @@ class Controller:
         self.StepAction = Step.PLAYER_SEAT
         self.StepEvent.set()
 
-    def StartRound(self):
+    def StartHand(self):
         # 1. 洗牌
         self.DeckRef.Shuffle()
 
