@@ -82,6 +82,9 @@ class Web:
 
                 self.ClientUpdate(talk, cid)
 
+                if 'disconnect' in talk:
+                    self.ClientDisconnect()
+
             # client full and start game
             if self.ClientFullEvent.is_set():
                 info = {}
@@ -142,6 +145,11 @@ class Web:
         for info in self.clients.values():
             tmp.append(info)
         return tmp
+
+    def ClientDisconnect(self):
+        for client in self.clients.values():
+            self.socketio.server.disconnect(client['sid'], '/update')
+        self.clients.clear()
 
     #
     # route function

@@ -718,7 +718,10 @@ class Controller:
                         self.StepEvent.set()
                     # 一雀結束 (One Game)
                     case Step.END_GAME:
-                        self.Exit = True
+                        # 通知 web app 中斷 client連線
+                        # self.Exit = True
+                        self.IsStart = False
+                        self.Notify({'disconnect':True})
                         self.StepAction = Step.INIT
                         self.StepEvent.set()
                     case _:
