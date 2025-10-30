@@ -373,19 +373,26 @@ class Controller:
                     # D.5. 摸牌流程
                     # 玩家決定進行摸牌動作
                     case Step.PLAYER_DRAW:
+                        # C.3. 牌牆區已空
+                        if self.DeckRef.IsWallEmpty():
+                            # 通知所有玩家牌牆已空，流局結算
+                            self.UpdateGameResult('draw_game', 'wall_empty')
+                            self.DelayRunAction(5, Step.DRAW_GAME)
+                            continue
+
                         player = self.Players[self.ActiveWind]
                         player.Actions = Action.DRAWING
                         player.Notify()
                         ret = player.Wait()
 
-                        # C.3. 牌牆區已空 或 死牆區16張已空
-                        if ret == Result.WALL_EMPTY or ret == Result.DEAD_WALL_EMPTY:
-                            # 通知所有玩家牌牆已空，流局結算
-                            result = ('dead_wall_empty','wall_empty')[ret == Result.WALL_EMPTY]
-                            self.UpdateGameResult('draw_game', result)
-                            # self.StepAction = Step.DRAW_GAME
-                            self.DelayRunAction(5, Step.DRAW_GAME)
-                            continue
+                        # # C.3. 牌牆區已空 或 死牆區16張已空
+                        # if ret == Result.WALL_EMPTY or ret == Result.DEAD_WALL_EMPTY:
+                        #     # 通知所有玩家牌牆已空，流局結算
+                        #     result = ('dead_wall_empty','wall_empty')[ret == Result.WALL_EMPTY]
+                        #     self.UpdateGameResult('draw_game', result)
+                        #     # self.StepAction = Step.DRAW_GAME
+                        #     self.DelayRunAction(5, Step.DRAW_GAME)
+                        #     continue
 
                         hand = self.GetHandDict(self.ActiveWind)
                         # 通知玩家摸到的牌
