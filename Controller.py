@@ -239,6 +239,7 @@ class Controller:
         state = {
             "game_result":{
                 "state":state,
+                "wall":self.DeckRef.RemainingWallTiles(),
                 "result":result
             }
         }
@@ -612,6 +613,8 @@ class Controller:
                         player.Actions = Action.DRAWING
                         player.Notify()
                         ret = player.Wait()
+                        # 通知所有剩餘牌牆數
+                        self.UpdateGameResult('waiting', 'ok')
 
                         # # C.3. 牌牆區已空 或 死牆區16張已空
                         # if ret == Result.WALL_EMPTY or ret == Result.DEAD_WALL_EMPTY:
@@ -932,6 +935,9 @@ class Controller:
         for i in range(len(WIND)):
             self.Players[wind].ReplaceFlowers()
             wind = wind.Prev()
+
+        # 通知所有剩餘牌牆數
+        self.UpdateGameResult('waiting', 'ok')
 
         # B.7. 通知玩家開局手牌/外露牌
         for player in self.Players.values():

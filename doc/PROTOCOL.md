@@ -79,6 +79,7 @@
             },
             "game_result":{
                 "state":"running", // running, waiting, draw_game, win_game, end_game
+                "wall":69,
                 "result":"wall_empty" // dead_wall_empty
             }
         },
@@ -248,7 +249,8 @@
 | 欄位 | 型別 | 說明 | 備註 |
 |:--|:--|:--|:--|
 | state | str | 遊戲狀態 | running, waiting, draw_game, win_game, end_game |
-| result | str | 遊戲結果 | wall_empty, dead_wall_empty, draw_win, discard_win |
+| wall | int | 牌牆剩餘張數 | |
+| result | str | 遊戲結果 | ok, wall_empty, dead_wall_empty, draw_win, discard_win |
 
 3. 活動狀態(action_state)JSON參數說明
 

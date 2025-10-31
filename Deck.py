@@ -157,6 +157,9 @@ class Deck:
         """檢查牌牆是否為空。"""
         return len(self.Wall) == 0
 
+    def RemainingWallTiles(self) -> int:
+        return len(self.Wall)
+
     def CheckDeadWallCanGang(self) -> bool:
         """檢查是否還有嶺上牌可補。"""
         return len(self.DeadWall) > 0

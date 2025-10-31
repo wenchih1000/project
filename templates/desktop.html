@@ -341,6 +341,12 @@
             $('#dice_score').text(state["dice_score"].join(", "));
             $('#message').text(getName(state["current_player"]) + " 進行中")
             break;
+          case 'game_result':
+            // {'game_result': {'"state":"running", "wall":69, "result":"ok"}
+            result = msg.data["game_result"];
+            // $('#result').text(result["result"]);
+            $('#wall').text(result["wall"]);
+            break;
           case 'player_state':
             // "player_state":{"whoes_turn":"north","action":"drawing"}
             state = msg.data["player_state"];
@@ -450,7 +456,7 @@
   玩家名稱:<label id="name"></label>
   座位:<label id="seat"></label><br>
   骰子:<label id="dice_score"></label><br>
-
+  剩餘牌張:<label id="wall"></label><br>
   <!-- <table id="player" hidden> -->
   <table id="player">
     <tr>

@@ -57,7 +57,7 @@ class Web:
 
     def RunWebApp(self):
         # use_reloader=False, avoid app run twice
-        self.socketio.run(self.app, host='0.0.0.0', port=80, debug=True, use_reloader=False)
+        self.socketio.run(self.app, host='0.0.0.0', port=80, debug=False, use_reloader=False)
 
     def WorkerTask(self):
         while not self.Exit:
