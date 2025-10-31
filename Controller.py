@@ -104,11 +104,9 @@ class Controller:
         self.StepWorker.daemon = True
         self.StepWorker.start()
 
-    def Seat(self, name:str) -> str:
-        for w, p in self.Players.items():
-            if p.Name == name:
-                return w.name.lower()
-        return ''
+    #
+    # Protocol communication
+    #
 
     def GetHandAndOutHandDict(self, wind:WIND, notify:WIND = None) -> dict:
         #
@@ -246,6 +244,21 @@ class Controller:
         }
         self.Notify(state)
 
+    def UpdateActionState(self, state:str):
+        action = {
+            "notify":self.ActiveWind.name.lower(),
+            "action_state":state
+        }
+        self.Notify(action)
+
+    def UpdatePlayerSeat(self):
+        seat = {
+            "player_seat":{"east":"","south":"","west":"","north":""}
+        }
+        for w, p in self.Players.items():
+            seat["player_seat"][w.name.lower()] = p.Name
+        self.Notify(seat)
+
     def UpdatePlayerState(self, action:str = ''):
         # 通知所有玩家換誰進行活動
         data = {
@@ -308,6 +321,10 @@ class Controller:
                 hand = self.GetOutHandDict(self.DeckRef.LastWind, notify=w, showhide=False)
                 self.Notify(hand)
 
+    #
+    # Process Step Flow
+    #
+
     def StepFlow(self):
         while not self.Exit:
             if self.StepEvent.is_set():
@@ -331,13 +348,7 @@ class Controller:
                     # B.3. 通知玩家自已的風位
                     case Step.PLAYER_SEAT_NOTIFY:
                         # 通知玩家自已的風位
-                        seat = {
-                            "player_seat":{"east":"","south":"","west":"","north":""}
-                        }
-                        for w, p in self.Players.items():
-                            seat["player_seat"][w.name.lower()] = p.Name
-                        self.Notify(seat)
-
+                        self.UpdatePlayerSeat()
                         self.StepAction = Step.PLAYER_ROLL_DICE_NOTIFY
                         self.StepEvent.set()
 
@@ -349,11 +360,7 @@ class Controller:
                         self.ClearActionState(self.ActiveWind)
                         state = self.ActionState[self.ActiveWind]
                         state['dice'] = True
-                        action = {
-                            "notify":self.ActiveWind.name.lower(),
-                            "action_state":state
-                        }
-                        self.Notify(action)
+                        self.UpdateActionState(state)
 
                     # B.5~7. 開局5~7流程
                     case Step.START_HAND:
@@ -370,12 +377,7 @@ class Controller:
                         self.ClearActionState(self.ActiveWind)
                         state = self.ActionState[self.ActiveWind]
                         state['drawing'] = True
-
-                        action = {
-                            "notify":self.ActiveWind.name.lower(),
-                            "action_state":state
-                        }
-                        self.Notify(action)
+                        self.UpdateActionState(state)
 
                     # 進行碰/吃後，通知玩家出牌
                     case Step.PLAYER_DISCARD_NOTIFY:
@@ -385,12 +387,7 @@ class Controller:
                         self.ClearActionState(self.ActiveWind)
                         state = self.ActionState[self.ActiveWind]
                         state['discard'] = True
-
-                        action = {
-                            "notify":self.ActiveWind.name.lower(),
-                            "action_state":state
-                        }
-                        self.Notify(action)
+                        self.UpdateActionState(state)
 
                     # C.2. 玩家出牌後，確認閒家(三人)手牌
                     case Step.DECIDE_WHOSE_TURN:
@@ -406,11 +403,7 @@ class Controller:
                         # 玩家放棄胡牌，需等下一次打出牌後解除過水，才能再胡牌
                         if state['hu'] and player.PassHu:
                             state['hu'] = False
-                        action = {
-                            "notify":self.ActiveWind.name.lower(),
-                            "action_state":state
-                        }
-                        self.Notify(action)
+                        self.UpdateActionState(state)
 
                     case Step.CHECK_ROBBING_GONG:
                         self.ActiveWind = self.CheckRobbingGong(self.CheckNext)
@@ -425,11 +418,7 @@ class Controller:
                         # 玩家放棄胡牌，需等下一次打出牌後解除過水，才能再胡牌
                         if state['hu'] and player.PassHu:
                             state['hu'] = False
-                        action = {
-                            "notify":self.ActiveWind.name.lower(),
-                            "action_state":state
-                        }
-                        self.Notify(action)
+                        self.UpdateActionState(state)
 
                     #
                     # 玩家決定進行 roll dice/hu/kong/pong/chow/draw/discard/pass 動作
@@ -644,11 +633,7 @@ class Controller:
 
                         # 通知玩家進行動作
                         state = self.ActionState[self.ActiveWind]
-                        action = {
-                            "notify":self.ActiveWind.name.lower(),
-                            "action_state":state
-                        }
-                        self.Notify(action)
+                        self.UpdateActionState(state)
 
                     # D.6. 出牌流程
                     # 玩家決定進行出牌動作
@@ -741,6 +726,7 @@ class Controller:
                         else:
                             self.StepAction = Step.PLAYER_ROLL_DICE_NOTIFY
                         self.StepEvent.set()
+
                     # 一圈結束 (One Round)
                     case Step.END_ROUND:
                         self.StepAction = Step.PLAYER_ROLL_DICE_NOTIFY
@@ -878,13 +864,20 @@ class Controller:
         for wind, player in self.Players.items():
             hands[wind] = player.ReturnAllTile()
             player.Reset()
-        self.DeckRef.FlushTiles(hands) # 清空所有牌堆
-        self.DeckRef.Reset()
 
+         # 清空所有牌堆
+        self.DeckRef.FlushTiles(hands)
+        self.DeckRef.Reset()
         self.Condition.Reset()
 
+    def Seat(self, name:str) -> str:
+        for w, p in self.Players.items():
+            if p.Name == name:
+                return w.name.lower()
+        return ''
+
     # WebApp 通知 Controller
-    ## A. 遊戲準備階段
+    # A. 遊戲準備階段
     # A.1. 等待加入遊戲人數
     # A.2. 滿4人自動進入牌桌
     def StartGame(self, names:dict[int,str]):
