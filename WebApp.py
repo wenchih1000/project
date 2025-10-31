@@ -147,13 +147,13 @@ class Web:
         return tmp
 
     def ClientDisconnect(self):
-        for client in self.clients.values():
-            try:
+        try:
+            for client in self.clients.values():
                 # self.socketio.server.disconnect(client['sid'], '/update')
                 with self.app.app_context():
                     disconnect(client['sid'], '/update')
-            except:
-                pass
+        except:
+            pass
         self.clients.clear()
 
     #

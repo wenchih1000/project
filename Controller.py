@@ -1012,6 +1012,7 @@ class Controller:
 
     def SetStop(self):
         self.IsStart = False
+        self.ResetGame()
 
     # WebApp 通知 Controller
     # A. 遊戲準備階段
