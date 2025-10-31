@@ -744,7 +744,7 @@ class Controller:
                         # 此局為臭莊，連莊次數+1
 
                         # 通知所有玩家，把所有牌都翻開
-                        for w in len(WIND):
+                        for w in WIND:
                             hand = self.GetHandAndOutHandDict(w)
                             self.Notify(hand)
 
@@ -1009,6 +1009,9 @@ class Controller:
             if p.Name == name:
                 return w.name.lower()
         return ''
+
+    def SetStop(self):
+        self.IsStart = False
 
     # WebApp 通知 Controller
     # A. 遊戲準備階段

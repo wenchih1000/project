@@ -148,9 +148,12 @@ class Web:
 
     def ClientDisconnect(self):
         for client in self.clients.values():
-            # self.socketio.server.disconnect(client['sid'], '/update')
-            with self.app.app_context():
-                disconnect(client['sid'], '/update')
+            try:
+                # self.socketio.server.disconnect(client['sid'], '/update')
+                with self.app.app_context():
+                    disconnect(client['sid'], '/update')
+            except:
+                pass
         self.clients.clear()
 
     #
@@ -259,6 +262,17 @@ class Web:
     def OnDisconnect(self):
         # sometime onconnect will be call before ondisconnect.
         PrintLog(f"Client {request.sid} on_disconnected.")
+        # self.ctrl.EndGame()
+        for key, client in self.clients.items():
+            # self.socketio.server.disconnect(client['sid'], '/update')
+            if request.sid == client['sid']:
+                with self.app.app_context():
+                    disconnect(client['sid'], '/update')
+                self.clients.pop(key)
+                break
+        if len(self.clients) > 0:
+            self.ctrl.SetStop()
+            self.ClientDisconnect()
 
 def StartWebApp():
     # run on the main thread only
