@@ -332,10 +332,10 @@ class Controller:
                     case Step.PLAYER_SEAT_NOTIFY:
                         # 通知玩家自已的風位
                         seat = {
-                            "PLAYER_SEAT_NOTIFY":{"east":"","south":"","west":"","north":""}
+                            "player_seat":{"east":"","south":"","west":"","north":""}
                         }
                         for w, p in self.Players.items():
-                            seat["PLAYER_SEAT_NOTIFY"][w.name.lower()] = p.Name
+                            seat["player_seat"][w.name.lower()] = p.Name
                         self.Notify(seat)
 
                         self.StepAction = Step.PLAYER_ROLL_DICE_NOTIFY
