@@ -96,6 +96,13 @@
                 "action":"drawing"
             }
         },
+        {   // 通知所有玩家, 當前玩家活動在做什麼動作
+            "notify":"all",
+            "player_state":{
+                "whoes_turn":"north",
+                "action":"flower"
+            }
+        },
         {   // 通知所有玩家手牌情況
             "notify":"all",
             "hand_tiles":[
@@ -261,7 +268,7 @@
 | 欄位 | 型別 | 說明 | 備註 |
 |:--|:--|:--|:--|
 | whoes_turn | str | 當前回合的玩家 | east, south, west, north |
-| action | str | 正在做的事 | dice, drawing, discard, hu, kong, pong, chow, pass |
+| action | str | 正在做的事 | dice, drawing, discard, hu, kong, pong, chow, pass, flower(補花) |
 
 5. 通知玩家(notify)JSON參數說明
 

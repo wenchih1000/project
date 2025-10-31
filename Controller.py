@@ -622,6 +622,10 @@ class Controller:
                         #     self.DelayRunAction(5, Step.DRAW_GAME)
                         #     continue
 
+                        # 摸到花牌(自動補牌)，通知所有玩家
+                        if self.DeckRef.DrawByFlower:
+                            self.UpdatePlayerState('flower')
+
                         hand = self.GetHandDict(self.ActiveWind)
                         # 通知玩家摸到的牌
                         self.Notify(hand)

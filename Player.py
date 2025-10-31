@@ -259,6 +259,7 @@ class Player(Thread):
 
                         self.LastDraw = tile
                         if tile.IsFlower():
+                            PrintLog(self.Name + ' 摸進花牌: ' + tile.toStr())
                             ret = self.DeckRef.PatchFlower(self)
                             self.DeckRef.DrawByFlower = True
                             if not ret:

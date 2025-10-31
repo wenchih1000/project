@@ -344,7 +344,7 @@
           case 'player_state':
             // "player_state":{"whoes_turn":"north","action":"drawing"}
             state = msg.data["player_state"];
-            data = {'dice':"擲骰子", 'drawing':"摸牌", 'discard':"出牌", 'hu':"胡牌", 'kong':"槓牌", 'pong':"碰牌", 'chow':"吃牌", 'pass':"跳過"}
+            data = {'dice':"擲骰子", 'drawing':"摸牌", 'discard':"出牌", 'hu':"胡牌", 'kong':"槓牌", 'pong':"碰牌", 'chow':"吃牌", 'pass':"跳過", 'flower':"補花"}
             action = state["action"] == "" ? "中" : data[state["action"]];
             $('#message').text(getName(state["whoes_turn"]) + " 進行 " + action)
             break;
