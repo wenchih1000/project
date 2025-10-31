@@ -444,7 +444,7 @@ class Controller:
 
                         self.UpdateGameState()
                         PrintLog("state:" + str(state))
-                        self.DelayRunAction(5, Step.START_HAND)
+                        self.DelayRunAction(3, Step.START_HAND)
 
                     # D 1.胡牌流程
                     case Step.PLAYER_HU:
