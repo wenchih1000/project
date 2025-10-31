@@ -625,6 +625,14 @@ class Controller:
                         # 摸到花牌(自動補牌)，通知所有玩家
                         if self.DeckRef.DrawByFlower:
                             self.UpdatePlayerState('flower')
+                            # 通知所有玩家，當前玩家摸到的花牌
+                            for w in self.ActiveWind.Other():
+                                hand = self.GetOutHandDict(self.ActiveWind, notify=w, showhide=False)
+                                self.Notify(hand)
+
+                            # 通知當前玩家 外露牌 情況
+                            hand = self.GetOutHandDict(self.ActiveWind, self.ActiveWind)
+                            self.Notify(hand)
 
                         hand = self.GetHandDict(self.ActiveWind)
                         # 通知玩家摸到的牌
@@ -918,7 +926,12 @@ class Controller:
         for key,val in handTiles.items():
             self.Players[key].SetHandTile(val)
 
-        self.DeckRef.ReplaceFlowers(self.Players)
+        # 順抓逆打:玩家逆向打牌，順向從牆牌抓牌
+        # 莊家開始，逆時針 (0:東 -> 3:北 -> 2:西 -> 1:南)
+        wind = WIND.EAST
+        for i in range(len(WIND)):
+            self.Players[wind].ReplaceFlowers()
+            wind = wind.Prev()
 
         # B.7. 通知玩家開局手牌/外露牌
         for player in self.Players.values():

@@ -1,8 +1,6 @@
 from Tile import *
 from Deck import *
 
-# import Deck
-
 import time
 from enum import Enum
 from collections import Counter
@@ -11,7 +9,6 @@ from threading import Thread, Event
 class Action(Enum):
     HU = 4
     KONG = 3
-    # ADD_KONG = 3
     PONG = 2
     CHOW = 1
     PASS = 0
@@ -260,7 +257,7 @@ class Player(Thread):
                         self.LastDraw = tile
                         if tile.IsFlower():
                             PrintLog(self.Name + ' 摸進花牌: ' + tile.toStr())
-                            ret = self.DeckRef.PatchFlower(self)
+                            ret = self.PatchFlower()
                             self.DeckRef.DrawByFlower = True
                             if not ret:
                                 self.ActionResult = Result.DEAD_WALL_EMPTY
@@ -371,6 +368,105 @@ class Player(Thread):
 
         PrintLog(f"玩家 {self.Wind.name} 摸到{count}張花牌：{[i.toStr() for i in tmp]}")
         return tmp
+
+    # 開局發牌給玩家完時叫用
+    def ReplaceFlowers(self) -> bool:
+        """
+        執行完整的補花程序，直到所有玩家手牌中不再有花牌。
+        """
+
+        # 順抓逆打:玩家逆向打牌，順向從牆牌抓牌
+        # 莊家 (Player 0) 開始，逆時針 (0:東 -> 3:北 -> 2:西 -> 1:南)
+        PrintLog("--- 開始補花程序 ---")
+
+        # 使用迴圈迭代，直到所有玩家的本輪補花都結束且沒有新花牌
+        while True:
+            # 標記本輪是否有玩家補到了新的花牌
+            # new flower drawn in this round
+            IsFlower = False
+
+            # 玩家逆時針補花 (0:東 -> 3:北 -> 2:西 -> 1:南)
+    
+            # 1. 檢查並從手牌中移除花牌 (第一次或補牌後)
+            # num of flowers to replace
+            FlowerList = self.CheckFlowers()
+
+            # 2. 執行補牌 num to draw based on the num of flower tiles
+            NumDraw = len(FlowerList)
+            if NumDraw > 0:
+                PrintLog(f"玩家 {self.Name} 需要補 {NumDraw} 張牌。")
+
+                for i in range(NumDraw):
+                    try:
+                        NewTile = self.DeckRef.DrawDeadWallTile()
+                        self.SetHandTile([NewTile])
+
+                        # 檢查補到的牌是否又是花牌
+                        if NewTile.IsFlower():
+                            IsFlower = True
+                            PrintLog(f"   --> 補到新花牌：{NewTile.toStr()} (將於下輪處理)")
+                        else:
+                            # player.LastDraw = NewTile
+                            PrintLog(f"   --> 補到牌：{NewTile.toStr()}")
+
+                    except IndexError:
+                        PrintLog("!!! 錯誤：死牌區已空，無法補牌。遊戲將流局。")
+                        return False
+
+            # 如果本輪沒有任何玩家補到新的花牌，則補花程序結束
+            if not IsFlower:
+                break
+
+            PrintLog("\n--> 偵測到有玩家補到新的花牌，進行下一輪補花...")
+        PrintLog("--- 補花程序完成 ---")
+        return True
+
+    def PatchFlower(self) -> bool:
+        """
+        執行單一張牌的補花程序，直到所有玩家手牌中不再有花牌。
+        """
+
+        # 順抓逆打:玩家逆向打牌，順向從牆牌抓牌
+        PrintLog("--- 開始補花程序 ---")
+
+        # 使用迴圈迭代，直到所有玩家的本輪補花都結束且沒有新花牌
+        while True:
+            # 標記本輪是否有玩家補到了新的花牌
+            # new flower drawn in this round
+            IsFlower = False
+            if not self.LastDraw.IsFlower():
+                return False
+
+            # 1. 檢查並從手牌中移除花牌 (第一次或補牌後)
+            tile = self.LastDraw
+            self.SetFlowerTile(tile)
+
+            # 2. 執行補牌
+            PrintLog(f"玩家 {self.Name} 需要補 1 張牌。")
+            try:
+                NewTile = self.DeckRef.DrawDeadWallTile()
+                if NewTile == None:
+                    return False
+                self.LastDraw = NewTile
+
+                # 檢查補到的牌是否又是花牌
+                if NewTile.IsFlower():
+                    IsFlower = True
+                    PrintLog(f"   --> 補到新花牌：{NewTile.toStr()} (將於下輪處理)")
+                else:
+                    PrintLog(f"   --> 補到牌：{NewTile.toStr()}")
+
+            except IndexError:
+                PrintLog("!!! 錯誤：死牌區已空，無法補牌。遊戲將流局。")
+                return False
+
+            # 如果本輪沒有任何玩家補到新的花牌，則補花程序結束
+            if not IsFlower:
+                break
+
+            PrintLog("\n--> 偵測到玩家補到新的花牌，進行下一輪補花...")
+        PrintLog("--- 補花程序完成 ---")
+        return True
 
     def HandCounts(self) -> Counter:
         return Counter(self.Hand)
