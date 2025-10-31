@@ -411,15 +411,27 @@
             clearTiles('top');
             clearTiles('bottom');
             // update hand tiles to Tiles table
-            hand = msg.data['hand_tiles'][0]['hand']
+            hand = msg.data['hand_tiles'][0]['hand'];
             console.log("hand size:" + hand.length);
             for (const i in hand)
             {
               $("#Tiles tr:eq(1) td:eq("+i+")").text(hand[i]);
             }
             // update drawed tile to drawed cell
-            drawed = msg.data['hand_tiles'][0]['drawed']
+            drawed = msg.data['hand_tiles'][0]['drawed'];
             $("#Tiles tr:eq(1) td:eq(17)").text(drawed);
+            // update wait tile to tips div
+            wait = msg.data['hand_tiles'][0]['wait'];
+            if(wait.length > 0)
+            {
+              $("#tips").attr("style", "display: block;");
+              $("#tip_tiles").text(wait.join(", "));
+            }
+            else
+            {
+              $("#tips").attr("style", "display: none;");
+              $("#tip_tiles").text("");
+            }
             break;
           case 'out_tiles':
             // update hand tiles to Tiles table
@@ -499,7 +511,7 @@
         <td>north</td><td></td><td></td><td>0</td>
     </tr>
   </table>
-  <p></p>
+  <div id="tips" style="display: none;">聽牌:<span id="tip_tiles"></div>
   <table id="Tiles">
       <tr id="pick_up">
         <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td id="gap"></td><td></td>

@@ -141,12 +141,14 @@ class Controller:
     def GetHandDict(self, wind:WIND) -> dict:
         player = self.Players[wind]
         tiles = Tile.List2StrList(player.Hand)
+        wait = Tile.List2StrList(Rule.FindAllWaits(player.Hand))
 
         hand = {
             "notify":player.Wind.name.lower(),
             "hand_tiles":[{
                 "hand":tiles,
-                "drawed":'' if player.LastDraw == None else str(player.LastDraw)
+                "drawed":'' if player.LastDraw == None else str(player.LastDraw),
+                "wait":wait
             }]
         }
         return hand
