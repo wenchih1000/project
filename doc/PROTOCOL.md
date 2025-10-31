@@ -420,7 +420,12 @@
                 {"name":"正花(夏)", "value":1},
                 {"name":"花槓(春夏秋冬)", "value":1}
             ],
-            "total_score":19,
+            "total_score":19
+        }
+    },
+    {
+        "money_result":{
+            "lose_score":[0, 3, 3, 3],
             "before_money":[8000, 6000, 9000, 5000],
             "after_money":[1000, 6000, 9000, 12000]
         }
@@ -440,6 +445,12 @@
 | win_type | str | 胡牌牌型 | draw_win(自摸), discard_win(放槍), rob_win(搶槓胡) |
 | dealer_num | int | 第幾莊 | 莊家連莊 |
 | score_list | dict | 玩家胡牌台型 | name獲得的台型，value獲得的台數 |
-| total_score | int | 玩家獲得的總台數 | |
+| total_score | int | 玩家獲得最高總台數 | |
+
+3. 玩家金額結果(money_result)JSON參數說明
+
+| 欄位 | 型別 | 說明 | 備註 |
+|:--|:--|:--|:--|
+| lose_score | lint [ int ] | 4位玩家輸的台數 | east, south, west, north |
 | before_money | list [ int ] | 4位玩家原本的金額 | east, south, west, north |
 | after_money | list [ int ] | 4位玩家計算後的金額 | east, south, west, north |

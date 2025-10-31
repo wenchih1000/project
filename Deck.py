@@ -97,7 +97,7 @@ class Deck:
 
         tmp = ['5C','5C','5C','5C']
         offset *= 4
-        for i in range(4):
+        for i in range(len(tmp)):
             self.Wall[offset+i] = Tile.Str2Tile(tmp[i])
 
     # 切牌

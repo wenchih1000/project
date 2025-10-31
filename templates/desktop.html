@@ -19,7 +19,7 @@
       cursor: pointer;
     }
 
-    #score {
+    #score, #money {
       border: 1px solid black;
       border-collapse: collapse;
       padding: 8px;
@@ -304,6 +304,23 @@
             }
             $('#score').append('<tr><td>總台數</td><td>' + total_score + '</td></tr>');
             break;
+          case 'money_result':
+            money = msg.data["money_result"]
+            lose = money["lose_score"]
+            before = money["before_money"]
+            after = money["after_money"]
+            for (const i in lose)
+            {
+              var id = parseInt(i)+1
+              // update money table
+              $('#money tr:eq('+id+') td:eq(1)').text(lose[i]);
+              $('#money tr:eq('+id+') td:eq(2)').text(before[i]);
+              $('#money tr:eq('+id+') td:eq(3)').text(after[i]);
+
+              // update player table
+              $('#player tr:eq('+id+') td:eq(3)').text(after[i]);
+            }
+            break;
           case 'info':
             // update player info into player table
             info = msg.data["info"];
@@ -463,16 +480,16 @@
       <th>座位</th><th>名稱</th><th>頭像</th><th>金幣</th>
     </tr>
     <tr id="east">
-        <td>east</td><td></td><td></td><td>100000</td>
+        <td>east</td><td></td><td></td><td>0</td>
     </tr>
     <tr id="south">
-        <td>south</td><td></td><td></td><td>100000</td>
+        <td>south</td><td></td><td></td><td>0</td>
     </tr>
     <tr id="west">
-        <td>west</td><td></td><td></td><td>100000</td>
+        <td>west</td><td></td><td></td><td>0</td>
     </tr>
     <tr id="north">
-        <td>north</td><td></td><td></td><td>100000</td>
+        <td>north</td><td></td><td></td><td>0</td>
     </tr>
   </table>
   <p></p>
@@ -543,6 +560,23 @@
           <p style="align-content: last baseline; text-align: left">胡牌牌型</p>
           <table id="score">
               <!-- <tr><td>莊家</td><td>1台</td></tr> -->
+          </table>
+          <table id="money">
+            <tr>
+              <th>座位</th><th>付出台數</th><th>原金幣</th><th>結算金幣</th>
+            </tr>
+            <tr>
+                <td>east</td><td></td><td></td><td></td>
+            </tr>
+            <tr>
+                <td>south</td><td></td><td></td><td></td>
+            </tr>
+            <tr>
+                <td>west</td><td></td><td></td><td></td>
+            </tr>
+            <tr>
+                <td>north</td><td></td><td></td><td></td>
+            </tr>
           </table>
       </div>
   </div>

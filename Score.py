@@ -5,7 +5,8 @@ from Model import *
 class HandCondition:
     IsExposed: bool = False         # 標誌是否吃碰過
     IsDealer: bool = False          # 莊家
-    IsSelfDraw: bool = False        # 自摸
+    IsDrawWin: bool = False        # 自摸
+    IsDiscardWin: bool = False      # 放槍胡牌
     IsRobbingKong: bool = False     # 搶槓胡牌
     IsKongOnFlower: bool = False    # 槓上開花
     IsLastTileDraw: bool = False    # 海底自摸
@@ -32,13 +33,18 @@ class HandCondition:
     SeatFlower: WIND = None         # 玩家正花台 (1:梅/春 2:蘭/夏 3:竹/秋 4:菊/冬)
     # RoundFlower: int = 0          # 圈花台     (5:春 6:夏 7:秋 8:冬)
 
+    DealerSeat: WIND = None         # 莊家玩家
+    DiscardSeat: WIND = None        # 放槍玩家
+    IsDealerDiscard: bool = False   # 莊家放槍
+
     def __init__(self):
         pass
 
     def Reset(self):
         self.IsExposed = False
         self.IsDealer = False
-        self.IsSelfDraw = False
+        self.IsDrawWin = False
+        self.IsDiscardWin = False
         self.IsRobbingKong = False
         self.IsKongOnFlower = False
         self.IsLastTileDraw = False
@@ -60,6 +66,10 @@ class HandCondition:
         self.DealerStreak = 0
         self.SeatFlower = None
         # self.RoundFlower = 0
+
+        self.DealerSeat = None
+        self.DiscardSeat = None
+        self.IsDealerDiscard = False
 
 # 檢查手牌組了幾個明/暗搭
 # 對子/順子/刻子/槓子
@@ -200,6 +210,8 @@ class TaiID:
         return ScoreName(name.Name, name.Score, tileName)
 
 class TaiScore:
+    BaseCash:int = 50
+    TaiCash:int = 20
     classify:HandClassify = None 
     condition:HandCondition = None
 
@@ -342,26 +354,14 @@ class TaiScore:
 
         # --- D. 基礎與加成台數 (獨立加總) ---
 
-        # 莊家與連莊
-        if self.condition.IsDealer:
-            Name = TaiID.Dealer
-            ScoreNameList.append(Name); Score += Name.Score
-
-        if self.condition.DealerStreak > 0:
-            Streak = self.condition.DealerStreak
-            Name = TaiID.GetScoreName(TaiID.DealerStreak, f'連{Streak}拉{Streak}')
-            # Name = TaiID.DealerStreak
-            Name.Score *= self.condition.DealerStreak
-            ScoreNameList.append(Name); Score += Name.Score
-
         # 門清與自摸 (門清一摸三)
-        if IsMenqing and self.condition.IsSelfDraw:
+        if IsMenqing and self.condition.IsDrawWin:
             Name = TaiID.ConcealedSelfDrawn
             ScoreNameList.append(Name); Score += Name.Score
         elif IsMenqing:
             Name = TaiID.ConcealedHand
             ScoreNameList.append(Name); Score += Name.Score
-        elif self.condition.IsSelfDraw:
+        elif self.condition.IsDrawWin:
             Name = TaiID.SelfDraw
             ScoreNameList.append(Name); Score += Name.Score
 
@@ -452,6 +452,23 @@ class TaiScore:
 
         return Score, ScoreNameList
 
+    def CalculateDealer(self) -> tuple[int, list[ScoreName]]:
+        Score = 0
+        ScoreNameList = []
+        # 莊家與連莊
+        if self.condition.IsDealer:
+            Name = TaiID.Dealer
+            ScoreNameList.append(Name); Score += Name.Score
+
+        if self.condition.DealerStreak > 0:
+            Streak = self.condition.DealerStreak
+            Name = TaiID.GetScoreName(TaiID.DealerStreak, f'連{Streak}拉{Streak}')
+            # Name = TaiID.DealerStreak
+            Name.Score *= self.condition.DealerStreak
+            ScoreNameList.append(Name); Score += Name.Score
+
+        return Score, ScoreNameList
+
 if __name__ == '__main__':
 
     # 測試1-1
@@ -509,7 +526,7 @@ if __name__ == '__main__':
     condition.IsCenterWait=True
     # condition.IsPairWait=False
     condition.IsDealer=True
-    condition.IsSelfDraw=True
+    condition.IsDrawWin=True
     condition.DealerStreak=3
     condition.SeatWind=WIND.EAST # 東 門風
     condition.RoundWind=WIND.SOUTH  # 南 圈風

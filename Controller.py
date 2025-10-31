@@ -75,6 +75,7 @@ class Controller:
     StartTime:float = 0
     DelayTime:float = 0
     IsDrawGame:bool = False
+    Score:list = []
 
     def __init__(self):
 
@@ -294,9 +295,17 @@ class Controller:
                 "win_type":win,
                 "dealer_num":self.DealerNum,
                 "score_list":info,
-                "total_score":score,
-                "before_money":[8000, 6000, 9000, 5000],
-                "after_money":[1000, 6000, 9000, 12000]
+                "total_score":score
+            }
+        }
+        self.Notify(state)
+
+    def UpdateCashResult(self, result:list[list[int]]):
+        state = {
+            "money_result":{
+                "lose_score":result[0],
+                "before_money":result[1],
+                "after_money":result[2]
             }
         }
         self.Notify(state)
@@ -708,14 +717,19 @@ class Controller:
                     case Step.CALCULATE_SCORE:
                         # * 結算金額
                         # * 通知玩家結果
-                        self.CalculateScore()
+                        ret = self.CalculateScore()
+                        self.Score.extend(ret)
+                        self.StepAction = Step.CALCULATE_CASH
+                        self.StepEvent.set()
 
                         # delay to show message
-                        self.DelayRunAction(5, Step.END_HAND)
+                        # self.DelayRunAction(5, Step.CALCULATE_CASH)
 
                     # D 1.* 結算金額
                     case Step.CALCULATE_CASH:
-                        pass
+                        self.CalculateCash()
+                        # delay to show message
+                        self.DelayRunAction(5, Step.END_HAND)
 
                     # E. 流局結算
                     case Step.DRAW_GAME:
@@ -764,16 +778,18 @@ class Controller:
                     self.StepEvent.set()
                     PrintLog('timeout')
 
-    def CalculateScore(self):
+    def CalculateScore(self) -> tuple[int, int]:
         player = self.Players[self.ActiveWind]
         # 取出玩家胡的牌張
         HuTile = self.DeckRef.HuTile(player.LastDraw)
         # 搶槓胡
         if self.DeckRef.LastAddKong != None:
             self.Condition.IsRobbingKong = True
+            self.Condition.DiscardSeat = self.DeckRef.LastWind
+            self.Condition.IsDiscardWin = True
         # 自模
         elif player.LastDraw != None:
-            self.Condition.IsSelfDraw = True
+            self.Condition.IsDrawWin = True
             # 因槓牌或摸花補牌後自摸胡牌
             if self.DeckRef.DrawByFlower or self.DeckRef.DrawByKong:
                 self.Condition.IsKongOnFlower = True
@@ -785,6 +801,13 @@ class Controller:
             # 胡別人打出的最後一張牌
             if self.DeckRef.IsWallEmpty():
                 self.Condition.IsLastTileDiscard = True
+            # 放槍玩家
+            self.Condition.DiscardSeat = self.DeckRef.LastWind
+            self.Condition.IsDiscardWin = True
+
+        # 莊家放槍
+        if self.Condition.IsDiscardWin:
+            self.Condition.IsDealerDiscard = self.Players[self.Condition.DiscardSeat].IsDealer
 
         ActionLen, DiscardLen, MLen = 0, 0, 0
         for p in self.Players.values():
@@ -794,13 +817,13 @@ class Controller:
         ActionLen = MLen + DiscardLen
 
         # 莊家起手第 17 張牌已胡牌
-        if player.IsDealer and self.Condition.IsSelfDraw and ActionLen == 0 and self.DeckRef.LastDiscard == None:
+        if player.IsDealer and self.Condition.IsDrawWin and ActionLen == 0 and self.DeckRef.LastDiscard == None:
             self.Condition.IsHeavenlyHand = True
         # 閒家起手第 17 張牌已胡牌且首輪內無任何人吃/碰/槓
-        elif not player.IsDealer and self.Condition.IsSelfDraw and MLen == 0 and DiscardLen < len(WIND):
+        elif not player.IsDealer and self.Condition.IsDrawWin and MLen == 0 and DiscardLen < len(WIND):
             self.Condition.IsEarthlyHand = True
         # 閒家胡莊家打出的第 1 張牌
-        elif not player.IsDealer and not self.Condition.IsSelfDraw and ActionLen == 0 and self.DeckRef.LastDiscard != None:
+        elif not player.IsDealer and not self.Condition.IsDrawWin and ActionLen == 0 and self.DeckRef.LastDiscard != None:
             self.Condition.IsHumanlyHand = True
 
         # 取出玩家未明牌的Melds
@@ -848,24 +871,113 @@ class Controller:
             # ex:4, 5 聽 3 或 6 or 眼對 22, 55, 聽 2 或 5
             self.Condition.IsMultiWait = True
 
+        # 莊家
         self.Condition.IsDealer = player.IsDealer
         self.Condition.DealerStreak = self.DealerNum
         self.Condition.SeatWind = player.Wind
         self.Condition.RoundWind = self.RoundWind
         self.Condition.SeatFlower = player.Wind
 
+        for w in WIND:
+            if self.Players[w].IsDealer:
+                self.Condition.DealerSeat = w
+                break
+
         classify = HandClassify(AllMelds, player.Flowers)
         score = TaiScore(classify, self.Condition)
-        total, breakdown = score.Calculate()
-        self.UpdateScoreResult(breakdown, total)
+        total1, item1 = score.Calculate()
+        total2, item2 = score.CalculateDealer()
+
+        total = 0
+        allitem = []
+        # 自摸吃三家
+        if self.Condition.IsDrawWin:
+            total = total1 + total2
+            allitem.extend(item1)
+            allitem.extend(item2)
+        # 放槍胡吃單家
+        else:
+            if self.Condition.IsDealer or self.Condition.IsDealerDiscard:
+                total = total1 + total2
+                allitem.extend(item1)
+                allitem.extend(item2)
+            else:
+                # 無莊家台
+                total = total1
+                allitem.extend(item1)
+
+        self.UpdateScoreResult(allitem, total)
 
         PrintLog("胡牌牌型:")
         tmp = ""
-        for tai in breakdown:
+        for tai in allitem:
             tab = '\t\t' if len(tai.Name) <= 3 else '\t'
             tmp += f"\t{tai.Name}{tab}{tai.Score}台\n"
         PrintLog(tmp)
         PrintLog(f"總台數: {total} 台")
+
+        return (total1, total2)
+
+    def CalculateCash(self):
+        # self.Score
+        # score[0]:共同台, score[1]:莊家台
+        base, tai = TaiScore.BaseCash, TaiScore.TaiCash
+        # 胡牌玩家
+        winner = self.Players[self.Condition.SeatWind]
+        summary = []
+        before, after = [], []
+        lose = {WIND.EAST:0, WIND.SOUTH:0, WIND.WEST:0, WIND.NORTH:0}
+        score = self.Score
+
+        for w in WIND:
+            before.append(self.Players[w].Money)
+        # 自摸吃三家
+        if self.Condition.IsDrawWin:
+            # 莊家
+            if self.Condition.IsDealer:
+                # 莊家台+非莊家台
+                momey = base + sum(score)*tai
+                for w in winner.Wind.Other():
+                    lose[w] = sum(score)
+                    self.Players[w].Money -= momey
+                    winner.Money += momey
+            # 閒家
+            else:
+                # 非莊家台
+                momey = (base + score[0]*tai)
+                for w in winner.Wind.Other():
+                    lose[w] = score[0]
+                    self.Players[w].Money -= momey
+                    winner.Money += momey
+                # 加上莊家台
+                dealer = self.Players[self.Condition.DealerSeat]
+                momey = score[1]*tai
+                lose[dealer.Wind] += score[1]
+                dealer.Money -= momey
+                winner.Money += momey
+
+        # 放槍胡吃單家
+        else:
+            loser = self.Players[self.Condition.DiscardSeat]
+            momey = 0
+            # 胡莊家 or 莊家胡閒家
+            if self.Condition.IsDealer or self.Condition.IsDealerDiscard:
+                momey = base + sum(score)*tai
+                lose[loser.Wind] = sum(score)
+            # 閒家胡閒家
+            else:
+                momey = (base + score[0]*tai)
+                lose[loser.Wind] = score[0]
+            loser.Money -= momey
+            winner.Money += momey
+
+        for w in WIND:
+            after.append(self.Players[w].Money)
+
+        summary.append(list(lose.values()))
+        summary.append(before)
+        summary.append(after)
+        self.UpdateCashResult(summary)
 
     def DelayRunAction(self, delay:int, action:Step):
         self.StepAction = Step.TIMEOUT
@@ -884,6 +996,7 @@ class Controller:
         self.DeckRef.FlushTiles(hands)
         self.DeckRef.Reset()
         self.Condition.Reset()
+        self.Score.clear()
 
     def Seat(self, name:str) -> str:
         for w, p in self.Players.items():
