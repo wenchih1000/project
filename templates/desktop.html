@@ -357,6 +357,13 @@
             state = msg.data["game_state"];
             $('#dice_score').text(state["dice_score"].join(", "));
             $('#message').text(getName(state["current_player"]) + " 進行中")
+            money = state["money"]
+            for (const i in money)
+            {
+              var id = parseInt(i)+1
+              // update player table
+              $('#player tr:eq('+id+') td:eq(3)').text(money[i]);
+            }
             break;
           case 'game_result':
             // {'game_result': {'"state":"running", "wall":69, "result":"ok"}

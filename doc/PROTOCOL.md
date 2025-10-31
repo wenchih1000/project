@@ -75,7 +75,8 @@
                 "dealer_wind":"east",
                 "current_player":"north",
                 "dealer_num":0,
-                "dice_score":[1,1,1]
+                "dice_score":[1,1,1],
+                "money":[3000, 3000, 3000, 3000]
             },
             "game_result":{
                 "state":"running", // running, waiting, draw_game, win_game, end_game
@@ -243,6 +244,7 @@
 | current_player | str | 當前回合的玩家 | east, south, west, north |
 | dealer_num | int | 第幾莊 | 莊家連莊 |
 | dice_score | list [ int ] | 莊家擲骰子點數 | 共3顆骰子:3~18點 |
+| money | list [ int ] | 玩家金額 | east, south, west, north |
 
 3. 遊戲結果(game_result)JSON參數說明
 

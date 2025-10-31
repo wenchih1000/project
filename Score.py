@@ -210,8 +210,10 @@ class TaiID:
         return ScoreName(name.Name, name.Score, tileName)
 
 class TaiScore:
-    BaseCash:int = 50
-    TaiCash:int = 20
+    BaseCash:int = 50   # 底50元
+    TaiCash:int = 20    # 台20元
+    InitCash:int = 3000 # 初使3000元
+
     classify:HandClassify = None 
     condition:HandCondition = None
 

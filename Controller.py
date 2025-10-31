@@ -225,13 +225,18 @@ class Controller:
         return result
 
     def UpdateGameState(self):
+        money = []
+        for p in self.Players.values():
+            money.append(p.Money)
+
         state = {
             "game_state":{
                 "round_wind":self.RoundWind.name.lower(),
                 "dealer_wind":self.DealerWind.name.lower(),
                 "current_player":self.ActiveWind.name.lower(),
                 "dealer_num":self.DealerNum,
-                "dice_score":self.DeckRef.Dice
+                "dice_score":self.DeckRef.Dice,
+                "money":money
             }
         }
         self.Notify(state)
@@ -359,6 +364,7 @@ class Controller:
                     case Step.PLAYER_SEAT_NOTIFY:
                         # 通知玩家自已的風位
                         self.UpdatePlayerSeat()
+                        self.UpdateGameState()
                         self.StepAction = Step.PLAYER_ROLL_DICE_NOTIFY
                         self.StepEvent.set()
 
@@ -1021,6 +1027,7 @@ class Controller:
             cid, names = next(i)
             self.Players[w].CId = cid
             self.Players[w].Name = names
+            self.Players[w].Money = TaiScore.InitCash
 
         # START_GAME
         self.StepAction = Step.START_GAME

@@ -44,7 +44,7 @@ class Player(Thread):
     Name:str = ''
     # Client ID
     CId:int = 0
-    Money:int = 3000
+    Money:int = 0
 
     # 是否為莊家
     IsDealer:bool = False
