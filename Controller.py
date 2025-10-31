@@ -5,39 +5,39 @@ from Model import Rule16 as Rule
 from Score import *
 
 from pubsub import pub as Publisher
-import json
 
 class Step(Enum):
     INIT = 0
 
     START_GAME = 1
-    PLAYER_SEAT = 2
-    ROLL_DICE_NOTIFY = 3
-    ROLL_DICE = 4
-    START_HAND = 5
+    START_HAND = 2
 
-    PLAYER_DRAW_NOTIFY = 6
-    PLAYER_DRAW = 7
+    PLAYER_SEAT_NOTIFY = 5
+    PLAYER_ROLL_DICE_NOTIFY = 6
+    PLAYER_DRAW_NOTIFY = 7
     PLAYER_DISCARD_NOTIFY = 8
-    PLAYER_DISCARD = 9
 
-    DECIDE_WHOSE_TURN = 10
-    WHOSE_NEXT_TURN = 11
-    CHECK_ROBBING_GONG = 12
+    PLAYER_ROLL_DICE = 9
+    PLAYER_HU = 10
+    PLAYER_KONG = 11
+    PLAYER_PONG = 12
+    PLAYER_CHOW = 13
+    PLAYER_DRAW = 14
+    PLAYER_DISCARD = 15
+    PLAYER_PASS = 16
 
-    PLAYER_HU = 13
-    PLAYER_KONG = 14
-    PLAYER_PONG = 15
-    PLAYER_CHOW = 16
-    PLAYER_PASS = 17
+    DECIDE_WHOSE_TURN = 20
+    WHOSE_NEXT_TURN = 21
+    CHECK_ROBBING_GONG = 22
 
-    CALCULATE_SCORE = 18
+    CALCULATE_SCORE = 23
+    CALCULATE_CASH = 24
 
-    TIMEOUT = 19 # 超時
-    DRAW_GAME = 20 # 流局
-    END_HAND = 25 # 一局
-    END_ROUND = 26 # 一圈
-    END_GAME = 27 # 一雀
+    TIMEOUT = 30    # 超時
+    DRAW_GAME = 31  # 流局
+    END_HAND = 32   # 一局
+    END_ROUND = 33  # 一圈
+    END_GAME = 34   # 一雀
 
 # 負責串聯所有邏輯：管理回合、處理動作優先級 (吃/碰/槓/胡)
 # Game controller
@@ -315,19 +315,34 @@ class Controller:
                 match self.StepAction:
                     case Step.INIT:
                         pass
+
+                    # B. 開局自動流程
+                    # B.1. 開始遊戲
                     case Step.START_GAME:
-                        pass
-                    case Step.PLAYER_SEAT:
+                        self.IsStart = True
+                        self.RoundWind = WIND.EAST # 局風位
+                        self.ActiveWind = WIND.EAST # 當前活動的玩家
+                        self.DealerWind = WIND.EAST # 莊家風位
+
+                        # 玩家風位
+                        self.StepAction = Step.PLAYER_SEAT_NOTIFY
+                        self.StepEvent.set()
+
+                    # B.3. 通知玩家自已的風位
+                    case Step.PLAYER_SEAT_NOTIFY:
+                        # 通知玩家自已的風位
                         seat = {
-                            "player_seat":{"east":"","south":"","west":"","north":""}
+                            "PLAYER_SEAT_NOTIFY":{"east":"","south":"","west":"","north":""}
                         }
                         for w, p in self.Players.items():
-                            seat["player_seat"][w.name.lower()] = p.Name
+                            seat["PLAYER_SEAT_NOTIFY"][w.name.lower()] = p.Name
                         self.Notify(seat)
 
-                        self.StepAction = Step.ROLL_DICE_NOTIFY
+                        self.StepAction = Step.PLAYER_ROLL_DICE_NOTIFY
                         self.StepEvent.set()
-                    case Step.ROLL_DICE_NOTIFY:
+
+                    # B.4. 通知莊家擲骰子
+                    case Step.PLAYER_ROLL_DICE_NOTIFY:
                         # 通知所有玩家換誰進行活動
                         self.UpdatePlayerState('dice')
 
@@ -339,16 +354,8 @@ class Controller:
                             "action_state":state
                         }
                         self.Notify(action)
-                    case Step.ROLL_DICE:
-                        player = self.Players[self.DealerWind]
-                        player.Actions = Action.DICE
-                        player.Notify()
-                        player.Wait()
 
-                        self.UpdateGameState()
-                        PrintLog("state:" + str(state))
-                        self.DelayRunAction(5, Step.START_HAND)
-
+                    # B.5~7. 開局5~7流程
                     case Step.START_HAND:
                         self.StartHand()
                         self.StepAction = Step.PLAYER_DRAW_NOTIFY
@@ -370,47 +377,6 @@ class Controller:
                         }
                         self.Notify(action)
 
-                    # D.5. 摸牌流程
-                    # 玩家決定進行摸牌動作
-                    case Step.PLAYER_DRAW:
-                        # C.3. 牌牆區已空
-                        if self.DeckRef.IsWallEmpty():
-                            # 通知所有玩家牌牆已空，流局結算
-                            self.UpdateGameResult('draw_game', 'wall_empty')
-                            self.DelayRunAction(5, Step.DRAW_GAME)
-                            continue
-
-                        player = self.Players[self.ActiveWind]
-                        player.Actions = Action.DRAWING
-                        player.Notify()
-                        ret = player.Wait()
-
-                        # # C.3. 牌牆區已空 或 死牆區16張已空
-                        # if ret == Result.WALL_EMPTY or ret == Result.DEAD_WALL_EMPTY:
-                        #     # 通知所有玩家牌牆已空，流局結算
-                        #     result = ('dead_wall_empty','wall_empty')[ret == Result.WALL_EMPTY]
-                        #     self.UpdateGameResult('draw_game', result)
-                        #     # self.StepAction = Step.DRAW_GAME
-                        #     self.DelayRunAction(5, Step.DRAW_GAME)
-                        #     continue
-
-                        hand = self.GetHandDict(self.ActiveWind)
-                        # 通知玩家摸到的牌
-                        self.Notify(hand)
-
-                        # 檢查手牌狀態(滿17張,16張手牌+摸1張牌) 胡牌/槓牌/出牌
-                        self.CheckHandState()
-                        # 通知所有玩家換誰進行活動
-                        self.UpdatePlayerState()
-
-                        # 通知玩家進行動作
-                        state = self.ActionState[self.ActiveWind]
-                        action = {
-                            "notify":self.ActiveWind.name.lower(),
-                            "action_state":state
-                        }
-                        self.Notify(action)
-
                     # 進行碰/吃後，通知玩家出牌
                     case Step.PLAYER_DISCARD_NOTIFY:
                         # 通知所有玩家換誰進行活動
@@ -425,36 +391,6 @@ class Controller:
                             "action_state":state
                         }
                         self.Notify(action)
-
-                    # D.6. 出牌流程
-                    # 玩家決定進行出牌動作
-                    case Step.PLAYER_DISCARD:
-                        # {'player': 'east', 'action': 'discard', 'tiles': ['2S']}
-                        msg = self.Msg.pop()
-                        tile = msg['tiles'].pop()
-                        player = self.Players[self.ActiveWind]
-                        player.Actions = Action.DISCARD
-                        player.LastDiscard = Tile.Str2Tile(tile)
-                        player.Notify()
-                        player.Wait()
-                        player.LastDiscard = None
-
-                        # 解除過水
-                        if player.PassHu:
-                            player.PassHu = False
-
-                        # 通知所有玩家，當前玩家打出的牌
-                        for w in self.ActiveWind.Other():
-                            hand = self.GetOutHandDict(self.ActiveWind, notify=w, showhide=False)
-                            self.Notify(hand)
-
-                        # 通知當前玩家 手牌 和 外露牌 情況
-                        hand = self.GetHandAndOutHandDict(self.ActiveWind, self.ActiveWind)
-                        self.Notify(hand)
-
-                        self.OldWind = None
-                        self.StepAction = Step.DECIDE_WHOSE_TURN
-                        self.StepEvent.set()
 
                     # C.2. 玩家出牌後，確認閒家(三人)手牌
                     case Step.DECIDE_WHOSE_TURN:
@@ -496,26 +432,19 @@ class Controller:
                         self.Notify(action)
 
                     #
-                    # 玩家決定進行 pass/hu/kong/pong/chow 動作
+                    # 玩家決定進行 roll dice/hu/kong/pong/chow/draw/discard/pass 動作
                     #
 
-                    # D.7. PASS流程
-                    case Step.PLAYER_PASS:
-                        state = self.ActionState[self.ActiveWind]
-                        # 玩家放棄胡牌，需等下一次打出牌後解除過水，才能再胡牌
-                        if state['hu']:
-                            player = self.Players[self.ActiveWind]
-                            player.PassHu = True
+                    # D 0. 骰子流程
+                    case Step.PLAYER_ROLL_DICE:
+                        player = self.Players[self.DealerWind]
+                        player.Actions = Action.DICE
+                        player.Notify()
+                        player.Wait()
 
-                        self.Pass[self.ActiveWind] = True
-                        self.CheckNext = True
-
-                        # in add kong state
-                        if self.DeckRef.LastAddKong != None:
-                            self.StepAction = Step.CHECK_ROBBING_GONG
-                        else:
-                            self.StepAction = Step.DECIDE_WHOSE_TURN
-                        self.StepEvent.set()
+                        self.UpdateGameState()
+                        PrintLog("state:" + str(state))
+                        self.DelayRunAction(5, Step.START_HAND)
 
                     # D 1.胡牌流程
                     case Step.PLAYER_HU:
@@ -680,11 +609,113 @@ class Controller:
                         self.StepAction = Step.PLAYER_DISCARD_NOTIFY
                         self.StepEvent.set()
 
+                    # D.5. 摸牌流程
+                    # 玩家決定進行摸牌動作
+                    case Step.PLAYER_DRAW:
+                        # C.3. 牌牆區已空
+                        if self.DeckRef.IsWallEmpty():
+                            # 通知所有玩家牌牆已空，流局結算
+                            self.UpdateGameResult('draw_game', 'wall_empty')
+                            self.DelayRunAction(5, Step.DRAW_GAME)
+                            continue
+
+                        player = self.Players[self.ActiveWind]
+                        player.Actions = Action.DRAWING
+                        player.Notify()
+                        ret = player.Wait()
+
+                        # # C.3. 牌牆區已空 或 死牆區16張已空
+                        # if ret == Result.WALL_EMPTY or ret == Result.DEAD_WALL_EMPTY:
+                        #     # 通知所有玩家牌牆已空，流局結算
+                        #     result = ('dead_wall_empty','wall_empty')[ret == Result.WALL_EMPTY]
+                        #     self.UpdateGameResult('draw_game', result)
+                        #     # self.StepAction = Step.DRAW_GAME
+                        #     self.DelayRunAction(5, Step.DRAW_GAME)
+                        #     continue
+
+                        hand = self.GetHandDict(self.ActiveWind)
+                        # 通知玩家摸到的牌
+                        self.Notify(hand)
+
+                        # 檢查手牌狀態(滿17張,16張手牌+摸1張牌) 胡牌/槓牌/出牌
+                        self.CheckHandState()
+                        # 通知所有玩家換誰進行活動
+                        self.UpdatePlayerState()
+
+                        # 通知玩家進行動作
+                        state = self.ActionState[self.ActiveWind]
+                        action = {
+                            "notify":self.ActiveWind.name.lower(),
+                            "action_state":state
+                        }
+                        self.Notify(action)
+
+                    # D.6. 出牌流程
+                    # 玩家決定進行出牌動作
+                    case Step.PLAYER_DISCARD:
+                        # {'player': 'east', 'action': 'discard', 'tiles': ['2S']}
+                        msg = self.Msg.pop()
+                        tile = msg['tiles'].pop()
+                        player = self.Players[self.ActiveWind]
+                        player.Actions = Action.DISCARD
+                        player.LastDiscard = Tile.Str2Tile(tile)
+                        player.Notify()
+                        player.Wait()
+                        player.LastDiscard = None
+
+                        # 解除過水
+                        if player.PassHu:
+                            player.PassHu = False
+
+                        # 通知所有玩家，當前玩家打出的牌
+                        for w in self.ActiveWind.Other():
+                            hand = self.GetOutHandDict(self.ActiveWind, notify=w, showhide=False)
+                            self.Notify(hand)
+
+                        # 通知當前玩家 手牌 和 外露牌 情況
+                        hand = self.GetHandAndOutHandDict(self.ActiveWind, self.ActiveWind)
+                        self.Notify(hand)
+
+                        self.OldWind = None
+                        self.StepAction = Step.DECIDE_WHOSE_TURN
+                        self.StepEvent.set()
+
+                    # D.7. PASS流程
+                    case Step.PLAYER_PASS:
+                        state = self.ActionState[self.ActiveWind]
+                        # 玩家放棄胡牌，需等下一次打出牌後解除過水，才能再胡牌
+                        if state['hu']:
+                            player = self.Players[self.ActiveWind]
+                            player.PassHu = True
+
+                        self.Pass[self.ActiveWind] = True
+                        self.CheckNext = True
+
+                        # in add kong state
+                        if self.DeckRef.LastAddKong != None:
+                            self.StepAction = Step.CHECK_ROBBING_GONG
+                        else:
+                            self.StepAction = Step.DECIDE_WHOSE_TURN
+                        self.StepEvent.set()
+
                     case Step.TIMEOUT:
                         # 超時結算
                         self.StepAction = self.DelayAction
                         self.DelayAction  = 0
                         self.StepEvent.set()
+
+                    # D 1.* 計算胡牌台數
+                    case Step.CALCULATE_SCORE:
+                        # * 結算金額
+                        # * 通知玩家結果
+                        self.CalculateScore()
+
+                        # delay to show message
+                        self.DelayRunAction(5, Step.END_HAND)
+
+                    # D 1.* 結算金額
+                    case Step.CALCULATE_CASH:
+                        pass
 
                     # E. 流局結算
                     case Step.DRAW_GAME:
@@ -701,15 +732,6 @@ class Controller:
                         # delay to show message
                         self.DelayRunAction(5, Step.END_HAND)
 
-                    # D 1.* 計算胡牌台數
-                    case Step.CALCULATE_SCORE:
-                        # * 結算金額
-                        # * 通知玩家結果
-                        self.CalculateScore()
-
-                        # delay to show message
-                        self.DelayRunAction(5, Step.END_HAND)
-
                     # 一局結束 (One Hand)
                     case Step.END_HAND:
                         self.EndHand()
@@ -717,12 +739,14 @@ class Controller:
                         if action == Step.END_ROUND or action == Step.END_GAME:
                             self.StepAction = action
                         else:
-                            self.StepAction = Step.ROLL_DICE_NOTIFY
+                            self.StepAction = Step.PLAYER_ROLL_DICE_NOTIFY
                         self.StepEvent.set()
                     # 一圈結束 (One Round)
                     case Step.END_ROUND:
-                        self.StepAction = Step.ROLL_DICE_NOTIFY
+                        self.StepAction = Step.PLAYER_ROLL_DICE_NOTIFY
                         self.StepEvent.set()
+
+                    # F. 雀局結束
                     # 一雀結束 (One Game)
                     case Step.END_GAME:
                         # 通知 web app 中斷 client連線
@@ -860,14 +884,15 @@ class Controller:
         self.Condition.Reset()
 
     # WebApp 通知 Controller
-    # 4位client到齊，開桌
-    # 直到玩完一雀
+    ## A. 遊戲準備階段
+    # A.1. 等待加入遊戲人數
+    # A.2. 滿4人自動進入牌桌
     def StartGame(self, names:dict[int,str]):
         # names:dict[int,str]
         # key:client id, value:name
-        self.IsStart = True
 
         # 隨機抽風位
+        # B.2. 幫玩家隨機抽風位(東、南、西、北)
         seat = [WIND.EAST, WIND.SOUTH, WIND.WEST, WIND.NORTH]
         random.shuffle(seat)
         i = iter(names.items())
@@ -876,25 +901,21 @@ class Controller:
             self.Players[w].CId = cid
             self.Players[w].Name = names
 
-        self.RoundWind = WIND.EAST # 局風位
-        self.ActiveWind = WIND.EAST # 當前活動的玩家
-        self.DealerWind = WIND.EAST # 莊家風位
-
-        # 通知玩家自已的風位
-        self.StepAction = Step.PLAYER_SEAT
+        # START_GAME
+        self.StepAction = Step.START_GAME
         self.StepEvent.set()
 
     def StartHand(self):
-        # 1. 洗牌
+        # B.0. 洗牌
         self.DeckRef.Shuffle()
 
-        # 5. 根據骰子點數切牌牆
+        # B.5. 根據骰子點數切牌牆
         # diceScore = random.randint(3,18)
         diceScore = sum(self.DeckRef.Dice)
         PrintLog("骰子:" + str(diceScore))
         self.DeckRef.BreakingWall(self.DealerWind, diceScore)
 
-        # 6. 玩家抓牌並完成補花
+        # B.6. 玩家抓牌並完成補花
         handTiles = {WIND.EAST:[], WIND.SOUTH:[], WIND.WEST:[], WIND.NORTH:[]}
         self.DeckRef.DealTiles(handTiles)
         for key,val in handTiles.items():
@@ -902,7 +923,7 @@ class Controller:
 
         self.DeckRef.ReplaceFlowers(self.Players)
 
-        # 7. 通知玩家開局手牌/外露牌
+        # B.7. 通知玩家開局手牌/外露牌
         for player in self.Players.values():
             hand = self.GetHandDict(player.Wind)
             self.Notify(hand)
@@ -1110,7 +1131,7 @@ class Controller:
 
             match msg['action']:
                 case 'dice':
-                    self.StepAction = Step.ROLL_DICE
+                    self.StepAction = Step.PLAYER_ROLL_DICE
                     self.StepEvent.set()
                     # 通知所有玩家換誰進行活動
                     self.UpdatePlayerState('dice')
