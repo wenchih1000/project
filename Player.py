@@ -7,15 +7,14 @@ from collections import Counter
 from threading import Thread, Event
 
 class Action(Enum):
-    HU = 4
-    KONG = 3
-    PONG = 2
-    CHOW = 1
-    PASS = 0
-
-    DICE    = 10 # roll dice
-    DRAWING = 11
-    DISCARD = 12
+    DICE = 0 # roll dice
+    HU = 1
+    KONG = 2
+    PONG = 3
+    CHOW = 4
+    DRAWING = 5
+    DISCARD = 6
+    PASS = 7
 
 class KongType(Enum):
     EXPOSED_KONG = 1 # 明槓
@@ -29,7 +28,6 @@ class Result(Enum):
     OK = 1
     WALL_EMPTY = 3
     DEAD_WALL_EMPTY = 4
-
 
 # Player 類別：管理手牌與公開牌
 class Player(Thread):
@@ -109,7 +107,7 @@ class Player(Thread):
         self.LastChows = []
         self.LastHu = None
 
-        # # Game Deck 檢查後，通知玩家目前可操作的狀態
+        # Controller 檢查後，通知玩家目前可操作的狀態
         # self.ActionState = {
         #     # 摸牌, 出牌
         #     Action.DRAWING:False, Action.DISCARD:False, 
@@ -129,6 +127,12 @@ class Player(Thread):
                 self.ActionResult = Result.OK
                 # 胡/吃/碰/槓/Pass
                 match self.Actions:
+                    case Action.DICE:
+                        # 玩家進行擲骰子
+                        dice = self.DeckRef.RollDice()
+                        PrintLog(self.Name + ' 擲骰子: ' + str(dice))
+                        self.FinishEvent.set()
+
                     case Action.HU:
                         # 暗胡(自摸) or 明胡(其他家放槍)
                         # 玩家進行胡牌
@@ -228,16 +232,7 @@ class Player(Thread):
                         self.RemoveTiles(self.LastChows)
                         # 下一步通知玩家出牌
                         self.FinishEvent.set()
-                    case Action.PASS:
-                        # 放棄胡/槓/碰/吃的機會
-                        PrintLog(self.Name + ' 跳過')
-                        self.FinishEvent.set()
 
-                    case Action.DICE:
-                        # 玩家進行擲骰子
-                        dice = self.DeckRef.RollDice()
-                        PrintLog(self.Name + ' 擲骰子: ' + str(dice))
-                        self.FinishEvent.set()
                     case Action.DRAWING:
                         # 玩家進行摸牌
                         fromEnd = self.DrawFromEnd
@@ -288,6 +283,11 @@ class Player(Thread):
                             self.Hand.remove(self.LastDiscard)
                         PrintLog(self.Name + ' 出牌: ' + self.LastDiscard.toStr())
                         self.DeckRef.DiscardTile(self.Wind, self.LastDiscard)
+                        self.FinishEvent.set()
+
+                    case Action.PASS:
+                        # 放棄胡/槓/碰/吃的機會
+                        PrintLog(self.Name + ' 跳過')
                         self.FinishEvent.set()
                     case _:
                         pass
