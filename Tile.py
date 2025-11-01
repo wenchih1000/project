@@ -325,6 +325,20 @@ class Tile(object):
         return data
 
     @staticmethod
+    def StrList2Tiles(tiles:list[str]) -> list['Tile']:
+        data = []
+        for t in tiles:
+            data.append(Tile.Str2Tile(t))
+        return data
+
+    @staticmethod
+    def NameList2Tiles(tiles:list[str]) -> list['Tile']:
+        data = []
+        for t in tiles:
+            data.append(Tile.Name2Tile(t))
+        return data
+
+    @staticmethod
     def Str2Tile(name:str) -> 'Tile':
         if TILE_DEBUG:
             return Tile({'alias':name})

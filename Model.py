@@ -180,6 +180,8 @@ class Rule16:
                     melds.append(Meld(False, [tile, tile]))
                     return (True, melds) # 只要有一種組合成功，就是胡牌
 
+                # 回溯 (Backtrack)
+                TempCounts[tile] += MELD.PAIR_LEN.value
         return (False,[])
 
     # 驗證手牌全部是否都可成為搭(順子或刻子)
@@ -196,10 +198,10 @@ class Rule16:
         # 排序後取第一張牌開始拆解:遞迴移除刻子,遞迴移除順子
         FirstTile = sorted(hand.keys())[0]
 
-        # Recursive Step 1: 嘗試組刻子(3張同樣牌)
-        if hand[FirstTile] >= 3:
+        # 2. Recursive Step 1: 嘗試組刻子(3張同樣牌)
+        if hand[FirstTile] >= MELD.PONG_LEN.value:
             # 移除刻子
-            hand[FirstTile] -= 3
+            hand[FirstTile] -= MELD.PONG_LEN.value
             if hand[FirstTile] == 0:
                 del hand[FirstTile]
 
@@ -210,9 +212,9 @@ class Rule16:
                 return True
 
             # 回溯 (Backtrack)
-            hand[FirstTile] += 3
+            hand[FirstTile] += MELD.PONG_LEN.value
 
-        # Recursive Step 2: 嘗試組順子 (字牌,花牌無法組順子)
+        # 3. Recursive Step 2: 嘗試組順子 (字牌,花牌無法組順子)
         # 順子:7,8,9
         if FirstTile.Suit != SUIT.HONOR and FirstTile.Suit != SUIT.FLOWER and FirstTile.Num <= Rule16.NumHiLimit:
             t1, t2, t3 = FirstTile, FirstTile + 1, FirstTile + 2
@@ -268,26 +270,26 @@ class Rule16:
             return False # 應該在第一個檢查點就返回
 
         # 1. 嘗試以這張牌作為「眼」
-        if pairsNum < 1 and hand[FirstTile] >= 2:
+        if pairsNum < 1 and hand[FirstTile] >= MELD.PAIR_LEN.value:
             # 移除
-            hand[FirstTile] -= 2
+            hand[FirstTile] -= MELD.PAIR_LEN.value
             if hand[FirstTile] == 0:
                 del hand[FirstTile]
-            if Rule16.CanWin(hand, pairsNum + 1):
+            if Rule16.CanWin(hand.copy(), pairsNum + 1):
                 return True
             # 回溯
-            hand[FirstTile] += 2 
-            
+            hand[FirstTile] += MELD.PAIR_LEN.value
+
         # 2. 嘗試以這張牌組成「刻子」
-        if hand[FirstTile] >= 3:
+        if hand[FirstTile] >= MELD.PONG_LEN.value:
             # 移除
-            hand[FirstTile] -= 3
+            hand[FirstTile] -= MELD.PONG_LEN.value
             if hand[FirstTile] == 0:
                 del hand[FirstTile]
-            if Rule16.CanWin(hand, pairsNum):
+            if Rule16.CanWin(hand.copy(), pairsNum):
                 return True
             # 回溯
-            hand[FirstTile] += 3 
+            hand[FirstTile] += MELD.PONG_LEN.value
 
         # 3. 嘗試以這張牌組成「順子」 (只對數字牌有效)
         if FirstTile.Suit != SUIT.HONOR and FirstTile.Suit != SUIT.FLOWER and FirstTile.Num <= Rule16.NumHiLimit:
@@ -300,7 +302,7 @@ class Rule16:
 
                 # 清理計數為 0 的牌
                 hand = Counter({k: v for k, v in hand.items() if v > 0})
-                if Rule16.CanWin(hand, pairsNum):
+                if Rule16.CanWin(hand.copy(), pairsNum):
                     return True
                 # 回溯
                 hand[t1] += 1;hand[t2] += 1;hand[t3] += 1
@@ -358,10 +360,25 @@ if __name__ == '__main__':
     # ret = Rule16.FindAllWaits(hand)
     # PrintLog("聽牌:"+str(Tile.List2StrList(ret)))
 
-    tmp = ['1C', '2C', '3C', '4C', '5C', '6C', '7C', '8C', '9C']
-    for i in tmp:
-        t = Tile.Name2Tile(i)
-        tiles = Rule16.GetChowTile(t)
-        for j in tiles:
-            print(j.Tile1, j.Tile2)
-        print()
+    # tmp = ['1C', '2C', '3C', '4C', '5C', '6C', '7C', '8C', '9C']
+    # for i in tmp:
+    #     t = Tile.Name2Tile(i)
+    #     tiles = Rule16.GetChowTile(t)
+    #     for j in tiles:
+    #         print(j.Tile1, j.Tile2)
+    #     print()
+
+    # tmp = ["1C","1C","2C","3C","4C","4D","4D","5D","6D","7D","7S","8S","9S"]
+    tmp = ['5D','5D','5D','6D','7D','6S','7S','8S','1W','1W']
+    tiles = Tile.StrList2Tiles(tmp)
+    ret = Rule16.FindAllWaits(tiles)
+    PrintLog("聽牌:"+str(Tile.List2StrList(ret)))
+
+    # tiles.append(Tile.Name2Tile('1C'))
+    # HandCounts = Counter(tiles)
+    # ret = Rule16.CanWin(HandCounts)
+    # print(ret)
+    # b, m = Rule16.CanHu(tiles)
+    # print(b, m)
+
+    
