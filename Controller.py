@@ -307,6 +307,38 @@ class Controller:
         }
         self.Notify(state)
 
+    # 流局
+    def UpdateDrawGameResult(self):
+        result = []
+        for wind, player in self.Players.items():
+            hand = Tile.List2StrList(player.Hand)
+            meld, hide = Meld.List2StrList(player.Melds)
+            wait = Tile.List2StrList(Rule.FindAllWaits(player.Hand))
+            result.append({
+                "seat":wind.name.lower(),
+                "hand":hand,
+                "meld":meld,
+                "hide":hide,
+                "wait":wait
+            })
+
+        state = {
+            "draw_result":result
+        }
+        self.Notify(state)
+
+        after, before, lose = [], [], []
+        for w in WIND:
+            after.append(self.Players[w].Money)
+            before.append(self.Players[w].Money)
+            lose.append(0)
+
+        summary = []
+        summary.append(lose)
+        summary.append(before)
+        summary.append(after)
+        self.UpdateCashResult(summary)
+
     def UpdateCashResult(self, result:list[list[int]]):
         state = {
             "money_result":{
@@ -619,6 +651,11 @@ class Controller:
                     # D.5. 摸牌流程
                     # 玩家決定進行摸牌動作
                     case Step.PLAYER_DRAW:
+                        player = self.Players[self.ActiveWind]
+                        player.Actions = Action.DRAWING
+                        player.Notify()
+                        ret = player.Wait()
+
                         # C.3. 牌牆區已空
                         if self.DeckRef.IsWallEmpty():
                             # 通知所有玩家牌牆已空，流局結算
@@ -626,10 +663,6 @@ class Controller:
                             self.DelayRunAction(5, Step.DRAW_GAME)
                             continue
 
-                        player = self.Players[self.ActiveWind]
-                        player.Actions = Action.DRAWING
-                        player.Notify()
-                        ret = player.Wait()
                         # 通知所有剩餘牌牆數
                         self.UpdateGameResult('waiting', 'ok')
 
@@ -746,11 +779,8 @@ class Controller:
                         # 此局為臭莊，連莊次數+1
 
                         # 通知所有玩家，把所有牌都翻開
-                        for w in WIND:
-                            hand = self.GetHandAndOutHandDict(w)
-                            self.Notify(hand)
-
                         self.IsDrawGame = True
+                        self.UpdateDrawGameResult()
                         # delay to show message
                         self.DelayRunAction(5, Step.END_HAND)
 

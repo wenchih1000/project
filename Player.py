@@ -284,7 +284,8 @@ class Player(Thread):
                         # 玩家決定出牌，最後放進 self.LastDiscard
 
                         # 玩家進行出牌
-                        self.Hand.remove(self.LastDiscard)
+                        if self.LastDiscard != None:
+                            self.Hand.remove(self.LastDiscard)
                         PrintLog(self.Name + ' 出牌: ' + self.LastDiscard.toStr())
                         self.DeckRef.DiscardTile(self.Wind, self.LastDiscard)
                         self.FinishEvent.set()

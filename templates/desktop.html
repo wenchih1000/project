@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="utf-8">
-  <title>Working with Flask and SocketIO</title>
+  <title>Taiwanese 16-Tile Mahjong Game</title>
   <style>
     #gap {
       background-color: #807b7b;
@@ -19,7 +19,7 @@
       cursor: pointer;
     }
 
-    #score, #money {
+    #score, #draw, #money {
       border: 1px solid black;
       border-collapse: collapse;
       padding: 8px;
@@ -267,6 +267,7 @@
 
     $("#closePopup").click(function(event) {
       $('#score').empty();
+      $('#draw').empty();
       $("#popup").attr("style", "display: none;");
       return false;
     });
@@ -287,6 +288,7 @@
             break;
           case 'score_result':
             // show popup
+            $(".popup-content").width(300);
             $("#popup").attr("style", "display: flex;");
             // hide popup after 8 seconds
             setTimeout(function() {
@@ -303,6 +305,29 @@
               $('#score').append('<tr><td>' + list[i]['name'] + '</td><td>' + list[i]['value'] + '</td></tr>');
             }
             $('#score').append('<tr><td>總台數</td><td>' + total_score + '</td></tr>');
+            break;
+          case 'draw_result':
+            // show popup
+            $(".popup-content").width(600);
+            $("#popup").attr("style", "display: flex;");
+            // hide popup after 8 seconds
+            setTimeout(function() {
+              $('#draw').empty();
+              $("#popup").attr("style", "display: none;");
+               // clear score table
+            }, 8000);
+
+            draw = msg.data["draw_result"]
+            for (const i in draw)
+            {
+              hand = draw[i]['hand'];
+              meld = draw[i]['meld'];
+              hide = draw[i]['hide'];
+              tiles = HideTile2String(hand, meld, hide);
+              wait = draw[i]['wait'].length > 0 ? '聽牌' : '沒聽';
+              // <tr><td>east</td><td>2S,7C,1C,1W,1W | 1S,2S,3S | 4S,5S,6S | 1W,1X,1X,1X</td><td>聽牌</td></tr>
+              $('#draw').append('<tr><td>' + draw[i]['seat'] + '</td><td>' + tiles + '</td><td>' + wait + '</td></tr>');
+            }
             break;
           case 'money_result':
             money = msg.data["money_result"]
@@ -370,6 +395,9 @@
             result = msg.data["game_result"];
             // $('#result').text(result["result"]);
             $('#wall').text(result["wall"]);
+            // ok, wall_empty, dead_wall_empty, draw_win, discard_win
+            data = {'ok':"", 'wall_empty':"牌牆區已空", 'dead_wall_empty':"補牌區已空", 'draw_win':"自摸", 'discard_win':"放槍"}
+            $('#message').text(data[result["result"]])
             break;
           case 'player_state':
             // "player_state":{"whoes_turn":"north","action":"drawing"}
@@ -573,12 +601,15 @@
       </tr>
   </table>
 
-  <div id="popup" style="display:none;" > 
+  <div id="popup" style="display:none;">
       <div class="popup-content">
           <p id="closePopup" class="close">X</p>
-          <p style="align-content: last baseline; text-align: left">胡牌牌型</p>
+          <p style="align-content: last baseline; text-align: left">牌型</p>
           <table id="score">
               <!-- <tr><td>莊家</td><td>1台</td></tr> -->
+          </table>
+          <table id="draw">
+            <!-- <tr><td>east</td><td>2S,7C,1C,1W,1W | 1S,2S,3S | 4S,5S,6S | 1W,1X,1X,1X</td><td>聽牌</td></tr> -->
           </table>
           <table id="money">
             <tr>
