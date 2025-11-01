@@ -448,7 +448,7 @@ class TaiScore:
             ScoreNameList.append(Name); Score += Name.Score
 
         # 屁胡
-        if Score == 0:
+        if Score == 0 and not self.condition.IsDealer:
             Name = TaiID.BaseHand
             ScoreNameList.append(Name); Score += Name.Score
 

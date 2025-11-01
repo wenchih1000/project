@@ -1000,8 +1000,10 @@ class Controller:
                     winner.Money += momey
                 # 加上莊家台
                 dealer = self.Players[self.Condition.DealerSeat]
-                momey = score[1]*tai
-                lose[dealer.Wind] += score[1]
+                # 未計算到莊家台
+                score[1] += 1
+                momey = (score[1])*tai
+                lose[dealer.Wind] += (score[1])
                 dealer.Money -= momey
                 winner.Money += momey
 
@@ -1011,6 +1013,9 @@ class Controller:
             momey = 0
             # 胡莊家 or 莊家胡閒家
             if self.Condition.IsDealer or self.Condition.IsDealerDiscard:
+                # 未計算到莊家台
+                if self.Condition.IsDealerDiscard:
+                    score[1] += 1
                 momey = base + sum(score)*tai
                 lose[loser.Wind] = sum(score)
             # 閒家胡閒家
