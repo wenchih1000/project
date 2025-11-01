@@ -461,7 +461,7 @@
             wait = msg.data['hand_tiles'][0]['wait'];
             if(wait.length > 0)
             {
-              $("#tips").attr("style", "display: block;");
+              $("#tips").attr("style", "display: inline-block;");
               $("#tip_tiles").text(wait.join(", "));
             }
             else
@@ -529,9 +529,10 @@
     玩家名稱:<label id="name">Hello</label> | 座位:<label id="seat">east</label>
      | 骰子:<label id="dice_score">1,1,1</label> | 剩餘牌張:<label id="wall">32</label><br>
     圈風:<label id="round_wind"></label> | 莊家:<label id="dealer_wind"></label> | 連莊:<label id="dealer_num"></label><br>
-    出牌者:<label id="discard_wind"></label> | 出牌:<label id="discard_tile"></label><br>
-  <table id="player" hidden>
-  <!-- <table id="player"> -->
+    出牌者:<label id="discard_wind"></label> | 出牌:<label id="discard_tile"></label>
+    <label id="tips" style="display: none;"> | 聽牌:<span id="tip_tiles">2D</span></label>
+  <!-- <table id="player" hidden> -->
+  <table id="player">
     <tr>
       <th>座位</th><th>名稱</th><th>頭像</th><th>金幣</th>
     </tr>
@@ -548,7 +549,6 @@
         <td>north</td><td></td><td></td><td>0</td>
     </tr>
   </table>
-  <div id="tips" style="display: none;">聽牌:<span id="tip_tiles"></div>
   <table id="Tiles">
       <tr id="pick_up">
         <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td id="gap"></td><td></td>
