@@ -447,6 +447,8 @@ class Player(Thread):
             try:
                 NewTile = self.DeckRef.DrawDeadWallTile()
                 if NewTile == None:
+                    self.LastDraw = None
+                    PrintLog("!!! 錯誤：牌牆區已空，無法補牌。遊戲將流局。")
                     return False
                 self.LastDraw = NewTile
 

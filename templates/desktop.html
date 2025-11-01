@@ -375,12 +375,15 @@
             $('#other_discard tr:eq(5)').attr("id", wind + '_discard');
             break;
           case 'join_game':
-            $('#wait').text(msg.data["join_game"]["wait_num"]);
+            $('#wait_num').text(msg.data["join_game"]["wait_num"]);
             break;
           case 'game_state':
-            // {'game_state': {'round_wind': 'east', 'dealer_wind': 'east', 'current_player': 'east', 'dealer_num': 0, 'dice_score': [2, 6, 3]}}
+            // {'game_state': {'round_wind': 'east', 'dealer_wind': 'east', 'current_player': 'east', 'dealer_num': 0, 'dice_score': [2, 6, 3], 'money':[3000, 3000, 3000, 3000]}}
             state = msg.data["game_state"];
             $('#dice_score').text(state["dice_score"].join(", "));
+            $('#round_wind').text(state["round_wind"]);
+            $('#dealer_wind').text(state["dealer_wind"]);
+            $('#dealer_num').text(state["dealer_num"]);
             $('#message').text(getName(state["current_player"]) + " 進行中")
             money = state["money"]
             for (const i in money)
@@ -515,14 +518,13 @@
 </script>
 
 <body>
-  等待人數:<label id="wait"></label><br>
+  等待人數:<label id="wait_num"></label><br>
   <!-- 玩家頭像:<label id="avatar"></label>  -->
-  玩家名稱:<label id="name"></label>
-  座位:<label id="seat"></label><br>
-  骰子:<label id="dice_score"></label><br>
-  剩餘牌張:<label id="wall"></label><br>
-  <!-- <table id="player" hidden> -->
-  <table id="player">
+    玩家名稱:<label id="name">Hello</label> | 座位:<label id="seat">east</label>
+     | 骰子:<label id="dice_score">1,1,1</label> | 剩餘牌張:<label id="wall">32</label><br>
+    圈風:<label id="round_wind"></label> | 莊家:<label id="dealer_wind"></label> | 連莊:<label id="dealer_num"></label><br>
+  <table id="player" hidden>
+  <!-- <table id="player"> -->
     <tr>
       <th>座位</th><th>名稱</th><th>頭像</th><th>金幣</th>
     </tr>

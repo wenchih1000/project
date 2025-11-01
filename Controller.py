@@ -404,6 +404,7 @@ class Controller:
 
                     # B.4. 通知莊家擲骰子
                     case Step.PLAYER_ROLL_DICE_NOTIFY:
+                        self.UpdateGameState()
                         # 通知所有玩家換誰進行活動
                         self.UpdatePlayerState('dice')
 
