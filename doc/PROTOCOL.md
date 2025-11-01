@@ -105,6 +105,9 @@
                 "action":"flower"
             }
         },
+        {
+            "discard_state":{"seat": "east", "tile": "2S"}
+        },
         {   // 通知所有玩家手牌情況
             "notify":"all",
             "hand_tiles":[
@@ -280,7 +283,14 @@
 |:--|:--|:--|:--|
 | notify | str | 通知對象, all:所有玩家 | all, east, south, west, north |
 
-6. 手牌(hand_tiles)JSON參數說明
+6. 出牌狀態(discard_state)JSON參數說明
+
+| 欄位 | 型別 | 說明 | 備註 |
+|:--|:--|:--|:--|
+| seat | str | 玩家座位 | east, south, west, north |
+| tile | str | 打出的牌 |
+
+7. 手牌(hand_tiles)JSON參數說明
 
 | 欄位 | 型別 | 說明 | 備註 |
 |:--|:--|:--|:--|
@@ -289,7 +299,7 @@
 | drawed | str | 玩家摸到的牌 | |
 | wait | list [ str ] | 聽牌清單 | 玩家聽哪些牌 |
 
-7. 外露牌(out_tiles)JSON參數說明
+8. 外露牌(out_tiles)JSON參數說明
 
 | 欄位 | 型別 | 說明 | 備註 |
 |:--|:--|:--|:--|
@@ -299,7 +309,7 @@
 | flower | list  [ str ] | 玩家花牌 |  |
 | discard | list [ str ] | 玩家棄牌 | 玩家丟棄在牌桌上的牌 |
 
-8. 胡牌(hu_tiles)JSON參數說明
+9. 胡牌(hu_tiles)JSON參數說明
 
 | 欄位 | 型別 | 說明 | 備註 |
 |:--|:--|:--|:--|
@@ -312,7 +322,7 @@
 | hide | list [ list [ str ] ] | 玩家暗槓 | 玩家暗槓的搭組 |
 | flower | list  [ str ] | 玩家花牌 |  |
 
-9. 牌的字串格式
+10. 牌的字串格式
 
 | 字串 | 牌名 | 備註 |  
 |:--|:--|:--|  

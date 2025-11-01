@@ -279,6 +279,15 @@ class Controller:
         }
         self.Notify(data)
 
+    def UpdateDiscardState(self):
+        data = {
+            "discard_state":{
+                "seat": self.ActiveWind.name.lower(),
+                "tile": str(self.DeckRef.LastDiscard)
+            }
+        }
+        self.Notify(data)
+
     def UpdateScoreResult(self, result:list[ScoreName], score:int):
         player = self.Players[self.ActiveWind]
         hand = Tile.List2StrList(player.Hand)
@@ -719,6 +728,7 @@ class Controller:
                             player.PassHu = False
 
                         # 通知所有玩家，當前玩家打出的牌
+                        self.UpdateDiscardState()
                         for w in self.ActiveWind.Other():
                             hand = self.GetOutHandDict(self.ActiveWind, notify=w, showhide=False)
                             self.Notify(hand)

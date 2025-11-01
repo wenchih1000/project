@@ -402,6 +402,12 @@
             data = {'ok':"", 'wall_empty':"牌牆區已空", 'dead_wall_empty':"補牌區已空", 'draw_win':"自摸", 'discard_win':"放槍"}
             $('#message').text(data[result["result"]])
             break;
+          case 'discard_state':
+            // "discard_state":{"seat": "east", "tile": "2S"}
+            state = msg.data["discard_state"];
+            $('#discard_wind').text(state["seat"])
+            $('#discard_tile').text(state["tile"])
+            break;
           case 'player_state':
             // "player_state":{"whoes_turn":"north","action":"drawing"}
             state = msg.data["player_state"];
@@ -523,6 +529,7 @@
     玩家名稱:<label id="name">Hello</label> | 座位:<label id="seat">east</label>
      | 骰子:<label id="dice_score">1,1,1</label> | 剩餘牌張:<label id="wall">32</label><br>
     圈風:<label id="round_wind"></label> | 莊家:<label id="dealer_wind"></label> | 連莊:<label id="dealer_num"></label><br>
+    出牌者:<label id="discard_wind"></label> | 出牌:<label id="discard_tile"></label><br>
   <table id="player" hidden>
   <!-- <table id="player"> -->
     <tr>
