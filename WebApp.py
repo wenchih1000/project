@@ -33,6 +33,7 @@ class Web:
         self.app.config['SECRET_KEY'] = 'SINBON'
         self.app.route('/')(self.index)
         self.app.route('/desktop', methods=['POST'])(self.desktop)
+        self.app.route('/exit', methods=['GET'])(self.stop)
 
         self.socketio = SocketIO(self.app, async_mode='threading', cors_allowed_origins='*')
         self.socketio.on_event('connect', self.OnConnect, namespace='/update')
@@ -96,13 +97,6 @@ class Web:
                     info[key] = val['name']
                 self.ctrl.StartGame(info)
                 self.ClientFullEvent.clear()
-
-    def Stop(self):
-        self.Exit = True
-        try:
-            self.socketio.stop()
-        except:
-            PrintLog('End WebApp')
 
     #
     # message deliver function
@@ -191,8 +185,30 @@ class Web:
             return render_template('index.html')
 
         PrintLog(f'received: {self.name}, {self.avatar}')
-
         return render_template('desktop.html')
+
+    def stop(self):
+        key = request.headers.get('api-key')
+        if key == None or key != 'admin':
+            return '{"code":404, "msg":"Unauthorized"}'
+
+        self.Exit = True
+        try:
+            self.ClientDisconnect()
+            self.ctrl.SetExit()
+            self.socketio.stop()
+        except:
+            # kill process
+            self.ShutdownServer()
+
+        return "Server shutting down..."
+
+    def ShutdownServer(self):
+        import os,signal
+        """Helper function for shutdown route"""
+        PrintLog("Shutting down Flask server...")
+        pid = os.getpid()
+        os.kill(pid, signal.SIGINT)
 
     #
     # socketio event function
@@ -284,10 +300,10 @@ def StartWebApp():
     ctrl = Controller()
     web.SetController(ctrl)
 
-    webapp_thread = Thread(target=web.RunWebApp())
-    webapp_thread.daemon = True
+    webapp_thread = Thread(target=web.RunWebApp)
     webapp_thread.start()
-    web.Stop()
+    webapp_thread.join()
+    PrintLog("Server has been shut down.")
 
 if __name__ == '__main__':
     StartWebApp()

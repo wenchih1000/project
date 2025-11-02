@@ -1081,6 +1081,10 @@ class Controller:
                 return w.name.lower()
         return ''
 
+    def SetExit(self):
+        self.Exit = True
+        self.StepWorker.join()
+
     def SetStop(self):
         self.IsStart = False
         self.ResetGame()

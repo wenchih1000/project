@@ -118,7 +118,8 @@ class MELD(Enum):
 class TileAlias:
     DigiList:tuple = ('1', '2', '3', '4', '5', '6', '7', '8', '9')
     NumList:tuple = ('一', '二', '三', '四', '五', '六', '七', '八', '九')
-    CharList:tuple = ('萬', '筒', '索')
+    CharList:tuple = ('萬', '筒', '條')
+    CharList2:tuple = ('萬', '餅', '索')
     HonorList:tuple = ('東', '南', '西', '北', '中', '發', '白')
     HonorList2:tuple = ('東風', '南風', '西風', '北風', '紅中', '青發', '白板')
     FlowerList:tuple = ('梅', '蘭', '竹', '菊', '春', '夏', '秋', '冬')
