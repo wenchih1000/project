@@ -187,11 +187,10 @@
     });
     $("#pong").click(function() {
       // pick tiles to discard
-      var tiles = tableTiles();
-      if(tiles.length != 2)
-        return false;
+      // var tiles = tableTiles();
+
       DisableActionButton();
-      data = {"player":$('#seat').text(), "action":"pong", "tiles":tiles}
+      data = {"player":$('#seat').text(), "action":"pong", "tiles":[]}
       socket.emit('message', data);
       console.log(data);
       clearTiles('top');
@@ -227,7 +226,7 @@
     $("#discard").click(function() {
       // pick tiles to discard
       var tiles = tableTiles();
-      if(tiles.length != 1)
+      if(tiles.length > 1)
         return false;
       DisableActionButton();
       data = {"player":$('#seat').text(), "action":"discard", "tiles":tiles}
@@ -246,12 +245,7 @@
 
     // bottom row of tiles table
     $("#Tiles tr:eq(1) td").each(function() {
-      // console.log("click"+$(this).html());
       this.addEventListener("click", function() { 
-        // 'this' refers to the clicked cell
-        // const text = this.textContent;
-        // console.log(this.cellIndex);
-
         // move tile to top/bottom row
         if(this.textContent == "") {
           tmp = $("#Tiles tr:eq(0) td:eq("+this.cellIndex+")").text();
@@ -261,7 +255,6 @@
           $("#Tiles tr:eq(0) td:eq("+this.cellIndex+")").text(this.textContent);
           this.textContent = "";
         }
-
       });
     });
 
@@ -433,10 +426,14 @@
             break;
           case 'action_state':
             state = msg.data['action_state'];
-            //{'dice': False, 'drawing': False, 'discard': True, 'hu': False, 'kong': False, 'pong': False, 'chow': False, 'pass': False}
+            //{'dice': False, 'drawing': False, 'discard': True, 'hu': False, 'kong': False, 'pong': False, 'chow': False, 'pass': False, 'fail': False'}
             for(const btn in state)
             { 
-              if(state[btn] == true)
+              if(btn == 'fail' && state[btn] == true)
+              {
+                $("#message").text("操作失敗");
+              }
+              else if(state[btn] == true)
               {
                 $("#"+btn).prop('disabled', false);
               } else {

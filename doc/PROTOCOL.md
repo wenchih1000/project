@@ -88,7 +88,8 @@
             "notify":"east",
             "action_state":{
                 "dice":false, "drawing":false, "discard":false,
-                "hu":false, "kong":false, "pong":false, "chow":false, "pass":false
+                "hu":false, "kong":false, "pong":false, "chow":false, "pass":false,
+                "fail":false
             }
         },
         {   // 通知所有玩家, 當前玩家活動在做什麼動作
@@ -269,6 +270,7 @@
 | pong | bool | 碰牌  | false:按鈕disable, true:按鈕enable |
 | chow | bool | 吃牌  | false:按鈕disable, true:按鈕enable |
 | pass | bool | 過牌  | false:按鈕disable, true:按鈕enable |
+| fail | bool | 失敗  | false:chow/pong/kong 牌組錯誤，需重選牌組 |
 
 4. 玩家狀態(player_state)JSON參數說明
 

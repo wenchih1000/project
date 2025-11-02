@@ -72,6 +72,10 @@ class Web:
                 if 'notify' in talk:
                     if talk['notify'] != 'all':
                         cid = self.ClientId(talk['notify'])
+                    # update hand tiles when player action fail.
+                    if 'action_state' in talk and talk['action_state']['fail']:
+                        data = {'player':talk['notify'],'action':'get_hand'}
+                        self.OnMessage(data)
 
                 elif 'player_seat' in talk:
                     for key,val in talk['player_seat'].items():

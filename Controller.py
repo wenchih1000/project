@@ -61,7 +61,8 @@ class Controller:
     Exit:bool = False
     State = {
         "dice":False, "drawing":False, "discard":False,
-        "hu":False, "kong":False, "pong":False, "chow":False, "pass":False
+        "hu":False, "kong":False, "pong":False, "chow":False, "pass":False,
+        "fail":False
     }
     ActionState:dict[WIND, dict] = {}
     Pass:dict[WIND, bool] = {}
@@ -578,6 +579,13 @@ class Controller:
                                 self.DeckRef.LastAddKong = tile
                                 self.DeckRef.LastWind = self.ActiveWind
 
+                        # 玩家選牌錯誤，重新選牌
+                        if kong == None:
+                            state = self.ActionState[self.ActiveWind]
+                            state['fail'] = True
+                            self.UpdateActionState(state)
+                            continue
+
                         player.LastKong = kong
                         player.Notify()
                         player.Wait()
@@ -634,13 +642,25 @@ class Controller:
                         tiles = msg['tiles']
                         player = self.Players[self.ActiveWind]
                         player.Actions = Action.CHOW
-                        # 吃上家的牌放 self.DeckRef.LastDiscard
-                        desired = Pair(Tile.Str2Tile(tiles[0]), Tile.Str2Tile(tiles[1]))
-                        pairs = Rule.GetChowTile(self.DeckRef.LastDiscard)
-                        for pair in pairs:
-                            if pair == desired:
-                                player.LastChows.extend(pair.ToList())
-                                break
+
+                        state = self.ActionState[self.ActiveWind]
+                        ActionErr = False
+                        if len(tiles) == MELD.CHOW_LEN.value-1:
+                            # 吃上家的牌放 self.DeckRef.LastDiscard
+                            desired = Pair(Tile.Str2Tile(tiles[0]), Tile.Str2Tile(tiles[1]))
+                            pairs = Rule.GetChowTile(self.DeckRef.LastDiscard)
+                            if desired in pairs:
+                                player.LastChows.extend(desired.ToList())
+                            else:
+                                ActionErr = True
+                        else:
+                            ActionErr = True
+
+                        # 玩家選牌錯誤，重新選牌
+                        if ActionErr:
+                            state['fail'] = True
+                            self.UpdateActionState(state)
+                            continue
 
                         player.Notify()
                         player.Wait()
@@ -715,10 +735,13 @@ class Controller:
                     case Step.PLAYER_DISCARD:
                         # {'player': 'east', 'action': 'discard', 'tiles': ['2S']}
                         msg = self.Msg.pop()
-                        tile = msg['tiles'].pop()
+                        tiles = msg['tiles']
                         player = self.Players[self.ActiveWind]
                         player.Actions = Action.DISCARD
-                        player.LastDiscard = Tile.Str2Tile(tile)
+                        if len(tiles) == 0:
+                            player.LastDiscard = player.LastDraw
+                        else:
+                            player.LastDiscard = Tile.Str2Tile(tiles[0])
                         player.Notify()
                         player.Wait()
                         player.LastDiscard = None
