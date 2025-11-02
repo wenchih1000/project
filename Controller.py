@@ -739,7 +739,10 @@ class Controller:
                         player = self.Players[self.ActiveWind]
                         player.Actions = Action.DISCARD
                         if len(tiles) == 0:
-                            player.LastDiscard = player.LastDraw
+                            if player.LastDraw != None:
+                                player.LastDiscard = player.LastDraw
+                            else:
+                                player.LastDiscard = player.Hand[-1]
                         else:
                             player.LastDiscard = Tile.Str2Tile(tiles[0])
                         player.Notify()
