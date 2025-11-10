@@ -1183,13 +1183,16 @@ class Controller:
             self.Notify(hand)
 
     def NextHand(self) -> Step:
-        player = self.Players[self.DealerWind]
-
         # 臭莊
         if self.IsDrawGame:
             self.DealerNum += 1
             self.IsDrawGame = False
+            # 下局從莊家開始
+            self.ActiveWind = self.DealerWind
             return Step.END_HAND
+
+        # pick up win player
+        player = self.Players[self.ActiveWind]
 
         # count next the round wind and wind seat
         # D.1.* 若是莊家胡牌則連莊次數+1，否則連莊次數歸零
