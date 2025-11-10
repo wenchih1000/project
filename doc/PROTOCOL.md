@@ -106,7 +106,10 @@
                 "action":"flower"
             }
         },
-        {
+        {   // 通知所有玩家, 當前骼子點數
+            "dice_state":[1,1,1]
+        },
+        {   // 通知所有玩家, 當前玩家出什麼牌
             "discard_state":{"seat": "east", "tile": "2S"}
         },
         {   // 通知所有玩家手牌情況
@@ -138,12 +141,35 @@
             "notify":"east",
             "hand_tiles":[
                 {
+                    "seat":"east",
                     "hand":["1C", "2C", "3C", "3D", "4D", "5D", "6D", "7D", "8D", "1A"],
                     "drawed":"3A",
                     "wait":["1A"] // 聽牌中，單聽1A
                 }
             ]
-        }
+        },
+        {   // 通知活動玩家，其他3家手牌情況(以蓋牌表示)
+            "notify":"east", 
+            "hand_tiles":[
+                {
+                    "seat":"south",// 其他3家
+                    "hand":["1X", "1X", "1X", "1X", "1X", "1X", "1X", "1X", "1X"],
+                    "drawed":"1X", // 東家摸牌中
+                    "wait":[""]
+                }
+            ]
+        },
+        {   // 通知非活動3家，自家手牌情況(以蓋牌表示)
+            "notify":"south", // 其他3家
+            "hand_tiles":[
+                {
+                    "seat":"east", // 自家
+                    "hand":["1X", "1X", "1X", "1X", "1X", "1X", "1X", "1X", "1X"],
+                    "drawed":"1X", // 東家摸牌中
+                    "wait":[""]
+                }
+            ]
+        },
         {   // 通知所有玩家外露牌情況, 在hide欄位1X代表蓋牌, 不讓其他玩家知道是蓋什麼牌
             "notify":"all",
             "out_tiles":[
@@ -181,6 +207,7 @@
             "notify":"east",
             "out_tiles":[
                 {
+                    "seat":"east",
                     "meld":[],
                     "hide":[["9C","1X","1X","1X"], ["1W","1X","1X","1X"]],
                     "flower":["1G", "3G"],
@@ -195,7 +222,7 @@
                     "seat":"north",
                     "discard_seat":"",
                     "hand":["3D", "4D", "5D", "6D", "7D", "8D", "3A"],
-                    "drawed_win":"3A",
+                    "draw_win":"3A",
                     "discard_win":"",
                     "rob_win":"",
                     "meld":[["1C", "2C", "3C"]],
@@ -211,7 +238,7 @@
                     "seat":"north",
                     "discard_seat":"east",
                     "hand":["3D", "4D", "5D", "6D", "7D", "8D", "1A"],
-                    "drawed_win":"",
+                    "draw_win":"",
                     "discard_win":"1A",
                     "rob_win":"",
                     "meld":[["1C", "2C", "3C"]],
@@ -227,7 +254,7 @@
                     "seat":"north",
                     "discard_seat":"east",
                     "hand":["3D", "4D", "5D", "6D", "7D", "8D", "1A"],
-                    "drawed_win":"",
+                    "draw_win":"",
                     "discard_win":"",
                     "rob_win":"1A",
                     "meld":[["1C", "2C", "3C"]],
@@ -285,14 +312,20 @@
 |:--|:--|:--|:--|
 | notify | str | 通知對象, all:所有玩家 | all, east, south, west, north |
 
-6. 出牌狀態(discard_state)JSON參數說明
+6. 骰子點數(dice_state)JSON參數說明
+
+| 欄位 | 型別 | 說明 | 備註 |
+|:--|:--|:--|:--|
+| dice_state | list [ int ] | 莊家擲骰子點數 | 共3顆骰子:3~18點 |
+
+7. 出牌狀態(discard_state)JSON參數說明
 
 | 欄位 | 型別 | 說明 | 備註 |
 |:--|:--|:--|:--|
 | seat | str | 玩家座位 | east, south, west, north |
 | tile | str | 打出的牌 |
 
-7. 手牌(hand_tiles)JSON參數說明
+8. 手牌(hand_tiles)JSON參數說明
 
 | 欄位 | 型別 | 說明 | 備註 |
 |:--|:--|:--|:--|
@@ -301,7 +334,7 @@
 | drawed | str | 玩家摸到的牌 | |
 | wait | list [ str ] | 聽牌清單 | 玩家聽哪些牌 |
 
-8. 外露牌(out_tiles)JSON參數說明
+9. 外露牌(out_tiles)JSON參數說明
 
 | 欄位 | 型別 | 說明 | 備註 |
 |:--|:--|:--|:--|
@@ -311,20 +344,20 @@
 | flower | list  [ str ] | 玩家花牌 |  |
 | discard | list [ str ] | 玩家棄牌 | 玩家丟棄在牌桌上的牌 |
 
-9. 胡牌(hu_tiles)JSON參數說明
+10. 胡牌(hu_tiles)JSON參數說明
 
 | 欄位 | 型別 | 說明 | 備註 |
 |:--|:--|:--|:--|
 | seat | str | 胡牌玩家座位 | east, south, west, north |
 | discard_seat | str | 放槍玩家座位 | east, south, west, north |
 | hand | list [ str ] | 玩家手牌 | 玩家手上的牌 |
-| drawed_win | str | 玩家自摸 | 玩家自已摸到的牌 |
+| draw_win | str | 玩家自摸 | 玩家自已摸到的牌 |
 | discard_win | str | 閒家放槍 | 閒家丟棄在牌桌上的牌 |
 | meld | list [ list [ str ] ] | 玩家的搭子 | 玩家外露的搭(吃/碰/槓) |
 | hide | list [ list [ str ] ] | 玩家暗槓 | 玩家暗槓的搭組 |
 | flower | list  [ str ] | 玩家花牌 |  |
 
-10. 牌的字串格式
+11. 牌的字串格式
 
 | 字串 | 牌名 | 備註 |  
 |:--|:--|:--|  
@@ -413,11 +446,15 @@
     // 胡牌
     {
         "score_result":{
-            "player":"south",
-            "hand":["3C", "4C", "5C", "3S", "4S", "5S", "6S", "7S", "8S", "4W", "4W", "4W", "2A", "2A", "2A", "1A", "1A"],
+            "seat":"south",     // 胡牌玩家座位
+            "hand":["3C", "4C", "5C", "3S", "4S", "5S", "6S", "7S", "8S", "4W", "4W", "4W", "2A", "2A", "2A", "1A"],
             "meld":[["1C", "2C", "3C"]],
             "hide":[["9C","1X","1X","1X"], ["1W","1X","1X","1X"]],
             "flower":["1G", "3G"],
+            "discard_seat":"",  // 放槍玩家座位
+            "draw_win":"1A",    // 自摸胡牌
+            "discard_win":"",   // 放槍胡牌
+            "rob_win":"",       // 搶槓胡牌
             "round_wind":"east",
             "dealer_wind":"east",
             "win_type":"draw_win",
@@ -491,11 +528,15 @@
 
 | 欄位 | 型別 | 說明 | 備註 |
 |:--|:--|:--|:--|
-| player | str | 胡牌玩家 | east, south, west, north |
+| seat | str | 胡牌玩家座位 | east, south, west, north |
 | hand | list [ str ] | 手牌 | 玩家胡的牌型 |
 | meld | list [ list [ str ] ] | 玩家的搭子 | 玩家外露的搭(吃/碰/槓) |
 | hide | list [ list [ str ] ] | 玩家暗槓 | 玩家暗槓的搭組 |
 | flower | list  [ str ] | 玩家花牌 |  |
+| discard_seat | str | 放槍玩家座位 | east, south, west, north |
+| draw_win | str | 玩家自摸胡牌 | 玩家自已摸到的牌 |
+| discard_win | str | 閒家放槍胡牌 | 閒家丟棄在牌桌上的牌 |
+| rob_win | str | 閒家搶槓胡牌 | 閒家搶槓的牌 |
 | round_wind | str | 局風位 | east, south, west, north |
 | dealer_wind | str | 莊家風位 | east, south, west, north |
 | win_type | str | 胡牌牌型 | draw_win(自摸), discard_win(放槍), rob_win(搶槓胡) |

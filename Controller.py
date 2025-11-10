@@ -125,6 +125,7 @@ class Controller:
         hand = {
             "notify":target,
             "hand_tiles":[{
+                "seat":player.Wind.name.lower(),
                 "hand":tiles,
                 "drawed":'' if player.LastDraw == None else str(player.LastDraw),
                 "wait":wait
@@ -139,16 +140,27 @@ class Controller:
         }
         return hand
 
-    def GetHandDict(self, wind:WIND) -> dict:
+    def GetHandDict(self, wind:WIND, notify:WIND = None, show:bool = True) -> dict:
+        #
+        # if notify=None, denote notify for 'all'
+        # show, denote show the tile name. otherwise, show hide name.
+        #
         player = self.Players[wind]
-        tiles = Tile.List2StrList(player.Hand)
-        wait = Tile.List2StrList(Rule.FindAllWaits(player.Hand))
+        target = 'all' if notify == None else notify.name.lower()
+        tiles = Tile.List2StrList(player.Hand, show)
+        wait = []
+        if show:
+            wait = Tile.List2StrList(Rule.FindAllWaits(player.Hand), show)
+        draw = ''
+        if player.LastDraw != None:
+            draw = (player.LastDraw.HideName,str(player.LastDraw))[show]
 
         hand = {
-            "notify":player.Wind.name.lower(),
+            "notify":target,
             "hand_tiles":[{
+                "seat":player.Wind.name.lower(),
                 "hand":tiles,
-                "drawed":'' if player.LastDraw == None else str(player.LastDraw),
+                "drawed":draw,
                 "wait":wait
             }]
         }
@@ -202,7 +214,7 @@ class Controller:
                 "discard_seat":DiscardSeat,
                 "hand":tiles,
                 # 自摸
-                "drawed_win":DrawedWin,
+                "draw_win":DrawedWin,
                 # 放槍
                 "discard_win":DiscardWin,
                 # 搶槓胡
@@ -280,6 +292,12 @@ class Controller:
         }
         self.Notify(data)
 
+    def UpdateDiceState(self):
+        data = {
+            "dice_state":self.DeckRef.Dice
+        }
+        self.Notify(data)
+
     def UpdateDiscardState(self):
         data = {
             "discard_state":{
@@ -290,30 +308,21 @@ class Controller:
         self.Notify(data)
 
     def UpdateScoreResult(self, result:list[ScoreName], score:int):
-        player = self.Players[self.ActiveWind]
-        hand = Tile.List2StrList(player.Hand)
-        flower = Tile.List2StrList(player.Flowers)
-        meld, hide = Meld.List2StrList(player.Melds)
+        data = self.GetHuTilesDict(self.ActiveWind)['hu_tiles'][0].copy()
         win = self.GetHuName()
-
         info = []
         for tai in result:
             info.append({"name":tai.Name, "value":tai.Score})
 
+        data["round_wind"] = self.RoundWind.name.lower()
+        data["dealer_wind"] = self.DealerWind.name.lower()
+        data["dealer_num"] = self.DealerNum
+        data["win_type"] = win
+        data["score_list"] = info
+        data["total_score"] = score
+
         state = {
-            "score_result":{
-                "player":self.ActiveWind.name.lower(),
-                "hand":hand,
-                "meld":meld,
-                "hide":hide,
-                "flower":flower,
-                "round_wind":self.RoundWind.name.lower(),
-                "dealer_wind":self.DealerWind.name.lower(),
-                "win_type":win,
-                "dealer_num":self.DealerNum,
-                "score_list":info,
-                "total_score":score
-            }
+            "score_result":data
         }
         self.Notify(state)
 
@@ -337,6 +346,7 @@ class Controller:
         }
         self.Notify(state)
 
+    def UpdateDrawGameCashResult(self):
         after, before, lose = [], [], []
         for w in WIND:
             after.append(self.Players[w].Money)
@@ -492,8 +502,9 @@ class Controller:
                         player.Notify()
                         player.Wait()
 
-                        self.UpdateGameState()
-                        PrintLog("state:" + str(state))
+                        # self.UpdateGameState()
+                        self.UpdateDiceState()
+                        # PrintLog("state:" + str(state))
                         self.DelayRunAction(3, Step.START_HAND)
 
                     # D 1.胡牌流程
@@ -717,9 +728,13 @@ class Controller:
                             hand = self.GetOutHandDict(self.ActiveWind, self.ActiveWind)
                             self.Notify(hand)
 
-                        hand = self.GetHandDict(self.ActiveWind)
+                        hand = self.GetHandDict(self.ActiveWind, self.ActiveWind)
                         # 通知玩家摸到的牌
                         self.Notify(hand)
+                        # 通知其他玩家，當前玩家的摸到手牌(以蓋牌方式)
+                        for w in self.ActiveWind.Other():
+                            hand = self.GetHandDict(self.ActiveWind, notify=w, show=False)
+                            self.Notify(hand)
 
                         # 檢查手牌狀態(滿17張,16張手牌+摸1張牌) 胡牌/槓牌/出牌
                         self.CheckHandState()
@@ -763,6 +778,11 @@ class Controller:
                         hand = self.GetHandAndOutHandDict(self.ActiveWind, self.ActiveWind)
                         self.Notify(hand)
 
+                        # 通知其他玩家，當前玩家的打出手牌(以蓋牌方式)
+                        for w in self.ActiveWind.Other():
+                            hand = self.GetHandDict(self.ActiveWind, notify=w, show=False)
+                            self.Notify(hand)
+
                         self.OldWind = None
                         self.StepAction = Step.DECIDE_WHOSE_TURN
                         self.StepEvent.set()
@@ -797,11 +817,11 @@ class Controller:
                         # * 通知玩家結果
                         ret = self.CalculateScore()
                         self.Score.extend(ret)
-                        self.StepAction = Step.CALCULATE_CASH
-                        self.StepEvent.set()
+                        # self.StepAction = Step.CALCULATE_CASH
+                        # self.StepEvent.set()
 
                         # delay to show message
-                        # self.DelayRunAction(5, Step.CALCULATE_CASH)
+                        self.DelayRunAction(5, Step.CALCULATE_CASH)
 
                     # D 1.* 結算金額
                     case Step.CALCULATE_CASH:
@@ -819,7 +839,7 @@ class Controller:
                         self.IsDrawGame = True
                         self.UpdateDrawGameResult()
                         # delay to show message
-                        self.DelayRunAction(5, Step.END_HAND)
+                        self.DelayRunAction(5, Step.CALCULATE_CASH)
 
                     # 一局結束 (One Hand)
                     case Step.END_HAND:
@@ -994,6 +1014,10 @@ class Controller:
         return (total1, total2)
 
     def CalculateCash(self):
+        if self.IsDrawGame:
+            self.UpdateDrawGameCashResult()
+            return
+
         # self.Score
         # score[0]:共同台, score[1]:莊家台
         base, tai = TaiScore.BaseCash, TaiScore.TaiCash
@@ -1143,8 +1167,12 @@ class Controller:
 
         # B.7. 通知玩家開局手牌/外露牌
         for player in self.Players.values():
-            hand = self.GetHandDict(player.Wind)
+            hand = self.GetHandDict(player.Wind, player.Wind)
             self.Notify(hand)
+            # 通知當前玩家，其他玩家的手牌(以蓋牌方式)
+            for w in player.Wind.Other():
+                hand = self.GetHandDict(w, notify=player.Wind, show=False)
+                self.Notify(hand)
 
             # 外露牌
             hand = self.GetOutHandDict(player.Wind, player.Wind)
@@ -1155,7 +1183,7 @@ class Controller:
             self.Notify(hand)
 
     def NextHand(self) -> Step:
-        player = self.Players[self.ActiveWind]
+        player = self.Players[self.DealerWind]
 
         # 臭莊
         if self.IsDrawGame:
@@ -1399,8 +1427,12 @@ class Controller:
                     # for client reconnect to get hand tiles
                     for w in WIND:
                         if w.name.lower() == msg['player']:
-                            hand = self.GetHandDict(w)
+                            hand = self.GetHandDict(w, w)
                             self.Notify(hand)
+                            # 通知當前玩家，其他玩家的手牌(以蓋牌方式)
+                            for other in w.Other():
+                                hand = self.GetHandDict(other, notify=w, show=False)
+                                self.Notify(hand)
                             break
 
 if __name__ == '__main__':

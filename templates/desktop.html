@@ -373,7 +373,7 @@
           case 'game_state':
             // {'game_state': {'round_wind': 'east', 'dealer_wind': 'east', 'current_player': 'east', 'dealer_num': 0, 'dice_score': [2, 6, 3], 'money':[3000, 3000, 3000, 3000]}}
             state = msg.data["game_state"];
-            $('#dice_score').text(state["dice_score"].join(", "));
+            // $('#dice_score').text(state["dice_score"].join(", "));
             $('#round_wind').text(state["round_wind"]);
             $('#dealer_wind').text(state["dealer_wind"]);
             $('#dealer_num').text(state["dealer_num"]);
@@ -394,6 +394,10 @@
             // ok, wall_empty, dead_wall_empty, draw_win, discard_win
             data = {'ok':"", 'wall_empty':"牌牆區已空", 'dead_wall_empty':"補牌區已空", 'draw_win':"自摸", 'discard_win':"放槍"}
             $('#message').text(data[result["result"]])
+            break;
+          case 'dice_state':
+            state = msg.data["dice_state"];
+            $('#dice_score').text(state.join(", "));
             break;
           case 'discard_state':
             // "discard_state":{"seat": "east", "tile": "2S"}
@@ -442,29 +446,32 @@
             }
             break;
           case 'hand_tiles':
-            clearTiles('top');
-            clearTiles('bottom');
             // update hand tiles to Tiles table
-            hand = msg.data['hand_tiles'][0]['hand'];
-            console.log("hand size:" + hand.length);
-            for (const i in hand)
+            data = msg.data['hand_tiles'][0];
+            console.log("hand size:" + data.hand.length);
+            if(data.seat == $('#seat').text())
             {
-              $("#Tiles tr:eq(1) td:eq("+i+")").text(hand[i]);
-            }
-            // update drawed tile to drawed cell
-            drawed = msg.data['hand_tiles'][0]['drawed'];
-            $("#Tiles tr:eq(1) td:eq(17)").text(drawed);
-            // update wait tile to tips div
-            wait = msg.data['hand_tiles'][0]['wait'];
-            if(wait.length > 0)
-            {
-              $("#tips").attr("style", "display: inline-block;");
-              $("#tip_tiles").text(wait.join(", "));
-            }
-            else
-            {
-              $("#tips").attr("style", "display: none;");
-              $("#tip_tiles").text("");
+              clearTiles('top');
+              clearTiles('bottom');
+              for (const i in data.hand)
+              {
+                $("#Tiles tr:eq(1) td:eq("+i+")").text(data.hand[i]);
+              }
+              // update drawed tile to drawed cell
+              // drawed = msg.data['hand_tiles'][0]['drawed'];
+              $("#Tiles tr:eq(1) td:eq(17)").text(data.drawed);
+              // update wait tile to tips div
+              // wait = msg.data['hand_tiles'][0]['wait'];
+              if(data.wait.length > 0)
+              {
+                $("#tips").attr("style", "display: inline-block;");
+                $("#tip_tiles").text(data.wait.join(", "));
+              }
+              else
+              {
+                $("#tips").attr("style", "display: none;");
+                $("#tip_tiles").text("");
+              }
             }
             break;
           case 'out_tiles':
